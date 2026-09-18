@@ -36,17 +36,11 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|unique:users,phone',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'business_name' => 'required|string|max:255',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'account_type' => 'required|in:factory,buyer',
-            'business_name' => 'nullable|string|max:255',
-            'district' => 'nullable|string|max:100',
-            'nid_number' => 'nullable|string|max:50',
-            'trade_license_no' => 'nullable|string|max:100',
-            'tin_no' => 'nullable|string|max:100',
-            'bin_no' => 'nullable|string|max:100',
         ]);
 
-        $prefix = $request->account_type === 'factory' ? 'S' : 'B';
+        $prefix = 'S';
         $customerId = $prefix.date('Y').str_pad((string) (User::count() + 101), 4, '0', STR_PAD_LEFT);
 
         $user = User::create([
@@ -54,29 +48,23 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'phone' => $request->phone,
             'email' => $request->email,
-            'account_type' => $request->account_type,
-            'nid_number' => $request->nid_number,
+            'account_type' => 'factory',
             'status' => 'active',
             'is_subscribed' => false,
             'password' => Hash::make($request->password),
         ]);
 
-        if ($request->account_type === 'factory' && $request->filled('business_name')) {
-            Factory::create([
-                'user_id' => $user->id,
-                'business_name' => $request->business_name,
-                'industry_type' => 'Apparel & Garments',
-                'contact_person' => $request->name,
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'district' => $request->district ?? 'Gazipur',
-                'trade_license_no' => $request->trade_license_no,
-                'tin_no' => $request->tin_no,
-                'bin_no' => $request->bin_no,
-                'is_verified' => false,
-                'rating' => 5.0,
-            ]);
-        }
+        Factory::create([
+            'user_id' => $user->id,
+            'business_name' => $request->business_name,
+            'industry_type' => 'Apparel & Garments',
+            'contact_person' => $request->name,
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'district' => 'Gazipur',
+            'is_verified' => false,
+            'rating' => 5.0,
+        ]);
 
         event(new Registered($user));
 

@@ -22,16 +22,13 @@ class FeedController extends Controller
             'quotations' => function ($q) {
                 $q->select('id', 'subcontract_post_id', 'offered_unit_price', 'offered_lead_days');
             },
-        ])->latest();
+        ])
+        ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
+        ->latest();
 
         // Filter by category
         if ($request->filled('category') && $request->input('category') !== 'all') {
             $query->where('category', $request->input('category'));
-        }
-
-        // Filter by post type (DEMAND = Need Subcontract, SUPPLY = Available Capacity)
-        if ($request->filled('post_type') && in_array($request->input('post_type'), ['DEMAND', 'SUPPLY'])) {
-            $query->where('post_type', $request->input('post_type'));
         }
 
         // Filter by district
@@ -57,7 +54,8 @@ class FeedController extends Controller
         $user = $request->user();
         $isSubscribed = $user ? (bool) $user->is_subscribed : false;
 
-        $districts = SubcontractPost::select('district')
+        $districts = SubcontractPost::where('post_type', 'DEMAND')
+            ->select('district')
             ->whereNotNull('district')
             ->distinct()
             ->pluck('district');
@@ -65,7 +63,7 @@ class FeedController extends Controller
         $stats = [
             'total_vendors' => Factory::count(),
             'verified_vendors' => Factory::where('is_verified', true)->count(),
-            'active_orders' => SubcontractPost::where('status', 'open')->count(),
+            'active_orders' => SubcontractPost::where('post_type', 'DEMAND')->where('status', 'open')->count(),
             'total_lines' => Factory::sum('total_lines'),
         ];
 
@@ -73,7 +71,6 @@ class FeedController extends Controller
             'posts' => $posts,
             'filters' => [
                 'category' => $request->input('category', 'all'),
-                'post_type' => $request->input('post_type', 'all'),
                 'district' => $request->input('district', 'all'),
                 'search' => $request->input('search', ''),
             ],

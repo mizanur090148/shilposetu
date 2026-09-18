@@ -133,7 +133,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                     className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm shadow-sm shadow-blue-500/25 hover:shadow transition transform active:scale-95"
                                 >
                                     <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract / Capacity
+                                    Post Subcontract (অর্ডার দিন)
                                 </button>
                             )}
 

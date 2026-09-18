@@ -94,7 +94,7 @@ export default function AuthGateModal({ isOpen, onClose, postTitle, isLoggedIn, 
                                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm shadow-md transition"
                                 >
                                     <UserPlus className="w-4 h-4" />
-                                    Register New Account (Factory / Buyer)
+                                    Register Factory Account (শিল্পসেতু অ্যাকাউন্ট)
                                 </Link>
                                 <Link
                                     href={route('login')}

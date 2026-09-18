@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
-import { LogIn, Lock, Sparkles } from 'lucide-react';
+import { LogIn, Lock } from 'lucide-react';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -17,17 +17,9 @@ export default function Login({ status, canResetPassword }: { status?: string; c
         });
     };
 
-    const fillDemoUser = () => {
-        setData({
-            email: 'rahim@shilposetu.com',
-            password: 'password',
-            remember: true,
-        });
-    };
-
     return (
         <ShilposetuLayout>
-            <Head title="Factory & Buyer Login | Shilposetu" />
+            <Head title="Factory Login | Shilposetu" />
 
             {/* Top Banner */}
             <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 text-white py-8 px-4 border-b border-slate-800">
@@ -37,7 +29,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         Industrial Portal Access
                     </span>
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-                        Welcome Back (লগইন)
+                        Welcome To SHILPOSETU
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-300 max-w-sm mx-auto">
                         Access your factory orders, tech packs, and quotation matrix.
@@ -53,27 +45,16 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         </div>
                     )}
 
-                    {/* Quick Demo Login Preset Button */}
-                    <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-bold text-blue-950 flex items-center gap-1">
-                                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                                Demo Factory Account
-                            </p>
-                            <p className="text-[10px] text-blue-700">Rahim Uddin (Dhaka Knitwear)</p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={fillDemoUser}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-2.5 py-1 rounded-lg transition"
-                        >
-                            Fill Details
-                        </button>
+                    <div className="border-b border-slate-100 pb-3">
+                        <h2 className="text-base font-bold text-slate-900">Sign in to your account</h2>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Enter your registered email and password to access your dashboard.
+                        </p>
                     </div>
 
                     <form onSubmit={submit} className="space-y-4 text-xs">
                         <div>
-                            <label className="block font-bold text-slate-600 mb-1">Email / Phone</label>
+                            <label className="block font-bold text-slate-600 mb-1">Email Address</label>
                             <input
                                 type="email"
                                 value={data.email}
@@ -131,7 +112,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         <p className="text-xs text-slate-500">
                             Don't have an account yet?{' '}
                             <Link href={route('register')} className="text-blue-600 font-bold hover:underline">
-                                Register as Factory or Buyer
+                                Register Factory Account
                             </Link>
                         </p>
                     </div>

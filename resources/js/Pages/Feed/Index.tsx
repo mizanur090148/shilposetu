@@ -72,7 +72,6 @@ interface FeedIndexProps {
     };
     filters: {
         category: string;
-        post_type: string;
         district: string;
         search: string;
     };
@@ -148,13 +147,13 @@ export default function FeedIndex({
                         <div className="lg:col-span-7 space-y-4">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold">
                                 <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                                <span>Connecting Demand with Capacity • Smart Manufacturing</span>
+                                <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
                             </div>
                             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-                                Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Idle Capacity Board
+                                Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
                             </h1>
                             <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                                Extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the whole country.
+                                Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
                             </p>
 
                             <div className="flex flex-wrap gap-3 pt-2">
@@ -163,7 +162,7 @@ export default function FeedIndex({
                                     className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-blue-500/25 transition transform active:scale-95"
                                 >
                                     <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract (অর্ডার / ক্যাপাসিটি দিন)
+                                    Post Subcontract (অর্ডার দিন)
                                 </button>
                                 <Link
                                     href={route('vendors.index')}
@@ -207,7 +206,7 @@ export default function FeedIndex({
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
                     {/* Search & Select Controls */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                        <form onSubmit={handleSearchSubmit} className="md:col-span-6 relative">
+                        <form onSubmit={handleSearchSubmit} className="md:col-span-8 relative">
                             <input
                                 type="text"
                                 value={searchTerm}
@@ -225,7 +224,7 @@ export default function FeedIndex({
                         </form>
 
                         {/* District Filter */}
-                        <div className="md:col-span-3">
+                        <div className="md:col-span-4">
                             <select
                                 value={filters.district}
                                 onChange={(e) => handleFilterChange('district', e.target.value)}
@@ -239,19 +238,6 @@ export default function FeedIndex({
                                 <option value="Tangail">Tangail / Mirzapur (টাঙ্গাইল)</option>
                                 <option value="Dhaka">Dhaka (ঢাকা)</option>
                                 <option value="Chittagong">Chittagong (চট্টগ্রাম)</option>
-                            </select>
-                        </div>
-
-                        {/* Post Type Filter (Demand vs Supply) */}
-                        <div className="md:col-span-3">
-                            <select
-                                value={filters.post_type}
-                                onChange={(e) => handleFilterChange('post_type', e.target.value)}
-                                className="w-full text-sm py-2.5 rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 font-medium"
-                            >
-                                <option value="all">All Post Types (Demand & Supply)</option>
-                                <option value="DEMAND">Need Subcontractor (অতিরিক্ত অর্ডার আছে)</option>
-                                <option value="SUPPLY">Available Capacity (খালি মেশিন/লাইন আছে)</option>
                             </select>
                         </div>
                     </div>
@@ -278,22 +264,22 @@ export default function FeedIndex({
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Left & Middle Column: The Main Feed */}
                     <div className="lg:col-span-8 space-y-6">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <Layers className="w-5 h-5 text-blue-600" />
-                                Subcontract Live Feed ({posts.total} Orders & Capacities)
+                                Subcontract Live Feed ({posts.total} Extra Orders)
                             </h2>
-                            <span className="text-xs text-slate-500">
-                                Subcontract দেওয়া ও নেওয়ার পোস্ট (Facebook-Style)
+                            <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 w-fit">
+                                Have Extra Orders (Need Subcontract)
                             </span>
                         </div>
 
                         {posts.data.length === 0 ? (
                             <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-300">
                                 <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                <h3 className="text-base font-bold text-slate-700">No Subcontract Posts Found</h3>
+                                <h3 className="text-base font-bold text-slate-700">No Extra Orders Found</h3>
                                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                                    No posts match your selected filter criteria. Be the first to post extra order requirements or vacant line capacity!
+                                    No subcontract orders match your selected filter criteria. Be the first to post extra order requirements!
                                 </p>
                                 <button
                                     onClick={() => setCreateModalOpen(true)}
@@ -347,12 +333,8 @@ export default function FeedIndex({
                                                     URGENT
                                                 </span>
                                             )}
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                                post.post_type === 'DEMAND'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : 'bg-emerald-100 text-emerald-800'
-                                            }`}>
-                                                {post.post_type === 'DEMAND' ? 'Need Subcontractor' : 'Available Capacity'}
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800">
+                                                Have Extra Orders (Need Subcontract)
                                             </span>
                                         </div>
                                     </div>

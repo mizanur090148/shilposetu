@@ -73,13 +73,13 @@ export default function Dashboard({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <button
+                            {/* <button
                                 onClick={() => setCreateModalOpen(true)}
                                 className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
                             >
                                 <PlusCircle className="w-4 h-4" />
                                 Create New RFQ / Post
-                            </button>
+                            </button> */}
                             <Link
                                 href={route('subscription.index')}
                                 className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition"

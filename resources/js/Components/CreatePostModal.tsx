@@ -95,7 +95,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                         <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-700/50">
                             শিল্পসেতু Subcontract Board
                         </span>
-                        <h3 className="text-lg font-bold mt-1">Post Subcontract Demand or Capacity</h3>
+                        <h3 className="text-lg font-bold mt-1">Post Subcontract (Have Extra Orders)</h3>
                     </div>
                     <button 
                         onClick={onClose}
@@ -106,52 +106,22 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-                    {/* Post Type Selector: Demand vs Supply */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1.5">
-                            Post Purpose (আমি সাব-কন্ট্রাক্ট দিতে চাই / নিতে চাই)
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setData('post_type', 'DEMAND')}
-                                className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
-                                    data.post_type === 'DEMAND'
-                                        ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
-                                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                                }`}
-                            >
-                                <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center ${
-                                    data.post_type === 'DEMAND' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-400'
-                                }`}>
-                                    {data.post_type === 'DEMAND' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold">Have Extra Orders (Need Subcontract)</p>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">অতিরিক্ত অর্ডার রয়েছে, অন্য ফ্যাক্টরি খুঁজছি</p>
-                                </div>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setData('post_type', 'SUPPLY')}
-                                className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
-                                    data.post_type === 'SUPPLY'
-                                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-2 ring-emerald-500/20'
-                                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                                }`}
-                            >
-                                <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center ${
-                                    data.post_type === 'SUPPLY' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-400'
-                                }`}>
-                                    {data.post_type === 'SUPPLY' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold">Have Idle Capacity (Take Subcontract)</p>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">ফ্যাক্টরি লাইন/মেশিন খালি আছে, কাজ নিতে চাই</p>
-                                </div>
-                            </button>
+                    {/* Default Type: Have Extra Orders (Need Subcontract) */}
+                    <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                        <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
+                                Post Purpose
+                            </span>
+                            <p className="text-xs font-bold text-slate-900">
+                                Have Extra Orders (Need Subcontract)
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                                অতিরিক্ত অর্ডার রয়েছে, অন্য ফ্যাক্টরি খুঁজছি
+                            </p>
                         </div>
+                        <span className="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                            DEMAND
+                        </span>
                     </div>
 
                     {/* Garment Sector / Category Selector */}

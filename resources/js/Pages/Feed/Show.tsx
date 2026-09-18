@@ -71,7 +71,7 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                         post.post_type === 'DEMAND' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
                                     }`}>
-                                        {post.post_type === 'DEMAND' ? 'Subcontract Demand' : 'Available Capacity'}
+                                        {post.post_type === 'DEMAND' ? 'Have Extra Orders (Need Subcontract)' : 'Available Capacity'}
                                     </span>
                                     <span className="text-xs font-semibold uppercase text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded">
                                         {post.category.replace('_', ' ')}
