@@ -187,7 +187,7 @@ export default function FeedIndex({
                                 <p className="text-[11px] text-slate-400 mt-0.5">Across Bangladesh</p>
                             </div>
                             <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60">
-                                <p className="text-xs text-slate-400 font-medium">Active Production Lines</p>
+                                <p className="text-xs text-slate-400 font-medium">Active Productions</p>
                                 <p className="text-2xl font-black text-blue-400 mt-1">1,450+</p>
                                 <p className="text-[11px] text-slate-400 mt-0.5">Tshirt, Polo, Denim</p>
                             </div>

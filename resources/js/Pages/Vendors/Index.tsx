@@ -171,14 +171,14 @@ export default function VendorsIndex({
                             <span className="block text-xl font-black text-white">{stats?.total ?? factories.total}</span>
                             <span className="text-[11px] text-slate-400 font-medium">Total Factories</span>
                         </div>
-                        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
+                        {/* <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
                             <span className="block text-xl font-black text-blue-400">{stats?.verified ?? 0}</span>
                             <span className="text-[11px] text-slate-400 font-medium">Verified Units</span>
                         </div>
                         <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
                             <span className="block text-xl font-black text-emerald-400">{stats?.total_lines ?? 0}</span>
                             <span className="text-[11px] text-slate-400 font-medium">Total Lines</span>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
