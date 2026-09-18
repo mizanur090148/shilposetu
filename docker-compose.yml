@@ -1,0 +1,153 @@
+services:
+  # PHP-FPM Application Container
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: silposetu-app
+    container_name: silposetu-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    networks:
+      - silposetu-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Nginx Web Server Container
+  webserver:
+    image: nginx:alpine
+    container_name: silposetu-webserver
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - silposetu-network
+    depends_on:
+      - app
+
+  # MySQL Database Container
+  db:
+    image: mysql:8.0
+    container_name: silposetu-db
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-silposetu}
+      MYSQL_USER: ${MYSQL_USER:-silposetu}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - silposetu-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -u root -p${DB_ROOT_PASSWORD:-secret} || mysqladmin ping -u root"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # phpMyAdmin Container
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: silposetu-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ALLOW_EMPTY_PASSWORD: "yes"
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "${PMA_PORT:-8080}:80"
+    networks:
+      - silposetu-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Redis In-Memory Store
+  redis:
+    image: redis:alpine
+    container_name: silposetu-redis
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - silposetu-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Queue Worker Container (Processes asynchronous background jobs)
+  queue:
+    image: silposetu-app
+    container_name: silposetu-queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    networks:
+      - silposetu-network
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+
+  # Task Scheduler Container (Runs periodic Laravel schedule:run tasks)
+  scheduler:
+    image: silposetu-app
+    container_name: silposetu-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: php artisan schedule:work
+    networks:
+      - silposetu-network
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  silposetu-network:
+    driver: bridge

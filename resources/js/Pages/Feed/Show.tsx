@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import AuthGateModal from '@/Components/AuthGateModal';
+import { formatDeadline } from '@/utils/date';
 import { 
     MapPin, 
     Calendar, 
@@ -124,7 +125,7 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                     <span className="text-slate-400 block uppercase font-bold text-[10px]">Delivery Deadline</span>
                                     <span className="font-bold text-slate-800 flex items-center gap-1 mt-0.5">
                                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                        {post.deadline || 'Flexible'}
+                                        {formatDeadline(post.deadline)}
                                     </span>
                                 </div>
                                 <div>

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import AuthGateModal from '@/Components/AuthGateModal';
 import CreatePostModal from '@/Components/CreatePostModal';
+import { formatDeadline } from '@/utils/date';
 import { 
     PlusCircle, 
     Search, 
@@ -391,7 +392,7 @@ export default function FeedIndex({
                                                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Delivery Deadline</span>
                                                 <span className="font-semibold text-slate-800 flex items-center gap-1">
                                                     <Calendar className="w-3 h-3 text-slate-400" />
-                                                    {post.deadline || 'Flexible'}
+                                                    {formatDeadline(post.deadline)}
                                                 </span>
                                             </div>
                                         </div>

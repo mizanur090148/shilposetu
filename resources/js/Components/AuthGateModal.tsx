@@ -1,27 +1,38 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { Lock, ShieldCheck, CheckCircle2, X, Phone, FileText, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Lock, CheckCircle2, X, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 interface AuthGateModalProps {
     isOpen: boolean;
-    onClose: () => void;
+    onClose?: () => void;
     postTitle?: string;
     isLoggedIn?: boolean;
+    canClose?: boolean;
 }
 
-export default function AuthGateModal({ isOpen, onClose, postTitle, isLoggedIn }: AuthGateModalProps) {
+export default function AuthGateModal({ isOpen, onClose, postTitle, isLoggedIn, canClose = true }: AuthGateModalProps) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 relative">
-                {/* Close Button */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+            onClick={canClose ? onClose : undefined}
+        >
+            <div 
+                className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Cross Close Button */}
+                {canClose && onClose && (
+                    <button 
+                        onClick={onClose}
+                        className="absolute top-4 right-4 p-2 rounded-full text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition z-20 focus:outline-none focus:ring-2 focus:ring-white/50"
+                        title="Close modal"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                )}
 
                 {/* Header Banner */}
                 <div className="bg-gradient-to-tr from-slate-900 via-blue-950 to-indigo-900 text-white p-6 pb-8 text-center relative overflow-hidden">
@@ -94,12 +105,14 @@ export default function AuthGateModal({ isOpen, onClose, postTitle, isLoggedIn }
                                 </Link>
                             </>
                         )}
-                        <button
-                            onClick={onClose}
-                            className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-1"
-                        >
-                            Continue browsing public feed
-                        </button>
+                        {canClose && onClose && (
+                            <button
+                                onClick={onClose}
+                                className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-1"
+                            >
+                                Continue browsing public feed
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
