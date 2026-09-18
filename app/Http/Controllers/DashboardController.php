@@ -19,23 +19,21 @@ class DashboardController extends Controller
         $user = $request->user();
         $factory = $user->factory;
 
-        // User's own posts
+        // User's own posts (GIVE Subcontract)
         $userPosts = SubcontractPost::where('user_id', $user->id)
             ->withCount('quotations')
             ->latest()
-            ->take(5)
             ->get();
 
-        // Quotations received
+        // Quotations received on user's posted orders
         $quotationsReceivedCount = Quotation::whereHas('post', function ($q) use ($user) {
             $q->where('user_id', $user->id);
         })->count();
 
-        // Quotations submitted by user
+        // Quotations submitted by user (TAKE Subcontract)
         $quotationsSubmitted = Quotation::where('bidder_user_id', $user->id)
-            ->with('post')
+            ->with(['post.user', 'post.factory'])
             ->latest()
-            ->take(5)
             ->get();
 
         // Order breakdown by category (matches donut chart in Screen 2)
@@ -50,6 +48,8 @@ class DashboardController extends Controller
         $kpis = [
             'active_rfqs' => SubcontractPost::where('user_id', $user->id)->where('status', 'open')->count(),
             'total_quotations_received' => $quotationsReceivedCount,
+            'bids_submitted' => $quotationsSubmitted->count(),
+            'bids_accepted' => $quotationsSubmitted->where('status', 'accepted')->count(),
             'factory_lines' => $factory ? $factory->total_lines : 0,
             'is_verified' => $factory ? (bool) $factory->is_verified : false,
             'is_subscribed' => (bool) $user->is_subscribed,
@@ -62,6 +62,7 @@ class DashboardController extends Controller
             'userPosts' => $userPosts,
             'quotationsSubmitted' => $quotationsSubmitted,
             'categoryBreakdown' => $categoryBreakdown,
+            'initialTab' => $request->query('tab', 'posted'),
         ]);
     }
 }

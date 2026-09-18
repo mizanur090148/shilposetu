@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
     Factory,
@@ -17,7 +17,11 @@ import {
     Building2,
     Clock,
     User,
-    LogOut
+    LogOut,
+    ChevronDown,
+    LayoutDashboard,
+    Send,
+    Handshake
 } from 'lucide-react';
 
 interface ShilposetuLayoutProps {
@@ -29,6 +33,29 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
     const { auth, flash } = usePage<any>().props;
     const user = auth?.user;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown on outside click or escape
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setProfileDropdownOpen(false);
+            }
+        };
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setProfileDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
@@ -133,33 +160,160 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                     className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm shadow-sm shadow-blue-500/25 hover:shadow transition transform active:scale-95"
                                 >
                                     <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract (অর্ডার দিন)
+                                    Post Subcontract
                                 </button>
                             )}
 
                             {user ? (
-                                <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition text-left"
+                                <div className="relative pl-2 border-l border-slate-200" ref={dropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                                        className={`flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 transition text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                                            profileDropdownOpen ? 'bg-slate-100 ring-2 ring-blue-500/20' : ''
+                                        }`}
+                                        aria-expanded={profileDropdownOpen}
+                                        aria-haspopup="true"
                                     >
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm border border-blue-200">
-                                            {user.name.charAt(0)}
+                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                                            {user.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div className="hidden md:block">
-                                            <p className="text-xs font-semibold text-slate-900 leading-tight">{user.name}</p>
-                                            <p className="text-[10px] text-slate-500">{user.customer_id || 'Member'}</p>
+                                        <div className="hidden md:block text-left pr-1">
+                                            <p className="text-xs font-bold text-slate-900 leading-tight max-w-[120px] truncate">{user.name}</p>
+                                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                                <span className="text-blue-600 font-semibold">{user.customer_id || `S${user.id}`}</span>
+                                                {user.factory?.is_verified && <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />}
+                                            </p>
                                         </div>
-                                    </Link>
-                                    <Link
-                                        href={route('logout')}
-                                        method="post"
-                                        as="button"
-                                        className="text-slate-400 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 transition"
-                                        title="Logout"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                    </Link>
+                                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
+                                    </button>
+
+                                    {/* Desktop Profile Dropdown Sub-Menu */}
+                                    {profileDropdownOpen && (
+                                        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                                            {/* Header User Card */}
+                                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                                                <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                                                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                                                <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                                                    <span className="font-semibold text-slate-700 truncate max-w-[150px]">
+                                                        {user.factory?.business_name || 'Factory Member'}
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 font-mono text-[10px] bg-blue-50 text-blue-700 font-bold px-1.5 py-0.5 rounded border border-blue-200/60">
+                                                        {user.customer_id || `S${user.id}`}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Sub-Menu Items */}
+                                            <div className="p-1 space-y-0.5 text-xs">
+                                                <Link
+                                                    href={route('dashboard')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                >
+                                                    <LayoutDashboard className="w-4 h-4 text-purple-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold">Dashboard</p>
+                                                        <p className="text-[10px] text-slate-400">Overview & manufacturing metrics</p>
+                                                    </div>
+                                                </Link>
+
+                                                {/* Subcontract Operations Sub-Menu */}
+                                                <div className="pt-1.5 pb-0.5 px-3">
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Subcontract Operations</span>
+                                                </div>
+
+                                                <Link
+                                                    href={route('dashboard') + '?tab=posted'}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                >
+                                                    <Send className="w-4 h-4 text-blue-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-semibold text-slate-900">Give Subcontract</p>
+                                                            <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">Post Orders</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400">Orders you posted to find factories</p>
+                                                    </div>
+                                                </Link>
+
+                                                <Link
+                                                    href={route('dashboard') + '?tab=taken'}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/70 transition font-medium"
+                                                >
+                                                    <Handshake className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-semibold text-slate-900">Take Subcontract</p>
+                                                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Bids & Work</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400">Orders you bid on & took to produce</p>
+                                                    </div>
+                                                </Link>
+
+                                                {/* Account & Profile Sub-Menu */}
+                                                <div className="pt-1.5 pb-0.5 px-3">
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Account & Profile</span>
+                                                </div>
+
+                                                <Link
+                                                    href={route('profile.edit')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                >
+                                                    <User className="w-4 h-4 text-slate-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold">Profile Settings</p>
+                                                        <p className="text-[10px] text-slate-400">Update name, phone & password</p>
+                                                    </div>
+                                                </Link>
+
+                                                <Link
+                                                    href={route('factory.edit')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                >
+                                                    <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="font-semibold">Factory Information</p>
+                                                            <span className="text-[9px] bg-slate-100 text-slate-700 font-bold px-1 rounded">Edit</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400">Capacity, lines, machines & licenses</p>
+                                                    </div>
+                                                </Link>
+
+                                                <Link
+                                                    href={route('subscription.index')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                >
+                                                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold">Subscription Plan</p>
+                                                        <p className="text-[10px] text-slate-400">100 Tk + 50 Tk/month</p>
+                                                    </div>
+                                                </Link>
+                                            </div>
+
+                                            {/* Footer Sign Out */}
+                                            <div className="pt-1 mt-1 border-t border-slate-100 p-1">
+                                                <Link
+                                                    href={route('logout')}
+                                                    method="post"
+                                                    as="button"
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 transition font-medium text-xs text-left"
+                                                >
+                                                    <LogOut className="w-4 h-4 shrink-0" />
+                                                    <span>Sign Out</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex items-center space-x-2">
@@ -215,14 +369,69 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                         >
                             SaaS Membership (100 Tk + 50 Tk/mo)
                         </Link>
+
                         {user ? (
-                            <Link
-                                href={route('dashboard')}
-                                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Dashboard
-                            </Link>
+                            <div className="pt-3 border-t border-slate-200 space-y-1">
+                                <div className="px-3 py-2.5 bg-slate-50 rounded-xl mb-2 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-900">{user.name}</p>
+                                        <p className="text-[10px] text-slate-500">{user.factory?.business_name || 'Factory Member'}</p>
+                                    </div>
+                                    <span className="font-mono text-[10px] bg-blue-50 text-blue-700 font-bold px-1.5 py-0.5 rounded border border-blue-200">
+                                        {user.customer_id || `S${user.id}`}
+                                    </span>
+                                </div>
+                                <Link
+                                    href={route('dashboard')}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <BarChart3 className="w-4 h-4 text-purple-600" />
+                                    <span>Dashboard</span>
+                                </Link>
+                                <Link
+                                    href={route('dashboard') + '?tab=posted'}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Send className="w-4 h-4 text-blue-600" />
+                                    <span>Give Subcontract (Orders I Posted)</span>
+                                </Link>
+                                <Link
+                                    href={route('dashboard') + '?tab=taken'}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Handshake className="w-4 h-4 text-emerald-600" />
+                                    <span>Take Subcontract (Orders I Bid / Taken)</span>
+                                </Link>
+                                <Link
+                                    href={route('profile.edit')}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <User className="w-4 h-4 text-slate-600" />
+                                    <span>Profile Settings</span>
+                                </Link>
+                                <Link
+                                    href={route('factory.edit')}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Building2 className="w-4 h-4 text-indigo-600" />
+                                    <span>Factory Information (Add / Edit)</span>
+                                </Link>
+                                <Link
+                                    href={route('logout')}
+                                    method="post"
+                                    as="button"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 text-left"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    <span>Sign Out</span>
+                                </Link>
+                            </div>
                         ) : (
                             <div className="pt-2 border-t border-slate-100 flex gap-2">
                                 <Link

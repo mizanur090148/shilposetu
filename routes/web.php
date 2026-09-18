@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FactoryProfileController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuotationController;
@@ -38,6 +39,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Factory Profile Information Management
+    Route::get('/factory/profile', [FactoryProfileController::class, 'edit'])->name('factory.edit');
+    Route::patch('/factory/profile', [FactoryProfileController::class, 'update'])->name('factory.update');
 });
 
 require __DIR__.'/auth.php';

@@ -20,6 +20,7 @@ export default function UpdateProfileInformation({
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
+            phone: user.phone || '',
             email: user.email,
         });
 
@@ -32,22 +33,22 @@ export default function UpdateProfileInformation({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-bold text-slate-900">
                     Profile Information
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Update your account's profile information and email address.
+                <p className="mt-1 text-xs text-slate-500">
+                    Update your personal contact information and account email address.
                 </p>
             </header>
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
+            <form onSubmit={submit} className="mt-6 space-y-5">
                 <div>
-                    <InputLabel htmlFor="name" value="Name" />
+                    <InputLabel htmlFor="name" value="Full Name" />
 
                     <TextInput
                         id="name"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full text-xs rounded-xl"
                         value={data.name}
                         onChange={(e) => setData('name', e.target.value)}
                         required
@@ -55,11 +56,27 @@ export default function UpdateProfileInformation({
                         autoComplete="name"
                     />
 
-                    <InputError className="mt-2" message={errors.name} />
+                    <InputError className="mt-1 text-xs" message={errors.name} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="phone" value="Phone Number" />
+
+                    <TextInput
+                        id="phone"
+                        type="text"
+                        className="mt-1 block w-full text-xs rounded-xl font-mono"
+                        value={data.phone}
+                        onChange={(e) => setData('phone', e.target.value)}
+                        placeholder="+8801705123456"
+                        autoComplete="tel"
+                    />
+
+                    <InputError className="mt-1 text-xs" message={errors.phone} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="email" value="Email Address" />
 
                     <TextInput
                         id="email"

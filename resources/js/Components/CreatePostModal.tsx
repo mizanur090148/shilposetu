@@ -92,9 +92,9 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white p-5 flex items-center justify-between">
                     <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-700/50">
+                        {/* <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-700/50">
                             শিল্পসেতু Subcontract Board
-                        </span>
+                        </span> */}
                         <h3 className="text-lg font-bold mt-1">Post Subcontract (Have Extra Orders)</h3>
                     </div>
                     <button 
@@ -428,7 +428,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                             className="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                         />
                         <label htmlFor="is_urgent" className="text-xs font-semibold text-rose-700 flex items-center gap-1 cursor-pointer">
-                            Mark as Urgent Shipment Order (জরুরি অর্ডার)
+                            Mark as Urgent Shipment Order
                         </label>
                     </div>
 

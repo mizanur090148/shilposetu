@@ -162,7 +162,7 @@ export default function FeedIndex({
                                     className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-blue-500/25 transition transform active:scale-95"
                                 >
                                     <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract (অর্ডার দিন)
+                                    Post Subcontract
                                 </button>
                                 <Link
                                     href={route('vendors.index')}
