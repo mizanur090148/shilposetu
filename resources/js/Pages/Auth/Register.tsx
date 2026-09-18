@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Building2, Factory, User, ShieldCheck, CheckCircle2, Phone, Mail, Lock, FileText, ArrowRight } from 'lucide-react';
+import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
+import { Factory, User, ShieldCheck, CheckCircle2, Phone, Mail, Lock, FileText, ArrowRight } from 'lucide-react';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -26,27 +27,26 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <ShilposetuLayout>
             <Head title="Factory & Buyer Registration | Shilposetu" />
 
-            <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center space-y-2">
-                <Link href={route('feed.index')} className="inline-flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md">
-                        <Building2 className="w-6 h-6" />
-                    </div>
-                    <span className="text-2xl font-extrabold tracking-tight text-slate-900">
-                        SHILPO<span className="text-blue-600">SETU</span>
-                    </span>
-                </Link>
-                <h2 className="text-xl font-bold text-slate-900">
-                    Industry Account Registration (নিবন্ধন)
-                </h2>
-                <p className="text-xs text-slate-500">
-                    Connect demand with factory capacity across Bangladesh.
-                </p>
+            {/* Top Industrial Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 text-white py-8 px-4 border-b border-slate-800">
+                <div className="max-w-4xl mx-auto text-center space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-600/30 inline-flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Verified Industrial Accounts
+                    </span> 
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                        Industry Account Registration
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto">
+                        Connect demand with factory capacity across Bangladesh. Choose factory or buyer profile to get started.
+                    </p>
+                </div>
             </div>
 
-            <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
+            <div className="max-w-xl mx-auto px-4 sm:px-6 py-10">
                 <div className="bg-white py-8 px-6 shadow-xl border border-slate-200/80 rounded-2xl sm:px-10">
                     {/* Account Type Selector (matching Page 3: Account Type Dropdown/Buttons) */}
                     <div className="mb-6">
@@ -277,6 +277,6 @@ export default function Register() {
                     </form>
                 </div>
             </div>
-        </div>
+        </ShilposetuLayout>
     );
 }

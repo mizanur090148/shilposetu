@@ -1,6 +1,7 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Building2, LogIn, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
+import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
+import { LogIn, Lock, Sparkles } from 'lucide-react';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -25,27 +26,26 @@ export default function Login({ status, canResetPassword }: { status?: string; c
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <ShilposetuLayout>
             <Head title="Factory & Buyer Login | Shilposetu" />
 
-            <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-                <Link href={route('feed.index')} className="inline-flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md">
-                        <Building2 className="w-6 h-6" />
-                    </div>
-                    <span className="text-2xl font-extrabold tracking-tight text-slate-900">
-                        SHILPO<span className="text-blue-600">SETU</span>
+            {/* Top Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 text-white py-8 px-4 border-b border-slate-800">
+                <div className="max-w-md mx-auto text-center space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-950/80 px-3 py-1 rounded-full border border-blue-600/30 inline-flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5" />
+                        Industrial Portal Access
                     </span>
-                </Link>
-                <h2 className="text-xl font-bold text-slate-900">
-                    Welcome Back (লগইন)
-                </h2>
-                <p className="text-xs text-slate-500">
-                    Access your factory orders, tech packs, and quotation matrix.
-                </p>
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                        Welcome Back (লগইন)
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-sm mx-auto">
+                        Access your factory orders, tech packs, and quotation matrix.
+                    </p>
+                </div>
             </div>
 
-            <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="max-w-md mx-auto px-4 sm:px-6 py-10">
                 <div className="bg-white py-8 px-6 shadow-xl border border-slate-200/80 rounded-2xl sm:px-10 space-y-5">
                     {status && (
                         <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200">
@@ -137,6 +137,6 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                     </div>
                 </div>
             </div>
-        </div>
+        </ShilposetuLayout>
     );
 }
