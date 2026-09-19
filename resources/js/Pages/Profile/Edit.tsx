@@ -14,26 +14,38 @@ export default function Edit({
         <ShilposetuLayout>
             <Head title="Account Profile | Shilposetu" />
 
-            <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 text-white py-8 px-4 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white py-8 px-4 border-b border-slate-800 overflow-hidden shadow-sm">
+                <div className="absolute -right-16 -top-16 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute left-1/3 -bottom-16 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold">User Profile & Account Settings</h1>
-                            <p className="text-xs text-slate-300 mt-1">Manage your personal credentials, contact info, and security.</p>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-400 bg-blue-950/80 border border-blue-800/60 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                    Account Control
+                                </span>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                                Personal Profile & Account Settings
+                            </h1>
+                            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+                                Manage your personal credentials, contact info, login credentials, and account security.
+                            </p>
                         </div>
 
-                        {/* Navigation Tabs */}
-                        <div className="flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 self-start sm:self-auto">
-                            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm">
+                        {/* Navigation Tabs Bar */}
+                        <div className="flex items-center bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/70 shadow-lg shadow-black/20 self-start sm:self-auto gap-1">
+                            <span className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
                                 <User className="w-3.5 h-3.5" />
-                                Personal Profile
+                                <span>Personal Profile</span>
                             </span>
                             <Link
                                 href={route('factory.edit')}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition"
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition group"
                             >
-                                <Building2 className="w-3.5 h-3.5 text-blue-400" />
-                                Factory Profile
+                                <Building2 className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" />
+                                <span>Factory Profile</span>
                             </Link>
                         </div>
                     </div>

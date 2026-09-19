@@ -99,13 +99,13 @@ interface DepartmentMeta {
 const DEPARTMENTS: DepartmentMeta[] = [
     {
         key: 'sewing',
-        label: 'Sewing (Lines)',
-        sublabel: 'Assembly lines & stitching capacity',
+        label: 'Sewing',
+        sublabel: 'Assembly lines & capacity',
         isSewing: true,
         icon: Scissors,
         color: 'text-blue-600',
         activeBorder: 'border-blue-500',
-        activeBg: 'bg-blue-50/80',
+        activeBg: 'bg-blue-50',
         defaultUnit: 'Pcs',
     },
     {
@@ -393,15 +393,13 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
         patch(route('factory.update'));
     };
 
-    // Compute department badges
-    const getDeptCountBadge = (dept: DepartmentMeta) => {
+    // Compute department configured counts
+    const getDeptCount = (dept: DepartmentMeta): number => {
         if (dept.isSewing) {
-            const lines = data.production_capacities?.sewing?.no_of_lines || data.total_lines || 0;
-            return lines > 0 ? `${lines} Lines` : '0 Lines';
+            return Number(data.production_capacities?.sewing?.no_of_lines || data.total_lines) || 0;
         }
         const rows = data.production_capacities?.[dept.key as NonSewingCategory] || [];
-        const machines = rows.reduce((acc, r) => acc + (Number(r.no_of_machine) || 0), 0);
-        return machines > 0 ? `${machines} Machines` : `${rows.length} Configured`;
+        return rows.reduce((acc, r) => acc + (Number(r.no_of_machine) || 0), 0);
     };
 
     const currentSewing = data.production_capacities?.sewing || {
@@ -458,29 +456,29 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
                         </div>
 
                         {/* Navigation Tabs & Actions */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            <div className="flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+                        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                            <div className="flex items-center bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/70 shadow-lg shadow-black/20 gap-1">
                                 <Link
                                     href={route('profile.edit')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition"
+                                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition group"
                                 >
-                                    <User className="w-3.5 h-3.5" />
-                                    Personal Profile
+                                    <User className="w-3.5 h-3.5 text-slate-400 group-hover:scale-110 transition-transform" />
+                                    <span>Personal Profile</span>
                                 </Link>
-                                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm">
+                                <span className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
                                     <Building2 className="w-3.5 h-3.5" />
-                                    Factory Profile
+                                    <span>Factory Profile</span>
                                 </span>
                             </div>
 
                             {factory.id && (
                                 <Link
                                     href={route('vendors.show', factory.id)}
-                                    className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition"
+                                    className="inline-flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800/90 text-slate-200 hover:text-white text-xs font-bold px-3.5 py-2.5 rounded-2xl border border-slate-700/70 shadow-lg shadow-black/20 transition group"
                                     title="View how buyers see your factory"
                                 >
-                                    <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-                                    <span>Public Profile</span>
+                                    <ExternalLink className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                                    <span>Public View</span>
                                 </Link>
                             )}
                         </div>
@@ -632,69 +630,71 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
                         {/* Section 3: Production Capacity & Machinery Lines */}
                         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             {/* Section Header */}
-                            <div className="border-b border-slate-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                                        <Cpu className="w-5 h-5" />
+                            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                                        <Cpu className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                            Production Capacity & Machinery Lines
+                                        <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                                            Production Capacity & Lines
                                         </h2>
                                         <p className="text-[11px] text-slate-500">
-                                            Specify line metrics for Sewing and dynamic machinery rows for Knitting, Yarn Dyeing, Fabric Dyeing, Print, and Embroidery.
+                                            Manage sewing assembly lines and specialized machinery outputs across production departments.
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Summary Metric Pills */}
-                                <div className="flex flex-wrap items-center gap-2 text-xs">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-xl border border-blue-100">
-                                        <Scissors className="w-3.5 h-3.5" />
-                                        <span>{data.total_lines || 0} Sewing Lines</span>
+                                {/* Live Factory Summary Badges */}
+                                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs text-slate-600 self-start sm:self-auto">
+                                    <span className="flex items-center gap-1.5 font-bold text-slate-800">
+                                        <Scissors className="w-3.5 h-3.5 text-blue-600" />
+                                        {data.total_lines || 0} Lines
                                     </span>
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 font-bold rounded-xl border border-purple-100">
-                                        <Cpu className="w-3.5 h-3.5" />
-                                        <span>{data.total_machines || 0} Total Machines</span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="flex items-center gap-1.5 font-bold text-slate-800">
+                                        <Cpu className="w-3.5 h-3.5 text-purple-600" />
+                                        {data.total_machines || 0} Machines
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Department Tabs Bar */}
-                            <div className="bg-slate-50/80 p-1.5 rounded-2xl border border-slate-200/80">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
+                            {/* Sleek Department Navigation Tabs Bar */}
+                            <div className="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80">
+                                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                                     {DEPARTMENTS.map((dept) => {
                                         const Icon = dept.icon;
                                         const isActive = activeDept === dept.key;
-                                        const badgeText = getDeptCountBadge(dept);
+                                        const count = getDeptCount(dept);
 
                                         return (
                                             <button
                                                 key={dept.key}
                                                 type="button"
                                                 onClick={() => setActiveDept(dept.key)}
-                                                className={`flex flex-col items-start p-2.5 sm:p-3 rounded-xl transition text-left border relative ${
+                                                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                                                     isActive
-                                                        ? 'bg-white text-slate-900 border-blue-500 shadow-sm ring-1 ring-blue-500/20'
-                                                        : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
+                                                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/70 font-bold'
+                                                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                                                 }`}
                                             >
-                                                <div className="flex items-center justify-between w-full mb-1">
-                                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
-                                                        isActive ? 'bg-blue-50 text-blue-600' : 'bg-slate-200/60 text-slate-500'
-                                                    }`}>
-                                                        <Icon className="w-3.5 h-3.5" />
-                                                    </div>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                                        isActive ? 'bg-blue-100/80 text-blue-800' : 'bg-slate-200/50 text-slate-600'
-                                                    }`}>
-                                                        {badgeText}
-                                                    </span>
+                                                <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${
+                                                    isActive
+                                                        ? `${dept.activeBg} ${dept.color}`
+                                                        : 'text-slate-400'
+                                                }`}>
+                                                    <Icon className="w-3.5 h-3.5" />
                                                 </div>
-                                                <span className="text-xs font-bold truncate w-full">{dept.label}</span>
-                                                <span className="text-[10px] text-slate-400 truncate w-full hidden sm:block">
-                                                    {dept.sublabel}
-                                                </span>
+                                                <span>{dept.label}</span>
+                                                {count > 0 && (
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                                                        isActive
+                                                            ? 'bg-blue-100 text-blue-800'
+                                                            : 'bg-slate-200/80 text-slate-600'
+                                                    }`}>
+                                                        {count} {dept.isSewing ? 'Lines' : 'M/C'}
+                                                    </span>
+                                                )}
                                             </button>
                                         );
                                     })}

@@ -19,9 +19,12 @@ import {
     User,
     LogOut,
     ChevronDown,
+    ChevronRight,
     LayoutDashboard,
     Send,
-    Handshake
+    Handshake,
+    Sparkles,
+    ExternalLink
 } from 'lucide-react';
 
 interface ShilposetuLayoutProps {
@@ -169,147 +172,255 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                     <button
                                         type="button"
                                         onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                                        className={`flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 transition text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                                            profileDropdownOpen ? 'bg-slate-100 ring-2 ring-blue-500/20' : ''
+                                        className={`group flex items-center gap-2.5 p-1 sm:pr-2.5 rounded-2xl transition-all duration-200 text-left focus:outline-none ${
+                                            profileDropdownOpen
+                                                ? 'bg-blue-50/80 ring-2 ring-blue-500/30 shadow-sm'
+                                                : 'hover:bg-slate-100/80'
                                         }`}
                                         aria-expanded={profileDropdownOpen}
                                         aria-haspopup="true"
                                     >
-                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                                            {user.name.charAt(0).toUpperCase()}
+                                        <div className="relative">
+                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-700 text-white font-black flex items-center justify-center text-sm shadow-md shadow-blue-500/20 ring-2 ring-white group-hover:scale-105 transition-transform">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
                                         </div>
-                                        <div className="hidden md:block text-left pr-1">
-                                            <p className="text-xs font-bold text-slate-900 leading-tight max-w-[120px] truncate">{user.name}</p>
-                                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                                                <span className="text-blue-600 font-semibold">{user.customer_id || `S${user.id}`}</span>
-                                                {user.factory?.is_verified && <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />}
+                                        <div className="hidden md:block text-left">
+                                            <div className="flex items-center gap-1">
+                                                <p className="text-xs font-bold text-slate-900 leading-tight max-w-[125px] truncate group-hover:text-blue-600 transition-colors">
+                                                    {user.name}
+                                                </p>
+                                                {user.factory?.is_verified && (
+                                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 flex items-center gap-1.5 font-medium mt-0.5">
+                                                <span className="font-mono text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200/70">
+                                                    {user.customer_id || `S${user.id}`}
+                                                </span>
+                                                <span className="text-slate-400 truncate max-w-[80px]">
+                                                    {user.factory?.business_name || 'Member'}
+                                                </span>
                                             </p>
                                         </div>
-                                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
+                                        <ChevronDown
+                                            className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform duration-300 ${
+                                                profileDropdownOpen ? 'rotate-180 text-blue-600' : ''
+                                            }`}
+                                        />
                                     </button>
 
                                     {/* Desktop Profile Dropdown Sub-Menu */}
                                     {profileDropdownOpen && (
-                                        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                                            {/* Header User Card */}
-                                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                                                <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
-                                                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                                                <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
-                                                    <span className="font-semibold text-slate-700 truncate max-w-[150px]">
-                                                        {user.factory?.business_name || 'Factory Member'}
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 font-mono text-[10px] bg-blue-50 text-blue-700 font-bold px-1.5 py-0.5 rounded border border-blue-200/60">
-                                                        {user.customer_id || `S${user.id}`}
-                                                    </span>
+                                        <div className="absolute right-0 mt-2.5 w-80 sm:w-88 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                                            {/* Hero User & Factory Card */}
+                                            <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-4 overflow-hidden">
+                                                {/* Ambient decorative glow */}
+                                                <div className="absolute -right-8 -top-8 w-28 h-28 bg-blue-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                                                <div className="absolute -left-8 -bottom-8 w-28 h-28 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+                                                <div className="relative z-10">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="relative">
+                                                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white font-black text-lg flex items-center justify-center shadow-lg shadow-blue-500/30 border border-white/20">
+                                                                    {user.name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <p className="text-sm font-black text-white truncate">{user.name}</p>
+                                                                    {user.factory?.is_verified && (
+                                                                        <span className="inline-flex items-center gap-0.5 text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+                                                                            <ShieldCheck className="w-2.5 h-2.5" />
+                                                                            Verified
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[11px] text-slate-300 truncate mt-0.5">{user.email}</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="font-mono text-[10px] font-bold text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-lg shrink-0 shadow-inner">
+                                                            {user.customer_id || `S${user.id}`}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Quick Factory Card */}
+                                                    {/* <div className="mt-3.5 p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-between gap-2 shadow-sm">
+                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                            <div className="w-8 h-8 rounded-xl bg-blue-500/25 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
+                                                                <Building2 className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="text-xs font-bold text-white truncate">
+                                                                    {user.factory?.business_name || 'My Factory Profile'}
+                                                                </p>
+                                                                <p className="text-[10px] text-slate-300 truncate flex items-center gap-1">
+                                                                    <span>{user.factory?.location_hub ? `${user.factory.location_hub} Hub` : 'Production Capacity'}</span>
+                                                                    {user.factory?.sewing_lines_count ? (
+                                                                        <span className="text-blue-300 font-semibold">• {user.factory.sewing_lines_count} Lines</span>
+                                                                    ) : null}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <Link
+                                                            href={route('factory.edit')}
+                                                            onClick={() => setProfileDropdownOpen(false)}
+                                                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[10px] transition shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
+                                                        >
+                                                            <span>Edit</span>
+                                                            <ChevronRight className="w-3 h-3" />
+                                                        </Link>
+                                                    </div> */}
                                                 </div>
                                             </div>
 
-                                            {/* Sub-Menu Items */}
-                                            <div className="p-1 space-y-0.5 text-xs">
+                                            {/* Sub-Menu Navigation Items */}
+                                            <div className="p-2 space-y-1 text-xs">
+                                                {/* 1. Dashboard */}
                                                 <Link
                                                     href={route('dashboard')}
                                                     onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                    className="group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition duration-150"
                                                 >
-                                                    <LayoutDashboard className="w-4 h-4 text-purple-600 shrink-0" />
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold">Dashboard</p>
-                                                        <p className="text-[10px] text-slate-400">Overview & manufacturing metrics</p>
+                                                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200">
+                                                        <LayoutDashboard className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-slate-900 group-hover:text-purple-700 transition-colors">Dashboard</p>
+                                                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 truncate">Manufacturing overview & order status</p>
                                                     </div>
                                                 </Link>
 
-                                                {/* Subcontract Operations Sub-Menu */}
-                                                <div className="pt-1.5 pb-0.5 px-3">
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Subcontract Operations</span>
+                                                {/* 2. Section: Factory & Account */}
+                                                <div className="px-3 pt-2 pb-1 border-t border-slate-100 flex items-center justify-between">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                                                        Factory & Account
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                        Settings
+                                                    </span>
+                                                </div>
+
+                                                {/* Profile Settings */}
+                                                <Link
+                                                    href={route('profile.edit')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition duration-150"
+                                                >
+                                                    <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-700 group-hover:text-white transition-colors duration-200">
+                                                        <User className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors">Profile Settings</p>
+                                                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 truncate">Name, email, phone & password</p>
+                                                    </div>
+                                                </Link>
+
+                                                {/* Factory Profile & Capacity */}
+                                                <Link
+                                                    href={route('factory.edit')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-indigo-50/60 transition duration-150"
+                                                >
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-200">
+                                                        <Building2 className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">Factory Profile & Capacity</p>
+                                                            <span className="text-[9px] bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.5 rounded-full">Capacity</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 truncate">Sewing lines, machines & legal licenses</p>
+                                                    </div>
+                                                </Link>
+
+                                                {/* 3. Section: Subcontract Operations & Others */}
+                                                <div className="px-3 pt-2 pb-1 border-t border-slate-100 flex items-center justify-between">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                                                        Subcontract Operations
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                                        Orders
+                                                    </span>
                                                 </div>
 
                                                 <Link
                                                     href={route('dashboard') + '?tab=posted'}
                                                     onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                    className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-blue-50/60 transition duration-150"
                                                 >
-                                                    <Send className="w-4 h-4 text-blue-600 shrink-0" />
-                                                    <div className="flex-1">
+                                                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-200">
+                                                        <Send className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center justify-between">
-                                                            <p className="font-semibold text-slate-900">Give Subcontract</p>
-                                                            <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">Post Orders</span>
+                                                            <p className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">Give Subcontract</p>
+                                                            <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-full">I Post</span>
                                                         </div>
-                                                        <p className="text-[10px] text-slate-400">Orders you posted to find factories</p>
+                                                        <p className="text-[10px] text-slate-400 truncate">Orders you posted to outsource work</p>
                                                     </div>
                                                 </Link>
 
                                                 <Link
                                                     href={route('dashboard') + '?tab=taken'}
                                                     onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/70 transition font-medium"
+                                                    className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-emerald-50/60 transition duration-150"
                                                 >
-                                                    <Handshake className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                    <div className="flex-1">
+                                                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-200">
+                                                        <Handshake className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center justify-between">
-                                                            <p className="font-semibold text-slate-900">Take Subcontract</p>
-                                                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Bids & Work</span>
+                                                            <p className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Take Subcontract</p>
+                                                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">I Produce</span>
                                                         </div>
-                                                        <p className="text-[10px] text-slate-400">Orders you bid on & took to produce</p>
-                                                    </div>
-                                                </Link>
-
-                                                {/* Account & Profile Sub-Menu */}
-                                                <div className="pt-1.5 pb-0.5 px-3">
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Account & Profile</span>
-                                                </div>
-
-                                                <Link
-                                                    href={route('profile.edit')}
-                                                    onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
-                                                >
-                                                    <User className="w-4 h-4 text-slate-600 shrink-0" />
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold">Profile Settings</p>
-                                                        <p className="text-[10px] text-slate-400">Update name, phone & password</p>
-                                                    </div>
-                                                </Link>
-
-                                                <Link
-                                                    href={route('factory.edit')}
-                                                    onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
-                                                >
-                                                    <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <p className="font-semibold">Factory Information</p>
-                                                            <span className="text-[9px] bg-slate-100 text-slate-700 font-bold px-1 rounded">Edit</span>
-                                                        </div>
-                                                        <p className="text-[10px] text-slate-400">Capacity, lines, machines & licenses</p>
+                                                        <p className="text-[10px] text-slate-400 truncate">Orders you bid on & active factory jobs</p>
                                                     </div>
                                                 </Link>
 
                                                 <Link
                                                     href={route('subscription.index')}
                                                     onClick={() => setProfileDropdownOpen(false)}
-                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-blue-600 hover:bg-blue-50/70 transition font-medium"
+                                                    className="group flex items-center gap-3 px-3 py-2 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-amber-50/60 transition duration-150"
                                                 >
-                                                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold">Subscription Plan</p>
-                                                        <p className="text-[10px] text-slate-400">100 Tk + 50 Tk/month</p>
+                                                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors duration-200">
+                                                        <CreditCard className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-slate-900 group-hover:text-amber-700 transition-colors">Subscription Plan</p>
+                                                            <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-full">Active</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 truncate">100 Tk + 50 Tk/month billing</p>
                                                     </div>
                                                 </Link>
                                             </div>
 
                                             {/* Footer Sign Out */}
-                                            <div className="pt-1 mt-1 border-t border-slate-100 p-1">
+                                            <div className="p-2 border-t border-slate-100 bg-slate-50/80">
                                                 <Link
                                                     href={route('logout')}
                                                     method="post"
                                                     as="button"
                                                     onClick={() => setProfileDropdownOpen(false)}
-                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 transition font-medium text-xs text-left"
+                                                    className="w-full flex items-center justify-between px-3 py-2 rounded-2xl text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition group font-bold text-xs text-left"
                                                 >
-                                                    <LogOut className="w-4 h-4 shrink-0" />
-                                                    <span>Sign Out</span>
+                                                    <span className="flex items-center gap-2.5">
+                                                        <div className="w-7 h-7 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                                            <LogOut className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span>Sign Out from Shilposetu</span>
+                                                    </span>
+                                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-600 group-hover:translate-x-0.5 transition-all" />
                                                 </Link>
                                             </div>
                                         </div>
@@ -372,42 +483,33 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
 
                         {user ? (
                             <div className="pt-3 border-t border-slate-200 space-y-1">
-                                <div className="px-3 py-2.5 bg-slate-50 rounded-xl mb-2 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-900">{user.name}</p>
-                                        <p className="text-[10px] text-slate-500">{user.factory?.business_name || 'Factory Member'}</p>
+                                <div className="p-3 bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl mb-3 shadow-sm border border-slate-800">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-white">{user.name}</p>
+                                                <p className="text-[10px] text-slate-300">{user.factory?.business_name || 'Factory Member'}</p>
+                                            </div>
+                                        </div>
+                                        <span className="font-mono text-[10px] bg-cyan-950 text-cyan-300 font-bold px-2 py-0.5 rounded-lg border border-cyan-500/30">
+                                            {user.customer_id || `S${user.id}`}
+                                        </span>
                                     </div>
-                                    <span className="font-mono text-[10px] bg-blue-50 text-blue-700 font-bold px-1.5 py-0.5 rounded border border-blue-200">
-                                        {user.customer_id || `S${user.id}`}
-                                    </span>
                                 </div>
                                 <Link
                                     href={route('dashboard')}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition"
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
-                                    <BarChart3 className="w-4 h-4 text-purple-600" />
-                                    <span>Dashboard</span>
-                                </Link>
-                                <Link
-                                    href={route('dashboard') + '?tab=posted'}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    <Send className="w-4 h-4 text-blue-600" />
-                                    <span>Give Subcontract (Orders I Posted)</span>
-                                </Link>
-                                <Link
-                                    href={route('dashboard') + '?tab=taken'}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    <Handshake className="w-4 h-4 text-emerald-600" />
-                                    <span>Take Subcontract (Orders I Bid / Taken)</span>
+                                    <LayoutDashboard className="w-4 h-4 text-purple-600" />
+                                    <span>Dashboard Overview</span>
                                 </Link>
                                 <Link
                                     href={route('profile.edit')}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     <User className="w-4 h-4 text-slate-600" />
@@ -415,17 +517,42 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                 </Link>
                                 <Link
                                     href={route('factory.edit')}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition"
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
-                                    <Building2 className="w-4 h-4 text-indigo-600" />
-                                    <span>Factory Information (Add / Edit)</span>
+                                    <span className="flex items-center gap-2.5">
+                                        <Building2 className="w-4 h-4 text-indigo-600" />
+                                        <span>Factory Profile & Capacity</span>
+                                    </span>
+                                    <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full">Lines</span>
+                                </Link>
+                                <Link
+                                    href={route('dashboard') + '?tab=posted'}
+                                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Send className="w-4 h-4 text-blue-600" />
+                                        <span>Give Subcontract</span>
+                                    </span>
+                                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">I Post</span>
+                                </Link>
+                                <Link
+                                    href={route('dashboard') + '?tab=taken'}
+                                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Handshake className="w-4 h-4 text-emerald-600" />
+                                        <span>Take Subcontract</span>
+                                    </span>
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">I Produce</span>
                                 </Link>
                                 <Link
                                     href={route('logout')}
                                     method="post"
                                     as="button"
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 text-left"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 text-left transition"
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     <LogOut className="w-4 h-4" />
