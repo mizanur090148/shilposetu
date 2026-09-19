@@ -4,19 +4,19 @@ import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import AuthGateModal from '@/Components/AuthGateModal';
 import CreatePostModal from '@/Components/CreatePostModal';
 import { formatDeadline } from '@/utils/date';
-import { 
-    PlusCircle, 
-    Search, 
-    Filter, 
-    MapPin, 
-    Calendar, 
-    Lock, 
-    Phone, 
-    Layers, 
-    CheckCircle2, 
-    ShieldCheck, 
-    Clock, 
-    Building2, 
+import {
+    PlusCircle,
+    Search,
+    Filter,
+    MapPin,
+    Calendar,
+    Lock,
+    Phone,
+    Layers,
+    CheckCircle2,
+    ShieldCheck,
+    Clock,
+    Building2,
     AlertTriangle,
     Tag,
     ChevronRight,
@@ -99,13 +99,13 @@ const CATEGORIES = [
     { id: 'embroidery', label: 'Embroidery' },
 ];
 
-export default function FeedIndex({ 
-    posts, 
-    filters, 
-    districts, 
-    stats, 
-    userCanViewFullDetails, 
-    auth 
+export default function FeedIndex({
+    posts,
+    filters,
+    districts,
+    stats,
+    userCanViewFullDetails,
+    auth
 }: FeedIndexProps) {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -248,11 +248,10 @@ export default function FeedIndex({
                             <button
                                 key={cat.id}
                                 onClick={() => handleFilterChange('category', cat.id)}
-                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition ${
-                                    filters.category === cat.id
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                }`}
+                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition ${filters.category === cat.id
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                    }`}
                             >
                                 {cat.label}
                             </button>
@@ -274,7 +273,7 @@ export default function FeedIndex({
                             </span>
                         </div>
 
-                        {posts.data.length === 0 ? (
+                        {posts?.data?.length === 0 ? (
                             <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-300">
                                 <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                                 <h3 className="text-base font-bold text-slate-700">No Extra Orders Found</h3>
@@ -290,132 +289,151 @@ export default function FeedIndex({
                                 </button>
                             </div>
                         ) : (
-                            posts.data.map((post) => (
-                                <article 
+                            posts?.data?.map((post) => (
+                                <article
                                     key={post.id}
-                                    className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                                    className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300/90 transition-all duration-200 overflow-hidden group"
                                 >
-                                    {/* Card Header (Author & Factory) */}
-                                    <div className="p-5 pb-3 border-b border-slate-100 flex items-start justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                                    {/* Card Header (Author, Factory, Verification & Urgency) */}
+                                    <div className="px-4 py-2.5 sm:px-5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/40">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-700 text-white font-bold flex items-center justify-center text-xs sm:text-sm shadow-xs shrink-0">
                                                 {post.factory?.business_name ? post.factory.business_name.charAt(0) : post.user.name.charAt(0)}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5">
-                                                    <h3 className="font-bold text-sm text-slate-900 leading-tight">
+                                                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight truncate group-hover:text-blue-600 transition-colors">
                                                         {post.factory?.business_name || post.user.name}
                                                     </h3>
                                                     {post.factory?.is_verified && (
-                                                        <span title="Verified Bangladesh Factory">
-                                                            <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-50" />
+                                                        <span title="Verified Bangladesh Factory" className="shrink-0">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 fill-blue-50" />
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                                                    <span className="flex items-center gap-1">
-                                                        <MapPin className="w-3 h-3 text-slate-400" />
+                                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5 truncate">
+                                                    <span className="flex items-center gap-0.5 text-slate-500">
+                                                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                                                         {post.district}
                                                     </span>
                                                     <span>•</span>
-                                                    <span>ID: <strong className="text-slate-700">{post.user.customer_id || `S${post.user.id}`}</strong></span>
+                                                    <span className="font-mono font-semibold text-slate-600">ID: {post.user.customer_id || `S${post.user.id}`}</span>
                                                     <span>•</span>
-                                                    <span className="text-[11px] text-slate-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                                                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Badges */}
-                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {/* Header Badges */}
+                                        <div className="flex items-center gap-1.5 shrink-0">
                                             {post.is_urgent && (
-                                                <span className="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1 animate-pulse">
+                                                <span className="bg-rose-50 text-rose-700 border border-rose-200/80 font-bold px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1 animate-pulse">
                                                     <AlertTriangle className="w-3 h-3" />
                                                     URGENT
                                                 </span>
                                             )}
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800">
-                                                Have Extra Orders (Need Subcontract)
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60 inline-flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                                Need Subcontract
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Post Body */}
-                                    <div className="p-5 space-y-4">
-                                        <div>
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                                    <div className="px-4 py-3 sm:px-5 space-y-2.5">
+                                        {/* Category & Order Title Row */}
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md shrink-0">
                                                 {post.category.replace('_', ' ')}
                                             </span>
-                                            <h4 className="text-base font-bold text-slate-900 mt-1.5 leading-snug">
+                                            <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                                                 {post.title}
                                             </h4>
                                         </div>
 
-                                        {/* High-Level Order Metrics Grid */}
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                                            <div>
-                                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Quantity</span>
-                                                <span className="font-extrabold text-slate-900 text-sm">
+                                        {/* Compact Key Order Metrics Strip */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2 px-3 bg-slate-50/80 rounded-xl border border-slate-200/60 text-xs">
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Qty:</span>
+                                                <span className="font-black text-slate-900 text-xs sm:text-sm">
                                                     {post.target_quantity.toLocaleString()} {post.unit}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Target Rate</span>
-                                                <span className="font-bold text-emerald-600 text-sm">
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rate:</span>
+                                                <span className="font-black text-emerald-600 text-xs sm:text-sm">
                                                     {post.target_rate ? `${post.target_rate} ৳/${post.unit}` : 'Negotiable'}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Location</span>
-                                                <span className="font-semibold text-slate-800 truncate block">
+                                            <div className="flex items-baseline gap-1.5 min-w-0">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Area:</span>
+                                                <span className="font-semibold text-slate-700 truncate text-xs">
                                                     {post.district}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Delivery Deadline</span>
-                                                <span className="font-semibold text-slate-800 flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3 text-slate-400" />
+                                            <div className="flex items-baseline gap-1.5 min-w-0">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deadline:</span>
+                                                <span className="font-semibold text-slate-700 text-xs flex items-center gap-1 truncate">
+                                                    <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                                                     {formatDeadline(post.deadline)}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        {/* Dynamic Category Specifications Preview */}
-                                        {post.specs && Object.keys(post.specs).length > 0 && (
-                                            <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/80 text-xs space-y-1">
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
-                                                    Manufacturing Specifications
+                                        {/* Manufacturing Specs (Rendered as Compact Chips instead of huge bullet box) */}
+                                        {post.specs && (post.specs.machine_type || post.specs.no_of_lines || post.specs.total_capacity || post.specs.item_type || post.specs.process_capability) && (
+                                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-0.5">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-0.5 flex items-center gap-1">
+                                                    <Layers className="w-3 h-3 text-indigo-500" />
+                                                    Specs:
                                                 </span>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-slate-700">
-                                                    {post.specs.machine_type && (
-                                                        <div>• <strong>Machine:</strong> {post.specs.machine_type} ({post.specs.machine_qty || 0} Sets)</div>
-                                                    )}
-                                                    {post.specs.total_capacity && (
-                                                        <div>• <strong>Total Capacity:</strong> {post.specs.total_capacity}</div>
-                                                    )}
-                                                    {post.specs.no_of_lines && (
-                                                        <div>• <strong>Lines:</strong> {post.specs.no_of_lines} ({post.specs.per_line_capacity} / Line)</div>
-                                                    )}
-                                                    {post.specs.item_type && (
-                                                        <div>• <strong>Item & SMV:</strong> {post.specs.item_type}</div>
-                                                    )}
-                                                    {post.specs.process_capability && (
-                                                        <div>• <strong>Process:</strong> {post.specs.process_capability}</div>
-                                                    )}
-                                                </div>
+                                                {post.specs.machine_type && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                                                        <span className="text-slate-400">Machine:</span>
+                                                        <strong className="font-semibold text-slate-800">{post.specs.machine_type}</strong>
+                                                        {post.specs.machine_qty ? <span className="text-indigo-600 font-medium">({post.specs.machine_qty} Sets)</span> : null}
+                                                    </span>
+                                                )}
+                                                {post.specs.no_of_lines && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                                                        <span className="text-slate-400">Lines:</span>
+                                                        <strong className="font-semibold text-slate-800">{post.specs.no_of_lines}</strong>
+                                                        {post.specs.per_line_capacity ? <span className="text-blue-600 font-medium">({post.specs.per_line_capacity}/line)</span> : null}
+                                                    </span>
+                                                )}
+                                                {post.specs.total_capacity && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                                                        <span className="text-slate-400">Capacity:</span>
+                                                        <strong className="font-semibold text-slate-800">{post.specs.total_capacity}</strong>
+                                                    </span>
+                                                )}
+                                                {post.specs.item_type && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                                                        <span className="text-slate-400">Item:</span>
+                                                        <strong className="font-semibold text-slate-800">{post.specs.item_type}</strong>
+                                                    </span>
+                                                )}
+                                                {post.specs.process_capability && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                                                        <strong className="font-semibold text-slate-800">{post.specs.process_capability}</strong>
+                                                    </span>
+                                                )}
                                             </div>
                                         )}
 
-                                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                                            {post.description}
-                                        </p>
+                                        {post.description && (
+                                            <p className="text-xs text-slate-500 line-clamp-1 leading-relaxed">
+                                                {post.description}
+                                            </p>
+                                        )}
                                     </div>
 
-                                    {/* Footer / Interaction Bar (Gated Paywall Trigger) */}
-                                    <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                                            <span className="flex items-center gap-1">
+                                    {/* Footer / Interaction Bar */}
+                                    <div className="px-4 py-2.5 sm:px-5 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2.5 text-xs text-slate-400">
+                                            <span className="flex items-center gap-1 font-medium text-slate-600">
                                                 <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                                                <strong>{post.quotations?.length || 0}</strong> Quotations
+                                                <strong>{post.quotations?.length || 0}</strong> Bids
                                             </span>
                                             <span>•</span>
                                             <span className="flex items-center gap-1">
@@ -428,11 +446,10 @@ export default function FeedIndex({
                                             {/* Gated Direct Call / WhatsApp Button */}
                                             <button
                                                 onClick={() => handleGatedAction(post.title, post.id)}
-                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                                                    userCanViewFullDetails
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                                                }`}
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${userCanViewFullDetails
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+                                                    }`}
                                             >
                                                 {userCanViewFullDetails ? (
                                                     <>
@@ -450,9 +467,9 @@ export default function FeedIndex({
                                             {/* Details & Quotation Action */}
                                             <button
                                                 onClick={() => handleGatedAction(post.title, post.id)}
-                                                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition"
+                                                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 hover:shadow transition transform active:scale-95"
                                             >
-                                                {userCanViewFullDetails ? 'View Full Tech Pack & Bid' : 'View Details & Bid'}
+                                                <span>{userCanViewFullDetails ? 'View Tech Pack & Bid' : 'View Details & Bid'}</span>
                                                 <ArrowUpRight className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
