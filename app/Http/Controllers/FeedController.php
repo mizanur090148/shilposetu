@@ -23,8 +23,8 @@ class FeedController extends Controller
                 $q->select('id', 'subcontract_post_id', 'offered_unit_price', 'offered_lead_days');
             },
         ])
-        ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
-        ->latest();
+            ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
+            ->latest();
 
         // Filter by category
         if ($request->filled('category') && $request->input('category') !== 'all') {

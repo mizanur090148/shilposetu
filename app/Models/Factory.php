@@ -38,6 +38,7 @@ class Factory extends Model
         'is_verified',
         'rating',
         'capabilities',
+        'production_capacities',
     ];
 
     /**
@@ -53,6 +54,7 @@ class Factory extends Model
             'is_verified' => 'boolean',
             'rating' => 'decimal:2',
             'capabilities' => 'array',
+            'production_capacities' => 'array',
         ];
     }
 

@@ -53,6 +53,73 @@ class ShilposetuSeeder extends Seeder
                 'is_verified' => true,
                 'rating' => 4.85,
                 'capabilities' => ['Single Jersey', 'Interlock', 'Fleece', 'Polo Sewing', 'Screen Printing'],
+                'production_capacities' => [
+                    'sewing' => [
+                        'no_of_lines' => 16,
+                        'per_line_capacity' => 1500,
+                        'total_capacity_per_day' => 24000,
+                        'rate' => 38.00,
+                        'unit' => 'Pcs',
+                    ],
+                    'knitting' => [
+                        [
+                            'machine_type' => 'Circular Knitting Machine (Single Jersey)',
+                            'no_of_machine' => 12,
+                            'capacity_per_machine' => 450,
+                            'total_capacity_per_day' => 5400,
+                            'rate' => 22.00,
+                            'unit_type' => 'Kg',
+                        ],
+                        [
+                            'machine_type' => 'Circular Knitting Machine (Rib / Interlock)',
+                            'no_of_machine' => 6,
+                            'capacity_per_machine' => 380,
+                            'total_capacity_per_day' => 2280,
+                            'rate' => 25.00,
+                            'unit_type' => 'Kg',
+                        ],
+                    ],
+                    'yarn_dyeing' => [
+                        [
+                            'machine_type' => 'High Temperature Cone / Package Dyeing Machine',
+                            'no_of_machine' => 4,
+                            'capacity_per_machine' => 1200,
+                            'total_capacity_per_day' => 4800,
+                            'rate' => 65.00,
+                            'unit_type' => 'Kg',
+                        ],
+                    ],
+                    'fabric_dyeing' => [
+                        [
+                            'machine_type' => 'Eco Soft Flow Fabric Dyeing (Air/Jet)',
+                            'no_of_machine' => 6,
+                            'capacity_per_machine' => 2000,
+                            'total_capacity_per_day' => 12000,
+                            'rate' => 45.00,
+                            'unit_type' => 'Kg',
+                        ],
+                    ],
+                    'print' => [
+                        [
+                            'machine_type' => 'Automatic Oval Screen Printing Machine (12–18 Color)',
+                            'no_of_machine' => 2,
+                            'capacity_per_machine' => 4500,
+                            'total_capacity_per_day' => 9000,
+                            'rate' => 18.00,
+                            'unit_type' => 'Pcs',
+                        ],
+                    ],
+                    'embroidery' => [
+                        [
+                            'machine_type' => 'Multi-Head Computerized Embroidery (9/12 Needle)',
+                            'no_of_machine' => 4,
+                            'capacity_per_machine' => 1200,
+                            'total_capacity_per_day' => 4800,
+                            'rate' => 12.00,
+                            'unit_type' => 'Pcs',
+                        ],
+                    ],
+                ],
             ]
         );
 
