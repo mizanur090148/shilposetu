@@ -199,9 +199,9 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                                 <span className="font-mono text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200/70">
                                                     {user.customer_id || `S${user.id}`}
                                                 </span>
-                                                <span className="text-slate-400 truncate max-w-[80px]">
+                                                {/* <span className="text-slate-400 truncate max-w-[80px]">
                                                     {user.factory?.business_name || 'Member'}
-                                                </span>
+                                                </span> */}
                                             </p>
                                         </div>
                                         <ChevronDown
