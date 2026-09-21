@@ -24,7 +24,8 @@ import {
     Send,
     Handshake,
     Sparkles,
-    ExternalLink
+    ExternalLink,
+    AlertCircle
 } from 'lucide-react';
 
 interface ShilposetuLayoutProps {
@@ -159,11 +160,24 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                         <div className="flex items-center space-x-3">
                             {onCreatePostClick && (
                                 <button
-                                    onClick={onCreatePostClick}
-                                    className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm shadow-sm shadow-blue-500/25 hover:shadow transition transform active:scale-95"
+                                    onClick={() => {
+                                        if (user?.status === 'pending') {
+                                            alert('আপনার ফ্যাক্টরি অ্যাকাউন্টটি বর্তমানে পর্যালোচনায় রয়েছে (Pending Approval)। অ্যাডমিন অনুমোদন দিলে আপনি সাব-কন্ট্রাক্ট পোস্ট করতে পারবেন।');
+                                            return;
+                                        }
+                                        onCreatePostClick();
+                                    }}
+                                    className={`hidden sm:inline-flex items-center gap-2 font-medium px-4 py-2 rounded-xl text-sm shadow-sm transition transform active:scale-95 ${
+                                        user?.status === 'pending'
+                                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 shadow-none'
+                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/25 hover:shadow'
+                                    }`}
                                 >
                                     <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract
+                                    <span>Post Subcontract</span>
+                                    {user?.status === 'pending' && (
+                                        <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">Pending</span>
+                                    )}
                                 </button>
                             )}
 
@@ -585,6 +599,36 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                     <div className="max-w-7xl mx-auto w-full flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                         <span>{flash.success}</span>
+                    </div>
+                </div>
+            )}
+
+            {flash?.error && (
+                <div className="bg-rose-50 border-b border-rose-200 px-4 py-3 text-rose-800 text-sm flex items-center justify-between">
+                    <div className="max-w-7xl mx-auto w-full flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                        <span>{flash.error}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Factory Approval Banner */}
+            {user?.status === 'pending' && (
+                <div className="bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 border-b border-amber-300/80 px-4 py-3 text-amber-950 text-xs sm:text-sm shadow-inner">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5">
+                            <span className="flex h-3 w-3 relative shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                            </span>
+                            <div>
+                                <span className="font-bold text-amber-900">ফ্যাক্টরি ভেরিফিকেশন অপেক্ষমান (Pending Approval):</span>{' '}
+                                <span className="text-amber-800 font-medium">আপনার প্রোফাইলটি বর্তমানে পর্যালোচনায় রয়েছে। অ্যাডমিন অনুমোদন দিলে আপনি সাব-কন্ট্রাক্ট পোস্ট ও বিড করতে পারবেন।</span>
+                            </div>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-bold bg-amber-200/90 text-amber-900 px-3 py-1 rounded-full border border-amber-300/80 shadow-xs">
+                            👀 ব্রাউজ ও ভিউ সুবিধা সক্রিয়
+                        </span>
                     </div>
                 </div>
             )}

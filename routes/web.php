@@ -22,11 +22,15 @@ Route::get('/subscription', [SubscriptionController::class, 'index'])->name('sub
 
 // Authenticated Routes
 Route::middleware('auth')->group(function () {
-    // Create Subcontract Post
-    Route::post('/feed', [FeedController::class, 'store'])->name('feed.store');
+    // Gated Actions Requiring Verified/Active Account
+    Route::middleware('account.active')->group(function () {
+        // Create Subcontract Post
+        Route::post('/feed', [FeedController::class, 'store'])->name('feed.store');
 
-    // Quotations & Bidding
-    Route::post('/quotations/{postId}', [QuotationController::class, 'store'])->name('quotations.store');
+        // Submit Quotation Bid
+        Route::post('/quotations/{postId}', [QuotationController::class, 'store'])->name('quotations.store');
+    });
+
     Route::get('/quotations/{postId}/compare', [QuotationController::class, 'compare'])->name('quotations.compare');
 
     // Subscription Payment

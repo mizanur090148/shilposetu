@@ -49,7 +49,7 @@ class RegisteredUserController extends Controller
             'phone' => $request->phone,
             'email' => $request->email,
             'account_type' => 'factory',
-            'status' => 'active',
+            'status' => 'pending',
             'is_subscribed' => false,
             'password' => Hash::make($request->password),
         ]);
@@ -70,6 +70,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('feed.index'))->with('success', "Welcome to Shilposetu! Your Customer ID is {$customerId}.");
+        return redirect(route('feed.index'))->with('success', "Welcome to Shilposetu! Your Customer ID is {$customerId}. Your factory account is currently pending admin approval.");
     }
 }
