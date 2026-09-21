@@ -162,7 +162,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                 <button
                                     onClick={() => {
                                         if (user?.status === 'pending') {
-                                            alert('আপনার ফ্যাক্টরি অ্যাকাউন্টটি বর্তমানে পর্যালোচনায় রয়েছে (Pending Approval)। অ্যাডমিন অনুমোদন দিলে আপনি সাব-কন্ট্রাক্ট পোস্ট করতে পারবেন।');
+                                            alert('Your factory account is currently pending administrator approval. You will be able to post subcontracts once approved.');
                                             return;
                                         }
                                         onCreatePostClick();
@@ -622,12 +622,12 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
                             </span>
                             <div>
-                                <span className="font-bold text-amber-900">ফ্যাক্টরি ভেরিফিকেশন অপেক্ষমান (Pending Approval):</span>{' '}
-                                <span className="text-amber-800 font-medium">আপনার প্রোফাইলটি বর্তমানে পর্যালোচনায় রয়েছে। অ্যাডমিন অনুমোদন দিলে আপনি সাব-কন্ট্রাক্ট পোস্ট ও বিড করতে পারবেন।</span>
+                                <span className="font-bold text-amber-900">Factory Verification Pending:</span>{' '}
+                                <span className="text-amber-800 font-medium">Your profile is currently under review. You will be able to post subcontract orders and bid once approved by admin.</span>
                             </div>
                         </div>
                         <span className="shrink-0 text-[11px] font-bold bg-amber-200/90 text-amber-900 px-3 py-1 rounded-full border border-amber-300/80 shadow-xs">
-                            👀 ব্রাউজ ও ভিউ সুবিধা সক্রিয়
+                            👀 Browse Only Mode
                         </span>
                     </div>
                 </div>

@@ -20,11 +20,11 @@ class EnsureAccountIsActive
         }
 
         if ($user->status === 'suspended') {
-            return back()->with('error', 'আপনার অ্যাকাউন্টটি সাময়িকভাবে স্থগিত (Suspended) করা হয়েছে। সহায়তার জন্য অ্যাডমিনের সাথে যোগাযোগ করুন।');
+            return back()->with('error', 'Your account has been suspended. Please contact platform support.');
         }
 
         if ($user->status === 'pending') {
-            return back()->with('error', 'আপনার ফ্যাক্টরি অ্যাকাউন্টটি বর্তমানে অ্যাডমিন অনুমোদনের অপেক্ষায় রয়েছে (Pending Approval)। অ্যাডমিন অনুমোদন দিলে আপনি সাব-কন্ট্রাক্ট পোস্ট ও বিড করতে পারবেন।');
+            return back()->with('error', 'Your factory account is currently pending administrator approval. You can post and bid once approved.');
         }
 
         return $next($request);
