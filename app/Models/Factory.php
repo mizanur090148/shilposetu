@@ -19,6 +19,7 @@ class Factory extends Model
     protected $fillable = [
         'user_id',
         'business_name',
+        'logo',
         'industry_type',
         'contact_person',
         'phone',

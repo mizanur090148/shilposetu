@@ -25,6 +25,7 @@ import {
 interface VendorItem {
     id: number;
     business_name: string;
+    logo?: string | null;
     industry_type: string;
     contact_person: string;
     district: string;
@@ -398,9 +399,17 @@ export default function VendorsIndex({
                                 <div className="space-y-4">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-black text-base flex-shrink-0">
-                                                {factory.business_name.charAt(0)}
-                                            </div>
+                                            {factory.logo ? (
+                                                <img
+                                                    src={`/storage/${factory.logo}`}
+                                                    alt={factory.business_name}
+                                                    className="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-black text-base flex-shrink-0">
+                                                    {factory.business_name.charAt(0)}
+                                                </div>
+                                            )}
                                             <div>
                                                 <div className="flex items-center gap-1.5">
                                                     <h3 className="font-bold text-sm text-slate-900 leading-snug">

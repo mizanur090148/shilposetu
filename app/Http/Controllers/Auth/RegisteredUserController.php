@@ -37,6 +37,7 @@ class RegisteredUserController extends Controller
             'phone' => 'required|string|max:20|unique:users,phone',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'business_name' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -54,9 +55,20 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('factory_logos', 'public');
+            $adminStorage = base_path('../admin-silposetu/storage/app/public/factory_logos');
+            if (is_dir(dirname($adminStorage))) {
+                @mkdir($adminStorage, 0755, true);
+                @copy(storage_path('app/public/'.$logoPath), $adminStorage.'/'.basename($logoPath));
+            }
+        }
+
         Factory::create([
             'user_id' => $user->id,
             'business_name' => $request->business_name,
+            'logo' => $logoPath,
             'industry_type' => 'Apparel & Garments',
             'contact_person' => $request->name,
             'phone' => $request->phone,

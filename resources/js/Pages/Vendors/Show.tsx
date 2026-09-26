@@ -38,9 +38,17 @@ export default function VendorShow({ factory }: VendorShowProps) {
                 <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-100">
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-2xl flex items-center justify-center shadow-md">
-                                {factory.business_name.charAt(0)}
-                            </div>
+                            {factory.logo ? (
+                                <img
+                                    src={`/storage/${factory.logo}`}
+                                    alt={factory.business_name}
+                                    className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shadow-md"
+                                />
+                            ) : (
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                                    {factory.business_name.charAt(0)}
+                                </div>
+                            )}
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-xl sm:text-2xl font-black text-slate-900">

@@ -40,6 +40,7 @@ export interface Factory {
     id: number;
     user_id: number;
     business_name: string;
+    logo?: string | null;
     industry_type?: string;
     contact_person?: string;
     phone?: string;

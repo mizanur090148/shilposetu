@@ -1,17 +1,52 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { ArrowRight, Upload, X, Image as ImageIcon } from 'lucide-react';
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+    const { data, setData, post, processing, errors, reset } = useForm<{
+        name: string;
+        phone: string;
+        email: string;
+        business_name: string;
+        logo: File | null;
+        password: string;
+        password_confirmation: string;
+    }>({
         name: '',
         phone: '+880',
         email: '',
         business_name: '',
+        logo: null,
         password: '',
         password_confirmation: '',
     });
+
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files ? e.target.files[0] : null;
+        if (file) {
+            setData('logo', file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setData('logo', null);
+            setLogoPreview(null);
+        }
+    };
+
+    const removeLogo = () => {
+        setData('logo', null);
+        setLogoPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,10 +62,6 @@ export default function Register() {
             {/* Top Industrial Banner */}
             <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 text-white py-8 px-4 border-b border-slate-800">
                 <div className="max-w-4xl mx-auto text-center space-y-2">
-                    {/* <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-600/30 inline-flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        Verified Industrial Accounts
-                    </span>  */}
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
                         Industry Account Registration
                     </h1>
@@ -50,17 +81,17 @@ export default function Register() {
                     </div>
 
                     <form onSubmit={submit} className="space-y-4 text-xs">
-                        {/* Full Name & Phone Number */}
+                        {/* Contact Person Name & Phone Number */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label className="block font-bold text-slate-600 mb-1">
-                                    Full Name <span className="text-rose-500">*</span>
+                                    Contact person name <span className="text-rose-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    placeholder="Enter your full name"
+                                    placeholder="Enter contact person name"
                                     className="w-full text-xs rounded-xl border-slate-300 focus:border-blue-500"
                                     required
                                 />
@@ -115,6 +146,74 @@ export default function Register() {
                             {errors.business_name && <p className="text-rose-600 text-[10px] mt-1">{errors.business_name}</p>}
                         </div>
 
+                        {/* Factory Logo (Optional / Not Mandatory) */}
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block font-bold text-slate-600">
+                                    Factory Logo <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+                                </label>
+                                {logoPreview && (
+                                    <button
+                                        type="button"
+                                        onClick={removeLogo}
+                                        className="text-rose-600 hover:text-rose-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <X className="w-3 h-3" />
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+
+                            {!logoPreview ? (
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/70 hover:bg-blue-50/30 rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-3 group"
+                                >
+                                    <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center group-hover:scale-105 transition shrink-0">
+                                        <Upload className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-semibold text-slate-700 group-hover:text-blue-600">
+                                            Click to upload factory logo
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">PNG, JPG, WEBP, SVG up to 4MB</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <img
+                                        src={logoPreview}
+                                        alt="Factory logo preview"
+                                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-slate-800 truncate">
+                                            {data.logo?.name || 'Uploaded Logo'}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">
+                                            {data.logo ? `${(data.logo.size / 1024).toFixed(1)} KB` : ''}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-2.5 py-1 rounded-lg hover:bg-blue-50 transition cursor-pointer"
+                                    >
+                                        Change
+                                    </button>
+                                </div>
+                            )}
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                                onChange={handleLogoChange}
+                                className="hidden"
+                            />
+                            {errors.logo && <p className="text-rose-600 text-[10px] mt-1">{errors.logo}</p>}
+                        </div>
+
                         {/* Password & Confirm */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
@@ -148,7 +247,7 @@ export default function Register() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition disabled:opacity-50 mt-4 flex items-center justify-center gap-2 cursor-pointer"
                         >
                             {processing ? 'Processing Registration...' : 'Register'}
                             <ArrowRight className="w-4 h-4" />
