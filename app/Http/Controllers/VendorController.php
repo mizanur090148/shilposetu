@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factory;
+use App\Models\KnittingType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,7 +15,10 @@ class VendorController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Factory::with('user:id,name,customer_id,email,phone');
+        $query = Factory::with([
+            'user:id,name,customer_id,email,phone',
+            'knittingTypes:id,name,slug',
+        ]);
 
         // Search across name, location, sector, and capabilities
         if ($request->filled('search')) {
@@ -24,7 +28,11 @@ class VendorController extends Controller
                     ->orWhere('district', 'like', $term)
                     ->orWhere('industry_type', 'like', $term)
                     ->orWhere('address', 'like', $term)
-                    ->orWhere('capabilities', 'like', $term);
+                    ->orWhere('capabilities', 'like', $term)
+                    ->orWhereHas('knittingTypes', function ($ktq) use ($term) {
+                        $ktq->where('name', 'like', $term)
+                            ->orWhere('slug', 'like', $term);
+                    });
             });
         }
 
@@ -33,12 +41,21 @@ class VendorController extends Controller
             $query->where('district', $request->input('district'));
         }
 
-        // Sector / Industry Type filter
-        if ($request->filled('industry') && $request->input('industry') !== 'all') {
+        // Knitting Type filter
+        if ($request->filled('knitting_type') && $request->input('knitting_type') !== 'all') {
+            $ktSlug = $request->input('knitting_type');
+            $query->whereHas('knittingTypes', function ($q) use ($ktSlug) {
+                $q->where('slug', $ktSlug);
+            });
+        } elseif ($request->filled('industry') && $request->input('industry') !== 'all') {
             $industry = $request->input('industry');
             $query->where(function ($q) use ($industry) {
                 $q->where('industry_type', 'like', '%'.$industry.'%')
-                    ->orWhere('capabilities', 'like', '%'.$industry.'%');
+                    ->orWhere('capabilities', 'like', '%'.$industry.'%')
+                    ->orWhereHas('knittingTypes', function ($ktq) use ($industry) {
+                        $ktq->where('slug', $industry)
+                            ->orWhere('name', 'like', '%'.$industry.'%');
+                    });
             });
         }
 
@@ -79,15 +96,7 @@ class VendorController extends Controller
             ->orderBy('district')
             ->pluck('district');
 
-        $industryTypes = [
-            ['key' => 'all', 'label' => 'All Sectors (সকল খাত)'],
-            ['key' => 'Knitting', 'label' => 'Knitting (নিটিং)'],
-            ['key' => 'Dyeing', 'label' => 'Dyeing & Finishing (ডাইং)'],
-            ['key' => 'Woven', 'label' => 'Woven & Denim (ওভেন ও ডেনিম)'],
-            ['key' => 'Sewing', 'label' => 'Sewing & CMT (সুইং)'],
-            ['key' => 'Washing', 'label' => 'Washing Plant (ওয়াশিং)'],
-            ['key' => 'Print', 'label' => 'Screen & Rotary Print (প্রিন্টিং)'],
-        ];
+        $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
 
         $stats = [
             'total' => Factory::count(),
@@ -100,13 +109,14 @@ class VendorController extends Controller
             'filters' => [
                 'search' => $request->input('search', ''),
                 'district' => $request->input('district', 'all'),
+                'knitting_type' => $request->input('knitting_type', $request->input('industry', 'all')),
                 'industry' => $request->input('industry', 'all'),
                 'lines' => $request->input('lines', 'all'),
                 'verified_only' => $request->boolean('verified_only'),
                 'sort' => $sort,
             ],
             'districts' => $districts,
-            'industryTypes' => $industryTypes,
+            'knittingTypes' => $knittingTypes,
             'stats' => $stats,
         ]);
     }
@@ -118,6 +128,7 @@ class VendorController extends Controller
     {
         $factory = Factory::with([
             'user:id,name,customer_id,email,phone',
+            'knittingTypes:id,name,slug,description',
             'subcontractPosts' => function ($q) {
                 $q->latest()->take(6);
             },
@@ -128,3 +139,4 @@ class VendorController extends Controller
         ]);
     }
 }
+

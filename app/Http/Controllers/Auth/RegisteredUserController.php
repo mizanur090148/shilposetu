@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Factory;
+use App\Models\KnittingType;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,11 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
+
+        return Inertia::render('Auth/Register', [
+            'knittingTypes' => $knittingTypes,
+        ]);
     }
 
     /**
@@ -38,6 +43,8 @@ class RegisteredUserController extends Controller
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'business_name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:4096',
+            'knitting_types' => 'nullable|array',
+            'knitting_types.*' => 'integer',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -65,11 +72,11 @@ class RegisteredUserController extends Controller
             }
         }
 
-        Factory::create([
+        $factory = Factory::create([
             'user_id' => $user->id,
             'business_name' => $request->business_name,
             'logo' => $logoPath,
-            'industry_type' => 'Apparel & Garments',
+            'industry_type' => 'Knitting',
             'contact_person' => $request->name,
             'phone' => $request->phone,
             'email' => $request->email,
@@ -77,6 +84,10 @@ class RegisteredUserController extends Controller
             'is_verified' => false,
             'rating' => 5.0,
         ]);
+
+        if (! empty($request->input('knitting_types'))) {
+            $factory->knittingTypes()->sync($request->input('knitting_types'));
+        }
 
         event(new Registered($user));
 

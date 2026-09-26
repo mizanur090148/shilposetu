@@ -4,6 +4,7 @@ import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import { 
     Factory, 
     MachineType, 
+    KnittingType,
     NonSewingMachineRow, 
     PageProps, 
     ProductionCapacities, 
@@ -180,10 +181,11 @@ const STANDARD_UNITS = [
 interface FactoryEditProps extends PageProps {
     factory: Factory;
     machineTypes?: MachineType[];
+    knittingTypes?: KnittingType[];
     status?: string;
 }
 
-export default function FactoryEdit({ factory, machineTypes = [], status }: FactoryEditProps) {
+export default function FactoryEdit({ factory, machineTypes = [], knittingTypes = [], status }: FactoryEditProps) {
     const [activeDept, setActiveDept] = useState<DepartmentKey>('sewing');
 
     const initialCapabilities: string[] = Array.isArray(factory.capabilities) 
@@ -211,7 +213,7 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
 
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         business_name: factory.business_name || '',
-        industry_type: factory.industry_type || 'Apparel & Garments',
+        industry_type: 'Knitting',
         contact_person: factory.contact_person || '',
         phone: factory.phone || '',
         email: factory.email || '',
@@ -225,6 +227,7 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
         tin_no: factory.tin_no || '',
         bin_no: factory.bin_no || '',
         capabilities: initialCapabilities,
+        knitting_types: (factory as any)?.knitting_types ? (factory as any).knitting_types.map((k: any) => k.id) : [],
     });
 
     // Helper: update Sewing capacity fields
@@ -529,18 +532,12 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
 
                                 <div>
                                     <label className="block font-bold text-slate-700 mb-1">
-                                        Industry Type / Sector <span className="text-rose-500">*</span>
+                                        Industry Type / Sector
                                     </label>
-                                    <select
-                                        value={data.industry_type}
-                                        onChange={(e) => setData('industry_type', e.target.value)}
-                                        className="w-full text-xs rounded-xl border-slate-300 focus:border-blue-500"
-                                    >
-                                        {INDUSTRY_TYPES.map((type) => (
-                                             <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
-                                    {errors.industry_type && <p className="text-rose-600 text-[10px] mt-1">{errors.industry_type}</p>}
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold text-slate-800">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                        <span>Knitting (Default)</span>
+                                    </div>
                                 </div>
 
                                 <div>
@@ -577,6 +574,82 @@ export default function FactoryEdit({ factory, machineTypes = [], status }: Fact
                                             className="w-full text-xs rounded-xl border-slate-300 focus:border-blue-500"
                                         />
                                         {errors.email && <p className="text-rose-600 text-[10px] mt-1">{errors.email}</p>}
+                                    </div>
+                                </div>
+
+                                {/* Specialized Knitting Types Selection */}
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-slate-900">
+                                                    Specialized Knitting Types Produced / Handled
+                                                </span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                                    {data.knitting_types.length} Selected
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                                Select all knit fabrics this factory can manufacture (Single Jersey, Rib, Interlock, etc.).
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('knitting_types', knittingTypes.map(k => k.id))}
+                                                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                                            >
+                                                Select All
+                                            </button>
+                                            <span className="text-slate-300">|</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('knitting_types', [])}
+                                                className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
+                                            >
+                                                Clear All
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
+                                        {knittingTypes.map((kt) => {
+                                            const isSelected = data.knitting_types.includes(kt.id);
+                                            return (
+                                                <button
+                                                    key={kt.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setData('knitting_types', data.knitting_types.filter((id: number) => id !== kt.id));
+                                                        } else {
+                                                            setData('knitting_types', [...data.knitting_types, kt.id]);
+                                                        }
+                                                    }}
+                                                    className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-blue-50 border-blue-400 text-blue-800'
+                                                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center shrink-0 border transition ${
+                                                        isSelected
+                                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                                            : 'border-slate-300 bg-white'
+                                                    }`}>
+                                                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-xs truncate">{kt.name}</p>
+                                                        {kt.description && (
+                                                            <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                                                                {kt.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

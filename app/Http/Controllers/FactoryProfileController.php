@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factory;
+use App\Models\KnittingType;
 use App\Models\MachineType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,10 +28,12 @@ class FactoryProfileController extends Controller
                 'contact_person' => $user->name,
                 'phone' => $user->phone,
                 'email' => $user->email,
-                'industry_type' => 'Apparel & Garments',
+                'industry_type' => 'Knitting',
                 'is_verified' => false,
             ]);
         }
+
+        $factory->load('knittingTypes');
 
         $machineTypes = MachineType::query()
             ->active()
@@ -38,8 +41,11 @@ class FactoryProfileController extends Controller
             ->orderBy('sort_order')
             ->get();
 
+        $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
+
         return Inertia::render('Factory/Edit', [
             'factory' => $factory,
+            'knittingTypes' => $knittingTypes,
             'machineTypes' => $machineTypes,
             'status' => session('status'),
         ]);
@@ -77,7 +83,11 @@ class FactoryProfileController extends Controller
             'bin_no' => ['nullable', 'string', 'max:100'],
             'capabilities' => ['nullable', 'array'],
             'capabilities.*' => ['string', 'max:100'],
+            'knitting_types' => ['nullable', 'array'],
+            'knitting_types.*' => ['integer'],
         ]);
+
+        $validated['industry_type'] = 'Knitting';
 
         // Synchronize total_lines, total_machines, and daily_capacity if production_capacities is supplied
         if (isset($validated['production_capacities']) && is_array($validated['production_capacities'])) {
@@ -119,6 +129,10 @@ class FactoryProfileController extends Controller
         }
 
         $factory->update($validated);
+
+        if ($request->has('knitting_types')) {
+            $factory->knittingTypes()->sync($request->input('knitting_types', []));
+        }
 
         return redirect()->route('factory.edit')->with('success', 'Factory information updated successfully.');
     }

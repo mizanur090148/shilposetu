@@ -28,6 +28,8 @@ import {
     Check
 } from 'lucide-react';
 
+import { KnittingType } from '@/types';
+
 interface SubcontractPostItem {
     id: number;
     title: string;
@@ -57,6 +59,7 @@ interface SubcontractPostItem {
         total_lines: number;
         is_verified: boolean;
         rating: number;
+        knitting_types?: KnittingType[];
     } | null;
     quotations?: any[];
 }
@@ -75,6 +78,7 @@ interface FeedIndexProps {
         district: string;
         search: string;
     };
+    knittingTypes?: KnittingType[];
     districts: string[];
     stats: {
         total_vendors: number;
@@ -88,25 +92,32 @@ interface FeedIndexProps {
     };
 }
 
-const CATEGORIES = [
-    { id: 'all', label: 'All Categories' },
-    { id: 'sewing_production', label: 'Sewing (CMT)' },
-    { id: 'knitting', label: 'Knitting' },
-    { id: 'washing', label: 'Washing Plant' },
-    { id: 'fabric_dyeing', label: 'Fabric Dyeing' },
-    { id: 'yarn_dyeing', label: 'Yarn Dyeing' },
-    { id: 'print', label: 'Screen / Print' },
-    { id: 'embroidery', label: 'Embroidery' },
-];
-
 export default function FeedIndex({
     posts,
     filters,
     districts,
     stats,
+    knittingTypes = [],
     userCanViewFullDetails,
     auth
 }: FeedIndexProps) {
+    const categoryItems = [
+        { id: 'all', label: 'All Knitting Types' },
+        ...(knittingTypes && knittingTypes.length > 0
+            ? knittingTypes.map((kt) => ({ id: kt.slug, label: kt.name }))
+            : [
+                { id: 'single-jersey', label: 'Single Jersey' },
+                { id: 'rib-knit', label: 'Rib Knit' },
+                { id: 'interlock', label: 'Interlock' },
+                { id: 'fleece', label: 'Fleece' },
+                { id: 'pique-lacoste', label: 'Pique & Lacoste' },
+                { id: 'french-terry', label: 'French Terry' },
+                { id: 'flat-knit', label: 'Flat Knit' },
+                { id: 'jacquard-auto-stripe', label: 'Jacquard & Auto Stripe' },
+                { id: 'waffle-thermal', label: 'Waffle / Thermal' },
+                { id: 'mesh-eyelet', label: 'Mesh & Eyelet' },
+            ]),
+    ];
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [activeGateTitle, setActiveGateTitle] = useState('');
@@ -244,7 +255,7 @@ export default function FeedIndex({
 
                     {/* Category Filter Pills */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-                        {CATEGORIES.map((cat) => (
+                        {categoryItems.map((cat) => (
                             <button
                                 key={cat.id}
                                 onClick={() => handleFilterChange('category', cat.id)}
@@ -342,9 +353,9 @@ export default function FeedIndex({
                                     {/* Post Body */}
                                     <div className="px-4 py-3 sm:px-5 space-y-2.5">
                                         {/* Category & Order Title Row */}
-                                        <div className="flex items-baseline gap-2">
+                                        <div className="flex items-baseline gap-2 flex-wrap">
                                             <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md shrink-0">
-                                                {post.category.replace('_', ' ')}
+                                                {post.category.replace(/[-_]/g, ' ')}
                                             </span>
                                             <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                                                 {post.title}
@@ -602,6 +613,7 @@ export default function FeedIndex({
                 isOpen={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
                 user={auth.user}
+                knittingTypes={knittingTypes}
                 onNeedAuth={() => {
                     setActiveGateTitle('Create Subcontract Order');
                     setAuthModalOpen(true);

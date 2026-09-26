@@ -61,6 +61,19 @@ export interface Factory {
     is_verified?: boolean;
     rating?: number | string;
     capabilities?: string[] | null;
+    knitting_types?: KnittingType[];
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface KnittingType {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string | null;
+    sort_order: number;
+    is_active: boolean;
+    factories_count?: number;
     created_at?: string;
     updated_at?: string;
 }

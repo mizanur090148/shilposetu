@@ -1,15 +1,30 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { X, Sparkles, AlertCircle, Upload, CheckCircle2, ChevronRight, Layers, Factory } from 'lucide-react';
+import { KnittingType } from '@/types';
 
 interface CreatePostModalProps {
     isOpen: boolean;
     onClose: () => void;
     user?: any;
     onNeedAuth: () => void;
+    knittingTypes?: KnittingType[];
 }
 
-export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: CreatePostModalProps) {
+const DEFAULT_KNITTING_TYPES: Array<{ id: number; name: string; slug: string }> = [
+    { id: 1, name: 'Single Jersey', slug: 'single-jersey' },
+    { id: 2, name: 'Rib Knit (1x1, 2x2, Flat Knit)', slug: 'rib-knit' },
+    { id: 3, name: 'Interlock & Double Jersey', slug: 'interlock' },
+    { id: 4, name: 'Fleece (Polar, Brushed, Terry)', slug: 'fleece' },
+    { id: 5, name: 'Pique & Lacoste', slug: 'pique-lacoste' },
+    { id: 6, name: 'French Terry', slug: 'french-terry' },
+    { id: 7, name: 'Flat Knit (Collar & Cuff)', slug: 'flat-knit' },
+    { id: 8, name: 'Jacquard & Auto Stripe', slug: 'jacquard-auto-stripe' },
+    { id: 9, name: 'Waffle / Thermal Knit', slug: 'waffle-thermal' },
+    { id: 10, name: 'Mesh & Eyelet Knit', slug: 'mesh-eyelet' },
+];
+
+export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, knittingTypes = [] }: CreatePostModalProps) {
     if (!isOpen) return null;
 
     if (!user) {
@@ -18,12 +33,15 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
         return null;
     }
 
+    const availableTypes = knittingTypes && knittingTypes.length > 0 ? knittingTypes : DEFAULT_KNITTING_TYPES;
+    const initialCategory = availableTypes[0]?.slug || 'single-jersey';
+
     const { data, setData, post, processing, errors, reset } = useForm({
         post_type: 'DEMAND', // DEMAND (Giving Subcontract) or SUPPLY (Taking Subcontract)
-        category: 'sewing_production',
+        category: initialCategory,
         title: '',
-        target_quantity: 10000,
-        unit: 'pcs',
+        target_quantity: 5000,
+        unit: 'kg',
         target_rate: '',
         rate_negotiable: true,
         deadline: '',
@@ -32,40 +50,20 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
         description: '',
         is_urgent: false,
         specs: {
-            // Sewing defaults
-            no_of_lines: 4,
-            per_line_capacity: 1000,
-            total_capacity_day: 4000,
-            item_type: 'T-Shirt / Polo Shirt',
-            // Knitting defaults
-            machine_type: 'Circular Knit Single Jersey',
-            machine_qty: 10,
-            capacity_per_machine: 300,
-            total_capacity: 3000,
-            // Dyeing & Washing
-            process_type: 'Dry Process & Over Dyeing',
-            batch_capacity: 2500,
-            unit: 'Pcs',
+            machine_type: 'Circular Knitting (24G / 28G)',
+            gauge_diameter: '24G / 30"',
+            machine_qty: 6,
+            capacity_per_machine: 350,
+            total_capacity: 2100,
+            fabric_gsm: '160 - 200 GSM',
+            yarn_count: '30s/1 Combed Cotton',
         } as Record<string, any>,
     });
 
     const handleCategoryChange = (newCategory: string) => {
-        let updatedUnit = 'pcs';
-        let updatedSpecs = { ...data.specs };
-
-        if (newCategory === 'knitting' || newCategory === 'yarn_dyeing') {
-            updatedUnit = 'kg';
-        } else if (newCategory === 'print' && data.category === 'fabric_dyeing') {
-            updatedUnit = 'yards';
-        } else {
-            updatedUnit = 'pcs';
-        }
-
         setData((prev) => ({
             ...prev,
             category: newCategory,
-            unit: updatedUnit,
-            specs: updatedSpecs,
         }));
     };
 
@@ -92,9 +90,6 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white p-5 flex items-center justify-between">
                     <div>
-                        {/* <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-700/50">
-                            শিল্পসেতু Subcontract Board
-                        </span> */}
                         <h3 className="text-lg font-bold mt-1">Post Subcontract (Have Extra Orders)</h3>
                     </div>
                     <button 
@@ -124,24 +119,21 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                         </span>
                     </div>
 
-                    {/* Garment Sector / Category Selector */}
+                    {/* Knitting Category Selector */}
                     <div>
                         <label className="block text-xs font-bold uppercase text-slate-500 mb-1.5">
-                            Manufacturing Category (ক্যাটাগরি)
+                            Knitting Type Category (নিটিং টাইপ ক্যাটাগরি) <span className="text-rose-500">*</span>
                         </label>
                         <select
                             value={data.category}
                             onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="w-full text-sm font-medium border-slate-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
+                            className="w-full text-sm font-semibold border-slate-300 rounded-xl focus:border-blue-500 focus:ring-blue-500 bg-white"
                         >
-                            <option value="sewing_production">Sewing Production (CMT / Assembly)</option>
-                            <option value="knitting">Knitting (Circular / Flat Knit)</option>
-                            <option value="fabric_dyeing">Fabric Dyeing & Finishing</option>
-                            <option value="yarn_dyeing">Yarn Dyeing</option>
-                            <option value="washing">Washing Plant (Dry Process & Over Dyeing)</option>
-                            <option value="print">Screen & Rotary Printing</option>
-                            <option value="embroidery">Embroidery</option>
-                            <option value="finishing">Finishing, Iron & Poly Packing</option>
+                            {availableTypes.map((kt) => (
+                                <option key={kt.id || kt.slug} value={kt.slug}>
+                                    {kt.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -209,164 +201,80 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth }: C
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
                         <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-700">
                             <Layers className="w-3.5 h-3.5" />
-                            <span>Category Specifications ({data.category.replace('_', ' ')})</span>
+                            <span>Knitting Specifications ({data.category.replace(/[-_]/g, ' ')})</span>
                         </div>
 
-                        {/* CASE 1: KNITTING */}
-                        {data.category === 'knitting' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Machine Type</label>
-                                    <input
-                                        type="text"
-                                        value={data.specs.machine_type || ''}
-                                        onChange={(e) => handleSpecChange('machine_type', e.target.value)}
-                                        placeholder="e.g. Circular Knit Single Jersey 24G/28G"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Machine Qty</label>
-                                    <input
-                                        type="number"
-                                        value={data.specs.machine_qty || ''}
-                                        onChange={(e) => {
-                                            const qty = parseInt(e.target.value) || 0;
-                                            const cap = data.specs.capacity_per_machine || 300;
-                                            handleSpecChange('machine_qty', qty);
-                                            handleSpecChange('total_capacity', qty * cap);
-                                        }}
-                                        placeholder="e.g. 10"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Capacity Per Machine (Kg/Day)</label>
-                                    <input
-                                        type="number"
-                                        value={data.specs.capacity_per_machine || ''}
-                                        onChange={(e) => {
-                                            const cap = parseInt(e.target.value) || 0;
-                                            const qty = data.specs.machine_qty || 1;
-                                            handleSpecChange('capacity_per_machine', cap);
-                                            handleSpecChange('total_capacity', qty * cap);
-                                        }}
-                                        placeholder="e.g. 300"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Total Capacity (Kg/Day)</label>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={data.specs.total_capacity ? `${data.specs.total_capacity} Kg/Day` : ''}
-                                        className="w-full text-xs bg-slate-100 border-slate-300 rounded-lg font-bold text-slate-700"
-                                    />
-                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Machine Type / Technology</label>
+                                <input
+                                    type="text"
+                                    value={data.specs.machine_type || ''}
+                                    onChange={(e) => handleSpecChange('machine_type', e.target.value)}
+                                    placeholder="e.g. Circular Knit (Single Jersey / Rib)"
+                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                />
                             </div>
-                        )}
-
-                        {/* CASE 2: SEWING PRODUCTION */}
-                        {data.category === 'sewing_production' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">No. of Lines</label>
-                                    <input
-                                        type="number"
-                                        value={data.specs.no_of_lines || ''}
-                                        onChange={(e) => {
-                                            const lines = parseInt(e.target.value) || 0;
-                                            const cap = data.specs.per_line_capacity || 1000;
-                                            handleSpecChange('no_of_lines', lines);
-                                            handleSpecChange('total_capacity_day', `${lines * cap} Pcs/Day`);
-                                        }}
-                                        placeholder="e.g. 4 Lines"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Per Line Capacity (Pcs/Day)</label>
-                                    <input
-                                        type="number"
-                                        value={data.specs.per_line_capacity || ''}
-                                        onChange={(e) => {
-                                            const cap = parseInt(e.target.value) || 0;
-                                            const lines = data.specs.no_of_lines || 1;
-                                            handleSpecChange('per_line_capacity', cap);
-                                            handleSpecChange('total_capacity_day', `${lines * cap} Pcs/Day`);
-                                        }}
-                                        placeholder="e.g. 1000"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Total Capacity / Day</label>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={data.specs.total_capacity_day || ''}
-                                        className="w-full text-xs bg-slate-100 border-slate-300 rounded-lg font-bold text-slate-700"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Item Type & SMV</label>
-                                    <input
-                                        type="text"
-                                        value={data.specs.item_type || ''}
-                                        onChange={(e) => handleSpecChange('item_type', e.target.value)}
-                                        placeholder="e.g. Polo Shirt, SMV: 15"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Gauge & Diameter</label>
+                                <input
+                                    type="text"
+                                    value={data.specs.gauge_diameter || ''}
+                                    onChange={(e) => handleSpecChange('gauge_diameter', e.target.value)}
+                                    placeholder="e.g. 24G / 30-inch, 28G / 32-inch"
+                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                />
                             </div>
-                        )}
-
-                        {/* CASE 3: DYEING / WASHING / PRINT / EMBROIDERY */}
-                        {['fabric_dyeing', 'yarn_dyeing', 'print', 'embroidery', 'washing', 'finishing'].includes(data.category) && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Process Capability / Machine Type</label>
-                                    <input
-                                        type="text"
-                                        value={data.specs.process_capability || ''}
-                                        onChange={(e) => handleSpecChange('process_capability', e.target.value)}
-                                        placeholder="e.g. Dry Process, Over Dyeing, Plastisol"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">No. of Machines / Batches</label>
-                                    <input
-                                        type="number"
-                                        value={data.specs.no_of_machine || ''}
-                                        onChange={(e) => handleSpecChange('no_of_machine', parseInt(e.target.value) || 0)}
-                                        placeholder="e.g. 4 Machines"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Daily Capacity</label>
-                                    <input
-                                        type="text"
-                                        value={data.specs.total_capacity_day || ''}
-                                        onChange={(e) => handleSpecChange('total_capacity_day', e.target.value)}
-                                        placeholder="e.g. 5,000 Pcs/Day or 3,000 Kg/Day"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-medium text-slate-600 mb-1">Special Treatments / Certifications</label>
-                                    <input
-                                        type="text"
-                                        value={data.specs.special_note || ''}
-                                        onChange={(e) => handleSpecChange('special_note', e.target.value)}
-                                        placeholder="e.g. OEKO-TEX, GOTS, Bio-Wash"
-                                        className="w-full text-xs border-slate-300 rounded-lg"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Machine Quantity (Sets)</label>
+                                <input
+                                    type="number"
+                                    value={data.specs.machine_qty || ''}
+                                    onChange={(e) => {
+                                        const qty = parseInt(e.target.value) || 0;
+                                        const cap = data.specs.capacity_per_machine || 350;
+                                        handleSpecChange('machine_qty', qty);
+                                        handleSpecChange('total_capacity', qty * cap);
+                                    }}
+                                    placeholder="e.g. 6"
+                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                />
                             </div>
-                        )}
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Capacity Per Machine (Kg/Day)</label>
+                                <input
+                                    type="number"
+                                    value={data.specs.capacity_per_machine || ''}
+                                    onChange={(e) => {
+                                        const cap = parseInt(e.target.value) || 0;
+                                        const qty = data.specs.machine_qty || 1;
+                                        handleSpecChange('capacity_per_machine', cap);
+                                        handleSpecChange('total_capacity', qty * cap);
+                                    }}
+                                    placeholder="e.g. 350"
+                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Total Daily Capacity</label>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={data.specs.total_capacity ? `${data.specs.total_capacity} Kg/Day` : ''}
+                                    className="w-full text-xs bg-slate-100 border-slate-300 rounded-lg font-bold text-slate-700"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-medium text-slate-600 mb-1">Fabric GSM & Yarn Count</label>
+                                <input
+                                    type="text"
+                                    value={data.specs.fabric_gsm || ''}
+                                    onChange={(e) => handleSpecChange('fabric_gsm', e.target.value)}
+                                    placeholder="e.g. 160-220 GSM, 30s/1 Cotton"
+                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* District, Deadline, and Urgent Checkbox */}

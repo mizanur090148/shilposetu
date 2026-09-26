@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factory;
+use App\Models\KnittingType;
 use App\Models\SubcontractPost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class FeedController extends Controller
     {
         $query = SubcontractPost::with([
             'user:id,name,customer_id,phone',
-            'factory:id,user_id,business_name,industry_type,district,total_lines,is_verified,rating',
+            'factory:id,user_id,business_name,logo,industry_type,district,total_lines,is_verified,rating',
+            'factory.knittingTypes:id,name,slug',
             'quotations' => function ($q) {
                 $q->select('id', 'subcontract_post_id', 'offered_unit_price', 'offered_lead_days');
             },
@@ -26,9 +28,19 @@ class FeedController extends Controller
             ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
             ->latest();
 
-        // Filter by category
+        // Filter by knitting type category
         if ($request->filled('category') && $request->input('category') !== 'all') {
-            $query->where('category', $request->input('category'));
+            $cat = $request->input('category');
+            $cleanCat = str_replace('-', '_', $cat);
+            $query->where(function ($q) use ($cat, $cleanCat) {
+                $q->where('category', $cat)
+                    ->orWhere('category', $cleanCat)
+                    ->orWhere('title', 'like', '%'.$cat.'%')
+                    ->orWhere('description', 'like', '%'.$cat.'%')
+                    ->orWhereHas('factory.knittingTypes', function ($ktq) use ($cat) {
+                        $ktq->where('slug', $cat)->orWhere('name', 'like', '%'.$cat.'%');
+                    });
+            });
         }
 
         // Filter by district
@@ -67,6 +79,8 @@ class FeedController extends Controller
             'total_lines' => Factory::sum('total_lines'),
         ];
 
+        $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
+
         return Inertia::render('Feed/Index', [
             'posts' => $posts,
             'filters' => [
@@ -74,6 +88,7 @@ class FeedController extends Controller
                 'district' => $request->input('district', 'all'),
                 'search' => $request->input('search', ''),
             ],
+            'knittingTypes' => $knittingTypes,
             'districts' => $districts,
             'stats' => $stats,
             'userCanViewFullDetails' => $isSubscribed,

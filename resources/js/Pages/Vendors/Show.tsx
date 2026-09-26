@@ -65,6 +65,10 @@ export default function VendorShow({ factory }: VendorShowProps) {
                                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                                         {factory.district}
                                     </span>
+                                    <span>•</span>
+                                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                                        Knitting
+                                    </span>
                                 </p>
                             </div>
                         </div>
@@ -96,6 +100,26 @@ export default function VendorShow({ factory }: VendorShowProps) {
                             <strong className="text-slate-700 text-sm">{factory.trade_license_no || 'Verified'}</strong>
                         </div>
                     </div>
+
+                    {/* Specialized Knitting Types */}
+                    {factory.knitting_types && factory.knitting_types.length > 0 && (
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Specialized Knitting Types (নিটিং টাইপসমূহ)
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {factory.knitting_types.map((kt: any) => (
+                                    <span 
+                                        key={kt.id} 
+                                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200/80 px-3 py-1.5 rounded-xl shadow-xs"
+                                    >
+                                        <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                                        <span>{kt.name}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* About & Address */}
                     <div className="space-y-2">

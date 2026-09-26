@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Factory extends Model
@@ -81,5 +82,13 @@ class Factory extends Model
     public function quotations(): HasMany
     {
         return $this->hasMany(Quotation::class, 'bidder_factory_id');
+    }
+
+    /**
+     * Knitting types handled by this factory.
+     */
+    public function knittingTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(KnittingType::class, 'factory_knitting_types')->withTimestamps();
     }
 }

@@ -22,6 +22,8 @@ import {
     Sparkles
 } from 'lucide-react';
 
+import { KnittingType } from '@/types';
+
 interface VendorItem {
     id: number;
     business_name: string;
@@ -36,6 +38,7 @@ interface VendorItem {
     is_verified: boolean;
     rating: number;
     capabilities: string[] | null;
+    knitting_types?: KnittingType[];
     user: {
         id: number;
         name: string;
@@ -57,13 +60,14 @@ interface VendorsIndexProps {
     filters: {
         search: string;
         district: string;
-        industry: string;
+        knitting_type?: string;
+        industry?: string;
         lines: string;
         verified_only: boolean;
         sort: string;
     };
     districts: string[];
-    industryTypes: Array<{ key: string; label: string }>;
+    knittingTypes?: KnittingType[];
     stats: {
         total: number;
         verified: number;
@@ -75,10 +79,28 @@ export default function VendorsIndex({
     factories, 
     filters, 
     districts, 
-    industryTypes, 
+    knittingTypes = [], 
     stats 
 }: VendorsIndexProps) {
     const [search, setSearch] = useState(filters.search || '');
+
+    const activeKnittingType = filters.knitting_type || filters.industry || 'all';
+
+    const knittingTypePills = [
+        { key: 'all', label: 'All Knitting Types' },
+        ...(knittingTypes && knittingTypes.length > 0
+            ? knittingTypes.map((kt) => ({ key: kt.slug, label: kt.name }))
+            : [
+                { key: 'single-jersey', label: 'Single Jersey' },
+                { key: 'rib-knit', label: 'Rib Knit' },
+                { key: 'interlock', label: 'Interlock' },
+                { key: 'fleece', label: 'Fleece' },
+                { key: 'pique-lacoste', label: 'Pique & Lacoste' },
+                { key: 'french-terry', label: 'French Terry' },
+                { key: 'flat-knit', label: 'Flat Knit' },
+                { key: 'jacquard-auto-stripe', label: 'Jacquard & Auto Stripe' },
+            ]),
+    ];
 
     const applyFilters = (overrides: Partial<typeof filters>) => {
         router.get(
@@ -86,7 +108,8 @@ export default function VendorsIndex({
             {
                 search: overrides.search !== undefined ? overrides.search : search,
                 district: overrides.district !== undefined ? overrides.district : filters.district,
-                industry: overrides.industry !== undefined ? overrides.industry : filters.industry,
+                knitting_type: overrides.knitting_type !== undefined ? overrides.knitting_type : activeKnittingType,
+                industry: overrides.industry !== undefined ? overrides.industry : activeKnittingType,
                 lines: overrides.lines !== undefined ? overrides.lines : filters.lines,
                 verified_only: overrides.verified_only !== undefined ? overrides.verified_only : filters.verified_only,
                 sort: overrides.sort !== undefined ? overrides.sort : filters.sort,
@@ -115,6 +138,7 @@ export default function VendorsIndex({
             {
                 search: '',
                 district: 'all',
+                knitting_type: 'all',
                 industry: 'all',
                 lines: 'all',
                 verified_only: false,
@@ -130,21 +154,10 @@ export default function VendorsIndex({
     const hasActiveFilters = 
         Boolean(filters.search) || 
         (filters.district && filters.district !== 'all') || 
-        (filters.industry && filters.industry !== 'all') || 
+        (activeKnittingType && activeKnittingType !== 'all') || 
         (filters.lines && filters.lines !== 'all') || 
         Boolean(filters.verified_only) ||
         (filters.sort && filters.sort !== 'latest');
-
-    // Quick sector pill helper
-    const sectorPills = [
-        { key: 'all', label: 'All Sectors' },
-        { key: 'Knitting', label: 'Knitting Mills' },
-        { key: 'Dyeing', label: 'Dyeing & Finishing' },
-        { key: 'Woven', label: 'Woven & Denim' },
-        { key: 'Sewing', label: 'Sewing & CMT' },
-        { key: 'Washing', label: 'Washing Plants' },
-        { key: 'Print', label: 'Screen Print' },
-    ];
 
     return (
         <ShilposetuLayout>
@@ -186,17 +199,17 @@ export default function VendorsIndex({
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-                {/* Quick Sector Filter Pills */}
+                {/* Quick Knitting Type Filter Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                     <span className="text-xs font-bold text-slate-400 whitespace-nowrap uppercase tracking-wider pl-1">
-                        Sectors:
+                        Knitting Types:
                     </span>
-                    {sectorPills.map((pill) => {
-                        const isActive = (filters.industry || 'all') === pill.key;
+                    {knittingTypePills.map((pill) => {
+                        const isActive = activeKnittingType === pill.key;
                         return (
                             <button
                                 key={pill.key}
-                                onClick={() => applyFilters({ industry: pill.key })}
+                                onClick={() => applyFilters({ knitting_type: pill.key, industry: pill.key })}
                                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                                     isActive
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
@@ -314,10 +327,10 @@ export default function VendorsIndex({
                                     </span>
                                 )}
 
-                                {filters.industry && filters.industry !== 'all' && (
+                                {activeKnittingType && activeKnittingType !== 'all' && (
                                     <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg font-medium">
-                                        Sector: {filters.industry}
-                                        <button onClick={() => applyFilters({ industry: 'all' })}><X className="w-3 h-3 text-indigo-500 hover:text-indigo-700" /></button>
+                                        Knitting: {activeKnittingType}
+                                        <button onClick={() => applyFilters({ knitting_type: 'all', industry: 'all' })}><X className="w-3 h-3 text-indigo-500 hover:text-indigo-700" /></button>
                                     </span>
                                 )}
 
@@ -425,8 +438,8 @@ export default function VendorsIndex({
                                                     <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
                                                     <span>{factory.district}</span>
                                                     <span className="text-slate-300">•</span>
-                                                    <span className="text-slate-600 font-medium truncate max-w-[130px]">
-                                                        {factory.industry_type}
+                                                    <span className="text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">
+                                                        Knitting
                                                     </span>
                                                 </p>
                                             </div>
@@ -436,6 +449,28 @@ export default function VendorsIndex({
                                             {factory.rating}
                                         </span>
                                     </div>
+
+                                    {/* Specialized Knitting Types */}
+                                    {factory.knitting_types && factory.knitting_types.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-0.5">
+                                                Types:
+                                            </span>
+                                            {factory.knitting_types.slice(0, 3).map((kt) => (
+                                                <span
+                                                    key={kt.id}
+                                                    className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/80 px-2 py-0.5 rounded-full"
+                                                >
+                                                    {kt.name}
+                                                </span>
+                                            ))}
+                                            {factory.knitting_types.length > 3 && (
+                                                <span className="text-[10px] text-slate-400 font-medium px-1 py-0.5">
+                                                    +{factory.knitting_types.length - 3} more
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
                                         {factory.address || 'Industrial plant address verified by platform.'}
