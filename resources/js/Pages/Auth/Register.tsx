@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
-import { ArrowRight, Upload, X, Image as ImageIcon, Check } from 'lucide-react';
+import { ArrowRight, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { KnittingType } from '@/types';
 
 interface RegisterProps {
@@ -18,7 +18,6 @@ export default function Register({ knittingTypes = [] }: RegisterProps) {
         email: string;
         business_name: string;
         logo: File | null;
-        knitting_types: number[];
         password: string;
         password_confirmation: string;
     }>({
@@ -27,7 +26,6 @@ export default function Register({ knittingTypes = [] }: RegisterProps) {
         email: '',
         business_name: '',
         logo: null,
-        knitting_types: [],
         password: '',
         password_confirmation: '',
     });
@@ -221,52 +219,7 @@ export default function Register({ knittingTypes = [] }: RegisterProps) {
                             {errors.logo && <p className="text-rose-600 text-[10px] mt-1">{errors.logo}</p>}
                         </div>
 
-                        {/* Manufacturing Sector: Knitting (Default) */}
-                        <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                    <span className="font-bold text-slate-800 text-xs">Sector: Knitting (Default)</span>
-                                </div>
-                                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                                    Pre-configured
-                                </span>
-                            </div>
 
-                            {knittingTypes && knittingTypes.length > 0 && (
-                                <div className="pt-1.5 border-t border-blue-100">
-                                    <label className="block text-[11px] font-bold text-slate-600 mb-1.5">
-                                        Specialized Knitting Types <span className="text-slate-400 font-normal">(Optional - Select what you produce)</span>
-                                    </label>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {knittingTypes.map((kt) => {
-                                            const isSelected = data.knitting_types.includes(kt.id);
-                                            return (
-                                                <button
-                                                    key={kt.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (isSelected) {
-                                                            setData('knitting_types', data.knitting_types.filter(id => id !== kt.id));
-                                                        } else {
-                                                            setData('knitting_types', [...data.knitting_types, kt.id]);
-                                                        }
-                                                    }}
-                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
-                                                        isSelected
-                                                            ? 'bg-blue-600 text-white shadow-xs'
-                                                            : 'bg-white border border-slate-200 text-slate-700 hover:border-blue-400'
-                                                    }`}
-                                                >
-                                                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                                                    <span>{kt.name}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
 
                         {/* Password & Confirm */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
