@@ -181,39 +181,35 @@ export default function VendorsIndex({
         <ShilposetuLayout>
             <Head title="Verified Factory & Industrial Directory | Shilposetu" />
 
-            {/* Industrial Header Banner */}
-            <div className="bg-slate-900 text-white py-10 px-4 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/20 text-emerald-400 text-xs font-semibold">
-                            <ShieldCheck className="w-3.5 h-3.5" />
+            {/* Sky Blue Industrial Header Banner */}
+            <section className="bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 text-white py-10 border-b border-sky-400/30 relative overflow-hidden shadow-xs">
+                {/* Subtle Luminous Grid Background Accent */}
+                <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-white/15 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+                    <div className="space-y-2.5">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-semibold shadow-xs">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
                             <span>Government-Verified Manufacturing Directory</span>
                         </div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                            Nationwide Industrial & Factory Directory
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white drop-shadow-xs">
+                            Nationwide Industrial & Factory <span className="text-yellow-300">Directory</span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                        <p className="text-xs sm:text-sm text-sky-50 max-w-2xl leading-relaxed font-medium">
                             Discover compliant apparel manufacturing plants, washing units, and knitting mills with verified production lines across Bangladesh.
                         </p>
                     </div>
 
                     {/* KPI Counter Cards */}
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
-                            <span className="block text-xl font-black text-white">{stats?.total ?? factories.total}</span>
-                            <span className="text-[11px] text-slate-400 font-medium">Total Factories</span>
+                        <div className="bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl px-5 py-3.5 min-w-[130px] text-center shadow-xs">
+                            <span className="block text-2xl font-black text-white drop-shadow-xs">{stats?.total ?? factories.total}</span>
+                            <span className="text-[11px] text-sky-100 font-semibold tracking-wide uppercase">Total Factories</span>
                         </div>
-                        {/* <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
-                            <span className="block text-xl font-black text-blue-400">{stats?.verified ?? 0}</span>
-                            <span className="text-[11px] text-slate-400 font-medium">Verified Units</span>
-                        </div>
-                        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-3 min-w-[120px] text-center">
-                            <span className="block text-xl font-black text-emerald-400">{stats?.total_lines ?? 0}</span>
-                            <span className="text-[11px] text-slate-400 font-medium">Total Lines</span>
-                        </div> */}
                     </div>
                 </div>
-            </div>
+            </section>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 

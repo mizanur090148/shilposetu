@@ -46,19 +46,27 @@ export default function SubscriptionIndex({ subscription, plans }: SubscriptionI
         <ShilposetuLayout>
             <Head title="SaaS Membership & Fee Structure | Shilposetu" />
 
-            <div className="bg-slate-900 text-white py-12 px-4 border-b border-slate-800">
-                <div className="max-w-4xl mx-auto text-center space-y-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-3 py-1 rounded-full border border-amber-600/30">
-                        Shilposetu SaaS Monetization Model (Page 7 Specs)
-                    </span>
-                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
-                        Transparent Factory & Buyer Subscription
-                    </h1>
-                    <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-                        Low-friction membership designed for Bangladesh's RMG manufacturing sector. Connect demand with idle factory capacity without high broker commissions.
-                    </p>
+            {/* Sky Blue Hero Banner */}
+            <section className="bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 text-white py-10 sm:py-12 border-b border-sky-400/30 relative overflow-hidden shadow-xs">
+                {/* Subtle Luminous Grid Background Accent */}
+                <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-white/15 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="max-w-3xl mx-auto text-center space-y-3.5">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-semibold shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                            <span>Transparent SaaS Membership • Page 7 Model</span>
+                        </div>
+                        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white drop-shadow-xs">
+                            Transparent Factory & Buyer <span className="text-yellow-300">Subscription</span>
+                        </h1>
+                        <p className="text-xs sm:text-sm text-sky-50 max-w-2xl mx-auto leading-relaxed font-medium">
+                            Low-friction membership designed for Bangladesh's RMG manufacturing sector. Connect demand with idle factory capacity without high broker commissions.
+                        </p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
                 {/* Active Membership Status Alert (if subscribed) */}
