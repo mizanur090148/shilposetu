@@ -170,8 +170,8 @@ export default function FeedIndex({
             <Head title="Shilposetu Subcontract Feed | Digital RMG Capacity Exchange" />
 
             {/* Industrial Hero Banner */}
-            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-6 sm:py-7 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto space-y-2">
+            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+                <div className="max-w-4xl mx-auto flex flex-col items-center text-center space-y-2.5">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold">
                         <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                         <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
@@ -179,7 +179,7 @@ export default function FeedIndex({
                     <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
                         Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
                     </h1>
-                    <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
+                    <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
                         Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
                     </p>
                 </div>
