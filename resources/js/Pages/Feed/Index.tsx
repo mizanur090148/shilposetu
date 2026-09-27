@@ -169,64 +169,19 @@ export default function FeedIndex({
         <ShilposetuLayout onCreatePostClick={() => setCreateModalOpen(true)}>
             <Head title="Shilposetu Subcontract Feed | Digital RMG Capacity Exchange" />
 
-            {/* Industrial Hero Banner (matching Page 1 Screen 1 & Page 2) */}
-            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-12 px-4 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                        <div className="lg:col-span-7 space-y-4">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold">
-                                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                                <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
-                            </div>
-                            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-                                Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
-                            </h1>
-                            <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                                Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
-                            </p>
-
-                            <div className="flex flex-wrap gap-3 pt-2">
-                                <button
-                                    onClick={() => setCreateModalOpen(true)}
-                                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-blue-500/25 transition transform active:scale-95"
-                                >
-                                    <PlusCircle className="w-4 h-4" />
-                                    Post Subcontract
-                                </button>
-                                <Link
-                                    href={route('vendors.index')}
-                                    className="inline-flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-medium px-4 py-2.5 rounded-xl text-sm border border-slate-700 transition"
-                                >
-                                    <Building2 className="w-4 h-4 text-emerald-400" />
-                                    Browse Factory Directory
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Live Industry Metrics Grid (matching Page 2 stats) */}
-                        <div className="lg:col-span-5 grid grid-cols-2 gap-3">
-                            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60">
-                                <p className="text-xs text-slate-400 font-medium">Registered Vendors</p>
-                                <p className="text-2xl font-black text-white mt-1">10,00,000+</p>
-                                <p className="text-[11px] text-emerald-400 mt-0.5">Apparel & Textiles</p>
-                            </div>
-                            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60">
-                                <p className="text-xs text-slate-400 font-medium">Factories & Plants</p>
-                                <p className="text-2xl font-black text-emerald-400 mt-1">50,000+</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">Across Bangladesh</p>
-                            </div>
-                            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60">
-                                <p className="text-xs text-slate-400 font-medium">Active Productions</p>
-                                <p className="text-2xl font-black text-blue-400 mt-1">1,450+</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">Tshirt, Polo, Denim</p>
-                            </div>
-                            <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60">
-                                <p className="text-xs text-slate-400 font-medium">SaaS Membership</p>
-                                <p className="text-2xl font-black text-amber-400 mt-1">50 ৳<span className="text-xs font-normal text-slate-400">/mo</span></p>
-                                <p className="text-[11px] text-amber-300 mt-0.5">+ 100 ৳ Registration</p>
-                            </div>
-                        </div>
+            {/* Industrial Hero Banner */}
+            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-6 sm:py-7 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+                <div className="max-w-7xl mx-auto space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
                     </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+                        Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
+                    </h1>
+                    <p className="text-slate-300 text-xs sm:text-sm max-w-3xl leading-relaxed">
+                        Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
+                    </p>
                 </div>
             </section>
 
