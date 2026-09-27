@@ -76,11 +76,21 @@ interface FeedIndexProps {
         next_page_url: string | null;
     };
     filters: {
-        category: string;
+        knitting_type?: string;
+        category?: string;
         district: string;
         search: string;
     };
     knittingTypes?: KnittingType[];
+    featuredFactories?: Array<{
+        id: number;
+        business_name: string;
+        district: string;
+        total_machines: number;
+        total_lines?: number;
+        industry_type: string;
+        knitting_types?: Array<{ id: number; name: string; slug: string }>;
+    }>;
     districts: string[];
     stats: {
         total_vendors: number;
@@ -100,9 +110,12 @@ export default function FeedIndex({
     districts,
     stats,
     knittingTypes = [],
+    featuredFactories = [],
     userCanViewFullDetails,
     auth
 }: FeedIndexProps) {
+    const activeKnittingType = filters.knitting_type || filters.category || 'all';
+
     const categoryItems = [
         { id: 'all', label: 'All Knitting Types' },
         ...(knittingTypes && knittingTypes.length > 0
@@ -122,16 +135,16 @@ export default function FeedIndex({
     ];
     const INITIAL_LIMIT = 8;
     const [isExpanded, setIsExpanded] = useState(() => {
-        const activeIdx = categoryItems.findIndex((c) => c.id === filters.category);
+        const activeIdx = categoryItems.findIndex((c) => c.id === activeKnittingType);
         return activeIdx >= INITIAL_LIMIT;
     });
 
     useEffect(() => {
-        const activeIdx = categoryItems.findIndex((c) => c.id === filters.category);
+        const activeIdx = categoryItems.findIndex((c) => c.id === activeKnittingType);
         if (activeIdx >= INITIAL_LIMIT) {
             setIsExpanded(true);
         }
-    }, [filters.category]);
+    }, [activeKnittingType]);
 
     const visibleCategories = isExpanded ? categoryItems : categoryItems.slice(0, INITIAL_LIMIT);
     const hiddenCount = categoryItems.length - INITIAL_LIMIT;
@@ -142,10 +155,14 @@ export default function FeedIndex({
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
 
     const handleFilterChange = (key: string, value: string) => {
-        router.get(route('feed.index'), {
-            ...filters,
+        const nextFilters: Record<string, string> = {
+            knitting_type: activeKnittingType,
+            district: filters.district || 'all',
+            search: searchTerm,
             [key]: value,
-        }, {
+        };
+
+        router.get(route('feed.index'), nextFilters, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -215,24 +232,24 @@ export default function FeedIndex({
                                 className="w-full text-sm py-2.5 rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                             >
                                 <option value="all">All Industrial Districts</option>
-                                <option value="Gazipur">Gazipur (গাজীপুর)</option>
-                                <option value="Ashulia">Ashulia / Savar (আশুলিয়া)</option>
-                                <option value="Tongi">Tongi (টঙ্গী)</option>
-                                <option value="Narayanganj">Narayanganj (নারায়ণগঞ্জ)</option>
-                                <option value="Tangail">Tangail / Mirzapur (টাঙ্গাইল)</option>
-                                <option value="Dhaka">Dhaka (ঢাকা)</option>
-                                <option value="Chittagong">Chittagong (চট্টগ্রাম)</option>
+                                <option value="Gazipur">Gazipur</option>
+                                <option value="Ashulia">Ashulia / Savar</option>
+                                <option value="Tongi">Tongi</option>
+                                <option value="Narayanganj">Narayanganj</option>
+                                <option value="Tangail">Tangail / Mirzapur</option>
+                                <option value="Dhaka">Dhaka</option>
+                                <option value="Chittagong">Chittagong</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Category Filter Pills (No Scroll + Show More Toggle) */}
+                    {/* Knitting Type Filter Pills (No Scroll + Show More Toggle) */}
                     <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
                         {visibleCategories.map((cat) => (
                             <button
                                 key={cat.id}
-                                onClick={() => handleFilterChange('category', cat.id)}
-                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${filters.category === cat.id
+                                onClick={() => handleFilterChange('knitting_type', cat.id)}
+                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${activeKnittingType === cat.id
                                     ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
                                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
                                     }`}
@@ -553,35 +570,74 @@ export default function FeedIndex({
                             </div>
 
                             <div className="space-y-3">
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-xs font-bold text-slate-900">Artistic Design Ltd.</p>
-                                        <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
-                                            34 Lines
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">Ashulia, Dhaka • Composite</p>
-                                </div>
+                                {featuredFactories && featuredFactories.length > 0 ? (
+                                    featuredFactories.map((fac) => (
+                                        <Link
+                                            key={fac.id}
+                                            href={route('vendors.show', fac.id)}
+                                            className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition truncate max-w-[170px]">
+                                                    {fac.business_name}
+                                                </p>
+                                                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded shrink-0">
+                                                    {fac.total_machines > 0 ? `${fac.total_machines} Machines` : 'Knitting Unit'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                                {fac.district} • {fac.knitting_types && fac.knitting_types.length > 0 ? fac.knitting_types.map(k => k.name).slice(0, 2).join(', ') : 'Knitting'}
+                                            </p>
+                                        </Link>
+                                    ))
+                                ) : (
+                                    <>
+                                        <Link
+                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                                    Square Knitting Mills Ltd.
+                                                </p>
+                                                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                                                    24 Machines
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">Gazipur • Circular & Rib Knit</p>
+                                        </Link>
 
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-xs font-bold text-slate-900">Modern Washing Plant</p>
-                                        <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">
-                                            Over Dyeing
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">Nishat Nagar, Tongi, Gazipur</p>
-                                </div>
+                                        <Link
+                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                                    Apex Textile & Knitting Unit
+                                                </p>
+                                                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
+                                                    18 Machines
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">Ashulia, Savar • Single Jersey & Fleece</p>
+                                        </Link>
 
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-xs font-bold text-slate-900">Ha-Meem Denim Mills Ltd.</p>
-                                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                                            45 Lines
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">Sripur, Maona, Gazipur</p>
-                                </div>
+                                        <Link
+                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition">
+                                                    Mondol Knitting Mills Ltd.
+                                                </p>
+                                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                                    30 Machines
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">Tongi, Gazipur • Interlock & Flat Knit</p>
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

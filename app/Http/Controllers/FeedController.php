@@ -28,9 +28,10 @@ class FeedController extends Controller
             ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
             ->latest();
 
-        // Filter by knitting type category
-        if ($request->filled('category') && $request->input('category') !== 'all') {
-            $cat = $request->input('category');
+        // Filter by knitting type (supports both knitting_type and legacy category query params)
+        $knittingType = $request->input('knitting_type', $request->input('category', 'all'));
+        if (! empty($knittingType) && $knittingType !== 'all') {
+            $cat = $knittingType;
             $cleanCat = str_replace('-', '_', $cat);
             $query->where(function ($q) use ($cat, $cleanCat) {
                 $q->where('category', $cat)
@@ -81,16 +82,28 @@ class FeedController extends Controller
 
         $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
 
+        // Featured Knitting Units (all factories are Knitting units)
+        $featuredFactories = Factory::with('knittingTypes:id,name,slug')
+            ->where(function ($q) {
+                $q->where('industry_type', 'Knitting')
+                    ->orWhereHas('knittingTypes');
+            })
+            ->latest()
+            ->take(3)
+            ->get();
+
         return Inertia::render('Feed/Index', [
             'posts' => $posts,
             'filters' => [
-                'category' => $request->input('category', 'all'),
+                'knitting_type' => $knittingType,
+                'category' => $knittingType,
                 'district' => $request->input('district', 'all'),
                 'search' => $request->input('search', ''),
             ],
             'knittingTypes' => $knittingTypes,
             'districts' => $districts,
             'stats' => $stats,
+            'featuredFactories' => $featuredFactories,
             'userCanViewFullDetails' => $isSubscribed,
         ]);
     }
