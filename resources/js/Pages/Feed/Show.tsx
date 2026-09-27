@@ -121,6 +121,8 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
 
     const quotations: QuotationItem[] = post.quotations || [];
     const myQuotation = quotations.find((q) => q.bidder_user_id === auth.user?.id);
+    const acceptedQuotation = quotations.find((q) => q.status === 'accepted');
+    const hasAcceptedQuotation = !!acceptedQuotation;
 
     // Quotation bid form
     const { data, setData, post: submitBid, processing, errors, reset } = useForm({
@@ -534,6 +536,35 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                 )}
                             </div>
 
+                            {/* Awarded Banner if a bid is accepted */}
+                            {hasAcceptedQuotation && (
+                                <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xs font-bold text-emerald-950">
+                                                Subcontract Order Awarded to {acceptedQuotation.bidder_factory?.business_name || acceptedQuotation.bidder_user?.name}
+                                            </h3>
+                                            <p className="text-[11px] text-emerald-700">
+                                                Quotation accepted at ৳{acceptedQuotation.offered_unit_price}/{post.unit}. Other bids cannot be accepted unless this decision is reverted.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {isOwner && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleUpdateQuotationStatus(acceptedQuotation.id, 'pending')}
+                                            disabled={statusProcessingId === acceptedQuotation.id}
+                                            className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/50 px-3.5 py-1.5 rounded-xl transition shadow-xs shrink-0 disabled:opacity-50"
+                                        >
+                                            Revert Decision
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Market Range Pills */}
                             {bidsCount > 0 && (
                                 <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-center">
@@ -679,8 +710,14 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                                     <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                                                         <div className="text-[11px] text-slate-500">
                                                             {q.bidder_user?.phone && q.status === 'accepted' && (
-                                                                <span className="font-semibold text-emerald-700">
+                                                                <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                                                                    <PhoneCall className="w-3.5 h-3.5" />
                                                                     Direct Contact: {q.bidder_user.phone}
+                                                                </span>
+                                                            )}
+                                                            {q.status !== 'accepted' && hasAcceptedQuotation && (
+                                                                <span className="text-slate-400 font-medium italic">
+                                                                    Order awarded to another factory
                                                                 </span>
                                                             )}
                                                         </div>
@@ -708,15 +745,18 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleUpdateQuotationStatus(q.id, 'accepted')}
-                                                                        disabled={statusProcessingId === q.id}
-                                                                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition disabled:opacity-50"
-                                                                    >
-                                                                        <Check className="w-3.5 h-3.5" />
-                                                                        Accept Bid
-                                                                    </button>
+                                                                    {/* ONLY show Accept Bid if NO bid has been accepted yet! */}
+                                                                    {!hasAcceptedQuotation ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateQuotationStatus(q.id, 'accepted')}
+                                                                            disabled={statusProcessingId === q.id}
+                                                                            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-sm transition disabled:opacity-50"
+                                                                        >
+                                                                            <Check className="w-3.5 h-3.5" />
+                                                                            Accept Bid
+                                                                        </button>
+                                                                    ) : null}
                                                                     {q.status !== 'rejected' && (
                                                                         <button
                                                                             type="button"
@@ -759,7 +799,56 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                     You created this subcontract posting. Factories across Bangladesh are submitting rates to execute your order.
                                 </p>
 
-                                {bidsCount > 0 ? (
+                                {hasAcceptedQuotation ? (
+                                    <div className="space-y-3">
+                                        <div className="bg-emerald-50 border border-emerald-200/90 p-4 rounded-xl space-y-2">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                                    Contract Awarded
+                                                </span>
+                                                <span className="font-extrabold text-sm text-emerald-700">
+                                                    ৳ {acceptedQuotation.offered_unit_price}/{post.unit}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-sm text-slate-900">
+                                                    {acceptedQuotation.bidder_factory?.business_name || acceptedQuotation.bidder_user?.name}
+                                                </h4>
+                                                <p className="text-[11px] text-slate-600 mt-0.5">
+                                                    Total Cost: ৳{acceptedQuotation.offered_total_cost ? Number(acceptedQuotation.offered_total_cost).toLocaleString() : 'Calculated'} • {acceptedQuotation.offered_lead_days} Days Lead
+                                                </p>
+                                            </div>
+                                            {acceptedQuotation.bidder_user?.phone && (
+                                                <a
+                                                    href={`tel:${acceptedQuotation.bidder_user.phone}`}
+                                                    className="w-full inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition shadow-xs mt-1"
+                                                >
+                                                    <PhoneCall className="w-3.5 h-3.5" />
+                                                    Call Winning Factory ({acceptedQuotation.bidder_user.phone})
+                                                </a>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleUpdateQuotationStatus(acceptedQuotation.id, 'pending')}
+                                            disabled={statusProcessingId === acceptedQuotation.id}
+                                            className="w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition disabled:opacity-50"
+                                        >
+                                            Revert Decision to Open Bidding
+                                        </button>
+
+                                        <Link
+                                            href={route('quotations.compare', post.id)}
+                                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md transition"
+                                        >
+                                            <BarChart3 className="w-4 h-4" />
+                                            Open Side-by-Side Matrix
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        </Link>
+                                    </div>
+                                ) : bidsCount > 0 ? (
                                     <div className="space-y-3">
                                         <div className="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl space-y-1">
                                             <div className="flex justify-between items-center text-xs">
@@ -825,8 +914,8 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                     )}
                                 </div>
 
-                                {/* Banner for accepted */}
-                                {myQuotation.status === 'accepted' && (
+                                {/* Banner for accepted or awarded to another */}
+                                {myQuotation.status === 'accepted' ? (
                                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 font-medium space-y-1">
                                         <div className="font-bold flex items-center gap-1.5 text-emerald-900">
                                             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -836,7 +925,17 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                             The buyer will contact your factory shortly to issue the subcontract agreement and begin sampling.
                                         </p>
                                     </div>
-                                )}
+                                ) : hasAcceptedQuotation ? (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
+                                        <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                                            <Clock className="w-4 h-4 text-amber-600" />
+                                            Buyer Awarded Another Factory
+                                        </div>
+                                        <p className="text-[11px] text-amber-700">
+                                            The buyer has currently accepted a quotation from another plant. Your quotation remains saved on file in case the buyer reverts their decision.
+                                        </p>
+                                    </div>
+                                ) : null}
 
                                 {/* Key Offered Metrics */}
                                 <div className="grid grid-cols-2 gap-3 text-xs">
@@ -947,7 +1046,17 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                     )}
                                 </div>
 
-                                {userCanViewFullDetails ? (
+                                {hasAcceptedQuotation && !isEditingBid ? (
+                                    <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-6 text-center space-y-2.5">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                                            <Lock className="w-5 h-5" />
+                                        </div>
+                                        <h4 className="text-xs font-bold text-slate-800">Order Awarded to Another Factory</h4>
+                                        <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                                            The buyer has already accepted a quotation for this subcontract order. New bids are currently closed unless the order is reopened.
+                                        </p>
+                                    </div>
+                                ) : userCanViewFullDetails ? (
                                     <form onSubmit={handleBidSubmit} className="space-y-4 text-xs">
                                         {/* Unit Price with Quick Match Presets */}
                                         <div className="space-y-1.5">

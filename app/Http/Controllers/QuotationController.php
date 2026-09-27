@@ -18,6 +18,15 @@ class QuotationController extends Controller
     {
         $post = SubcontractPost::findOrFail($postId);
 
+        // Check if order has already been awarded
+        $hasAccepted = Quotation::where('subcontract_post_id', $post->id)
+            ->where('status', 'accepted')
+            ->exists();
+
+        if ($hasAccepted) {
+            return back()->with('error', 'This subcontract order has already been awarded to a factory.');
+        }
+
         $validated = $request->validate([
             'offered_unit_price' => 'required|numeric|min:0.01',
             'offered_lead_days' => 'required|integer|min:1|max:365',
@@ -95,17 +104,52 @@ class QuotationController extends Controller
             'status' => 'required|in:pending,accepted,rejected',
         ]);
 
+        if ($validated['status'] === 'accepted') {
+            // Check if another quotation is already accepted for this post
+            $alreadyAccepted = Quotation::where('subcontract_post_id', $quotation->subcontract_post_id)
+                ->where('id', '!=', $quotation->id)
+                ->where('status', 'accepted')
+                ->exists();
+
+            if ($alreadyAccepted) {
+                return back()->with('error', 'Another quotation is already accepted for this order. Please revert the accepted bid first before accepting a different factory.');
+            }
+
+            $quotation->update([
+                'status' => 'accepted',
+            ]);
+
+            if ($quotation->post->status === 'open') {
+                $quotation->post->update(['status' => 'in_progress']);
+            }
+
+            return back()->with('success', 'Quotation accepted! You can now contact the factory directly to finalize the work order.');
+        }
+
+        if ($validated['status'] === 'pending') {
+            $quotation->update([
+                'status' => 'pending',
+            ]);
+
+            // If reverting, check if any other quotation is still accepted
+            $otherAccepted = Quotation::where('subcontract_post_id', $quotation->subcontract_post_id)
+                ->where('id', '!=', $quotation->id)
+                ->where('status', 'accepted')
+                ->exists();
+
+            if (!$otherAccepted && $quotation->post->status === 'in_progress') {
+                $quotation->post->update(['status' => 'open']);
+            }
+
+            return back()->with('success', 'Quotation status reverted to pending. All factories are now eligible for acceptance.');
+        }
+
+        // Rejected
         $quotation->update([
-            'status' => $validated['status'],
+            'status' => 'rejected',
         ]);
 
-        $statusMsg = match ($validated['status']) {
-            'accepted' => 'Quotation accepted! You can now contact the factory directly to finalize the work order.',
-            'rejected' => 'Quotation has been declined.',
-            default => 'Quotation status updated to pending.',
-        };
-
-        return back()->with('success', $statusMsg);
+        return back()->with('success', 'Quotation has been declined.');
     }
 
     /**

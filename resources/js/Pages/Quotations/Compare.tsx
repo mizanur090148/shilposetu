@@ -24,6 +24,9 @@ interface CompareProps {
 export default function CompareQuotations({ post, quotations }: CompareProps) {
     const [processingId, setProcessingId] = useState<number | null>(null);
 
+    const acceptedQuotation = quotations.find((q) => q.status === 'accepted');
+    const hasAcceptedQuotation = !!acceptedQuotation;
+
     const handleUpdateStatus = (quotationId: number, status: 'accepted' | 'rejected' | 'pending') => {
         setProcessingId(quotationId);
         router.patch(
@@ -69,6 +72,33 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                     </div>
                 </div>
 
+                {/* Banner when an order has been awarded */}
+                {hasAcceptedQuotation && (
+                    <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                <CheckCircle2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-bold text-emerald-950">
+                                    Subcontract Order Awarded to {acceptedQuotation.bidder_factory?.business_name || acceptedQuotation.bidder_user?.name}
+                                </h3>
+                                <p className="text-[11px] text-emerald-700">
+                                    Quotation accepted at ৳{acceptedQuotation.offered_unit_price}/{post.unit}. Other bids cannot be accepted unless this decision is reverted.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleUpdateStatus(acceptedQuotation.id, 'pending')}
+                            disabled={processingId === acceptedQuotation.id}
+                            className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/50 px-3.5 py-1.5 rounded-xl transition shadow-xs shrink-0 disabled:opacity-50"
+                        >
+                            Revert Decision
+                        </button>
+                    </div>
+                )}
+
                 {/* Comparison Table */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
@@ -94,7 +124,7 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                     </tr>
                                 ) : (
                                     quotations.map((q) => (
-                                        <tr key={q.id} className={`transition ${q.status === 'accepted' ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}>
+                                        <tr key={q.id} className={`transition ${q.status === 'accepted' ? 'bg-emerald-50/50 hover:bg-emerald-50/70 font-medium' : 'hover:bg-slate-50/80'}`}>
                                             <td className="p-4">
                                                 <div className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
                                                     {q.bidder_factory?.business_name || q.bidder_user?.name}
@@ -136,17 +166,17 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                             <td className="p-4">
                                                 {q.status === 'accepted' ? (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                                        <Check className="w-3 h-3" />
+                                                        <Check className="w-3 h-3 text-emerald-600" />
                                                         Accepted
                                                     </span>
                                                 ) : q.status === 'rejected' ? (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                        <X className="w-3 h-3" />
+                                                        <X className="w-3 h-3 text-rose-500" />
                                                         Declined
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                        <Clock className="w-3 h-3" />
+                                                        <Clock className="w-3 h-3 text-amber-500" />
                                                         Pending
                                                     </span>
                                                 )}
@@ -165,25 +195,35 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                                                 </a>
                                                             )}
                                                             <button
+                                                                type="button"
                                                                 onClick={() => handleUpdateStatus(q.id, 'pending')}
                                                                 disabled={processingId === q.id}
-                                                                className="text-slate-400 hover:text-slate-600 text-[11px] font-medium px-2 py-1 transition disabled:opacity-50"
+                                                                className="text-slate-500 hover:text-slate-800 text-[11px] font-semibold px-2 py-1 transition disabled:opacity-50"
                                                             >
                                                                 Revert
                                                             </button>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <button
-                                                                onClick={() => handleUpdateStatus(q.id, 'accepted')}
-                                                                disabled={processingId === q.id}
-                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm disabled:opacity-50 inline-flex items-center gap-1"
-                                                            >
-                                                                <Check className="w-3 h-3" />
-                                                                Accept Bid
-                                                            </button>
+                                                            {/* Show Accept Bid ONLY if NO bid has been accepted yet! */}
+                                                            {!hasAcceptedQuotation ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleUpdateStatus(q.id, 'accepted')}
+                                                                    disabled={processingId === q.id}
+                                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm disabled:opacity-50 inline-flex items-center gap-1"
+                                                                >
+                                                                    <Check className="w-3 h-3" />
+                                                                    Accept Bid
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-[11px] text-slate-400 italic px-1 font-medium">
+                                                                    Awarded
+                                                                </span>
+                                                            )}
                                                             {q.status !== 'rejected' && (
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleUpdateStatus(q.id, 'rejected')}
                                                                     disabled={processingId === q.id}
                                                                     className="bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 font-medium px-2.5 py-1.5 rounded-lg text-xs transition disabled:opacity-50"
