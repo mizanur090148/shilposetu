@@ -50,7 +50,7 @@ class DashboardController extends Controller
             'total_quotations_received' => $quotationsReceivedCount,
             'bids_submitted' => $quotationsSubmitted->count(),
             'bids_accepted' => $quotationsSubmitted->where('status', 'accepted')->count(),
-            'factory_lines' => $factory ? $factory->total_lines : 0,
+            'factory_lines' => $factory ? ($factory->total_machines ?? 0) : 0,
             'is_verified' => $factory ? (bool) $factory->is_verified : false,
             'is_subscribed' => (bool) $user->is_subscribed,
             'customer_id' => $user->customer_id ?? 'S'.$user->id,

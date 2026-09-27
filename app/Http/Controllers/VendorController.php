@@ -64,24 +64,22 @@ class VendorController extends Controller
             $query->where('is_verified', true);
         }
 
-        // Production lines capacity range
+        // Machine capacity range
         if ($request->filled('lines') && $request->input('lines') !== 'all') {
             $lines = $request->input('lines');
             if ($lines === '1-10') {
-                $query->whereBetween('total_lines', [1, 10]);
+                $query->whereBetween('total_machines', [1, 10]);
             } elseif ($lines === '11-25') {
-                $query->whereBetween('total_lines', [11, 25]);
+                $query->whereBetween('total_machines', [11, 25]);
             } elseif ($lines === '25+') {
-                $query->where('total_lines', '>=', 25);
+                $query->where('total_machines', '>=', 25);
             }
         }
 
         // Sorting
         $sort = $request->input('sort', 'latest');
-        if ($sort === 'rating_desc') {
-            $query->orderByDesc('rating');
-        } elseif ($sort === 'lines_desc') {
-            $query->orderByDesc('total_lines');
+        if ($sort === 'rating_desc' || $sort === 'lines_desc') {
+            $query->orderByDesc('total_machines');
         } elseif ($sort === 'name_asc') {
             $query->orderBy('business_name', 'asc');
         } else {
@@ -101,7 +99,7 @@ class VendorController extends Controller
         $stats = [
             'total' => Factory::count(),
             'verified' => Factory::where('is_verified', true)->count(),
-            'total_lines' => Factory::sum('total_lines'),
+            'total_lines' => Factory::sum('total_machines'),
         ];
 
         return Inertia::render('Vendors/Index', [

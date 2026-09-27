@@ -19,7 +19,7 @@ class FeedController extends Controller
     {
         $query = SubcontractPost::with([
             'user:id,name,customer_id,phone',
-            'factory:id,user_id,business_name,logo,industry_type,district,total_lines,is_verified,rating',
+            'factory:id,user_id,business_name,logo,industry_type,district,total_machines,is_verified',
             'factory.knittingTypes:id,name,slug',
             'quotations' => function ($q) {
                 $q->select('id', 'subcontract_post_id', 'offered_unit_price', 'offered_lead_days');
@@ -76,7 +76,7 @@ class FeedController extends Controller
             'total_vendors' => Factory::count(),
             'verified_vendors' => Factory::where('is_verified', true)->count(),
             'active_orders' => SubcontractPost::where('post_type', 'DEMAND')->where('status', 'open')->count(),
-            'total_lines' => Factory::sum('total_lines'),
+            'total_machines' => Factory::sum('total_machines'),
         ];
 
         $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();

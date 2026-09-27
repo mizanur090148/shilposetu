@@ -27,7 +27,6 @@ class Factory extends Model
         'email',
         'district',
         'address',
-        'total_lines',
         'total_machines',
         'daily_capacity',
         'trade_license_no',
@@ -38,9 +37,6 @@ class Factory extends Model
         'bin_file',
         'nid_file',
         'is_verified',
-        'rating',
-        'capabilities',
-        'production_capacities',
     ];
 
     /**
@@ -51,12 +47,8 @@ class Factory extends Model
     protected function casts(): array
     {
         return [
-            'total_lines' => 'integer',
             'total_machines' => 'integer',
             'is_verified' => 'boolean',
-            'rating' => 'decimal:2',
-            'capabilities' => 'array',
-            'production_capacities' => 'array',
         ];
     }
 
