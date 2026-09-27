@@ -187,18 +187,42 @@ export default function FeedIndex({
             <Head title="Shilposetu Subcontract Feed | Digital RMG Capacity Exchange" />
 
             {/* Industrial Hero Banner */}
-            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
-                <div className="max-w-4xl mx-auto flex flex-col items-center text-center space-y-2.5">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs font-semibold">
-                        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
+            <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-8 sm:py-8 border-b border-slate-800 relative overflow-hidden">
+                {/* Subtle Industrial Grid Background Accent */}
+                <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-3.5">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/25 text-blue-300 text-xs font-semibold shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Connecting Extra Orders with Verified Factories • Smart Subcontracting</span>
+                        </div>
+                        
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white text-center">
+                            Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
+                        </h1>
+                        
+                        <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl text-center">
+                            Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
+                        </p>
+
+                        <div className="pt-1 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-300">
+                            <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                100% Verified Factories
+                            </span>
+                            <span className="text-slate-600">•</span>
+                            <span className="inline-flex items-center gap-1.5 font-medium text-blue-300">
+                                <ShieldCheck className="w-4 h-4 text-blue-400" />
+                                Zero Broker Commission
+                            </span>
+                            <span className="text-slate-600">•</span>
+                            <span className="inline-flex items-center gap-1.5 font-medium text-amber-300">
+                                <Clock className="w-4 h-4 text-amber-400" />
+                                Real-time Capacity Bidding
+                            </span>
+                        </div>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
-                        Bangladesh's Digital <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-amber-300">Subcontracting</span> & Extra Orders Board
-                    </h1>
-                    <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                        Have extra orders beyond factory capacity? Post your demand for Knitting, Dyeing, Washing, or Sewing and connect directly with verified factories across the country.
-                    </p>
                 </div>
             </section>
 

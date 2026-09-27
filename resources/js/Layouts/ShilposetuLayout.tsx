@@ -64,8 +64,8 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
             {/* Top Industrial Hotline & Stats Bar (matching Page 2) */}
-            <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
-                <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div className="bg-slate-900 text-slate-300 text-xs py-2 border-b border-slate-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-2">
                     <div className="flex items-center space-x-4">
                         <span className="font-semibold text-emerald-400 flex items-center gap-1">
                             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
