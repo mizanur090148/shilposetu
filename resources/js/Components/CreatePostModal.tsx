@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { X, Sparkles, AlertCircle, Upload, CheckCircle2, ChevronRight, Layers, Factory } from 'lucide-react';
 import { KnittingType } from '@/types';
+import SearchableSelect from '@/Components/SearchableSelect';
 
 interface CreatePostModalProps {
     isOpen: boolean;
@@ -24,6 +25,33 @@ const DEFAULT_KNITTING_TYPES: Array<{ id: number; name: string; slug: string }> 
     { id: 10, name: 'Mesh & Eyelet Knit', slug: 'mesh-eyelet' },
 ];
 
+const KNITTING_MACHINE_TYPES = [
+    { value: 'Circular Knitting Machine (Single Jersey)', label: 'Circular Knitting (Single Jersey)', subtext: 'Plain, Lycra S/J, Slub S/J (24G / 28G)' },
+    { value: 'Circular Knitting Machine (Rib / Interlock)', label: 'Circular Knitting (Rib / Interlock)', subtext: '1x1 Rib, 2x2 Rib, Double Jersey (18G / 24G)' },
+    { value: 'Circular Knitting Machine (3-End Fleece / Terry)', label: 'Circular Knitting (Fleece / Terry)', subtext: 'Polar Fleece, French Terry, Brushed Fleece' },
+    { value: 'Circular Knitting Machine (Pique & Lacoste)', label: 'Circular Knitting (Pique & Lacoste)', subtext: 'Single & Double Lacoste for Polo shirts' },
+    { value: 'Circular Knitting Machine (Auto Stripe / Engineered)', label: 'Auto Stripe / Engineered Stripe', subtext: 'Feeder stripe, 4-color / 6-color auto striper' },
+    { value: 'Circular Knitting Machine (Jacquard / Open Width)', label: 'Electronic Jacquard Circular', subtext: 'Full pattern jacquard, open width knit' },
+    { value: 'Flatbed Collar & Cuff Knitting Machine', label: 'Flatbed Collar & Cuff Machine', subtext: 'Tipping collar, jacquard collar bands, rib cuffs' },
+    { value: 'Computerized Flat Knitting Machine (Sweater 7G/12G/14G)', label: 'Computerized Flat Knitting (Sweater)', subtext: 'Shima Seiki / Stoll multi-gauge sweater plant' },
+    { value: 'Seamless Body Size Knitting Machine', label: 'Seamless Body Size (Santoni)', subtext: 'Underwear, shapewear, activewear seamless knit' },
+    { value: 'Warp Knitting / Tricot Machine', label: 'Warp Knitting / Tricot / Raschel', subtext: 'Mesh, net, sportswear eyelet fabric' },
+];
+
+const DISTRICT_OPTIONS = [
+    { value: 'Gazipur', label: 'Gazipur' },
+    { value: 'Ashulia', label: 'Ashulia / Savar' },
+    { value: 'Tongi', label: 'Tongi' },
+    { value: 'Narayanganj', label: 'Narayanganj' },
+    { value: 'Dhaka', label: 'Dhaka' },
+    { value: 'Tangail', label: 'Tangail / Mirzapur' },
+    { value: 'Chittagong', label: 'Chittagong' },
+    { value: 'Mymensingh', label: 'Mymensingh / Bhaluka' },
+    { value: 'Cumilla', label: 'Cumilla' },
+    { value: 'Narsingdi', label: 'Narsingdi' },
+    { value: 'Sylhet', label: 'Sylhet' },
+];
+
 export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, knittingTypes = [] }: CreatePostModalProps) {
     if (!isOpen) return null;
 
@@ -35,6 +63,12 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
 
     const availableTypes = knittingTypes && knittingTypes.length > 0 ? knittingTypes : DEFAULT_KNITTING_TYPES;
     const initialCategory = availableTypes[0]?.slug || 'single-jersey';
+
+    const knittingCategoryOptions = availableTypes.map((kt) => ({
+        value: kt.slug,
+        label: kt.name,
+        subtext: (kt as any).description || '',
+    }));
 
     const { data, setData, post, processing, errors, reset } = useForm({
         post_type: 'DEMAND', // DEMAND (Giving Subcontract) or SUPPLY (Taking Subcontract)
@@ -50,7 +84,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
         description: '',
         is_urgent: false,
         specs: {
-            machine_type: 'Circular Knitting (24G / 28G)',
+            machine_type: 'Circular Knitting Machine (Single Jersey)',
             gauge_diameter: '24G / 30"',
             machine_qty: 6,
             capacity_per_machine: 350,
@@ -88,30 +122,27 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 overflow-hidden border border-slate-200">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white p-5 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white px-5 py-2.5 flex items-center justify-between">
                     <div>
-                        <h3 className="text-lg font-bold mt-1">Post Subcontract (Have Extra Orders)</h3>
+                        <h3 className="text-sm sm:text-base font-bold text-white">Post Subcontract (Have Extra Orders)</h3>
                     </div>
                     <button 
                         onClick={onClose}
-                        className="p-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition"
+                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
                     {/* Default Type: Have Extra Orders (Need Subcontract) */}
-                    <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
+                    <div className="px-3.5 py-2.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
                         <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
                                 Post Purpose
                             </span>
-                            <p className="text-xs font-bold text-slate-900">
+                            <p className="text-xs font-bold text-slate-900 mt-0.5">
                                 Have Extra Orders (Need Subcontract)
-                            </p>
-                            <p className="text-[11px] text-slate-500">
-                                অতিরিক্ত অর্ডার রয়েছে, অন্য ফ্যাক্টরি খুঁজছি
                             </p>
                         </div>
                         <span className="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
@@ -122,19 +153,15 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                     {/* Knitting Category Selector */}
                     <div>
                         <label className="block text-xs font-bold uppercase text-slate-500 mb-1.5">
-                            Knitting Type Category (নিটিং টাইপ ক্যাটাগরি) <span className="text-rose-500">*</span>
+                            Knitting Type Category <span className="text-rose-500">*</span>
                         </label>
-                        <select
+                        <SearchableSelect
                             value={data.category}
-                            onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="w-full text-sm font-semibold border-slate-300 rounded-xl focus:border-blue-500 focus:ring-blue-500 bg-white"
-                        >
-                            {availableTypes.map((kt) => (
-                                <option key={kt.id || kt.slug} value={kt.slug}>
-                                    {kt.name}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val) => handleCategoryChange(val)}
+                            options={knittingCategoryOptions}
+                            placeholder="Select knitting type category..."
+                            searchPlaceholder="Search knitting types..."
+                        />
                     </div>
 
                     {/* Title */}
@@ -207,12 +234,13 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                             <div>
                                 <label className="block font-medium text-slate-600 mb-1">Machine Type / Technology</label>
-                                <input
-                                    type="text"
+                                <SearchableSelect
                                     value={data.specs.machine_type || ''}
-                                    onChange={(e) => handleSpecChange('machine_type', e.target.value)}
-                                    placeholder="e.g. Circular Knit (Single Jersey / Rib)"
-                                    className="w-full text-xs border-slate-300 rounded-lg"
+                                    onChange={(val) => handleSpecChange('machine_type', val)}
+                                    options={KNITTING_MACHINE_TYPES}
+                                    allowCustom={true}
+                                    placeholder="Select machine type..."
+                                    searchPlaceholder="Search machine types..."
                                 />
                             </div>
                             <div>
@@ -283,19 +311,13 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
                                 Industrial District (ফ্যাক্টরি এলাকা) <span className="text-rose-500">*</span>
                             </label>
-                            <select
+                            <SearchableSelect
                                 value={data.district}
-                                onChange={(e) => setData('district', e.target.value)}
-                                className="w-full text-sm border-slate-300 rounded-xl focus:border-blue-500 focus:ring-blue-500"
-                            >
-                                <option value="Gazipur">Gazipur (গাজীপুর)</option>
-                                <option value="Ashulia">Ashulia / Savar (আশুলিয়া / সাভার)</option>
-                                <option value="Tongi">Tongi (টঙ্গী)</option>
-                                <option value="Narayanganj">Narayanganj (নারায়ণগঞ্জ)</option>
-                                <option value="Dhaka">Dhaka (ঢাকা)</option>
-                                <option value="Tangail">Tangail / Mirzapur (টাঙ্গাইল)</option>
-                                <option value="Chittagong">Chittagong (চট্টগ্রাম)</option>
-                            </select>
+                                onChange={(val) => setData('district', val)}
+                                options={DISTRICT_OPTIONS}
+                                placeholder="Select factory district..."
+                                searchPlaceholder="Search district..."
+                            />
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
@@ -327,7 +349,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                     </div>
 
                     {/* Urgent Checkbox */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" style={{ marginTop: "6px" }}>
                         <input
                             type="checkbox"
                             id="is_urgent"
@@ -352,7 +374,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                         <button
                             type="submit"
                             disabled={processing}
-                            className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
+                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
                         >
                             {processing ? 'Publishing...' : 'Publish Subcontract Post'}
                         </button>
