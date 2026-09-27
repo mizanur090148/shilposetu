@@ -1,5 +1,5 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import { 
     ArrowLeft, 
@@ -11,7 +11,9 @@ import {
     ShieldCheck,
     Check,
     X,
-    FileText
+    FileText,
+    Phone,
+    PhoneCall
 } from 'lucide-react';
 
 interface CompareProps {
@@ -20,6 +22,20 @@ interface CompareProps {
 }
 
 export default function CompareQuotations({ post, quotations }: CompareProps) {
+    const [processingId, setProcessingId] = useState<number | null>(null);
+
+    const handleUpdateStatus = (quotationId: number, status: 'accepted' | 'rejected' | 'pending') => {
+        setProcessingId(quotationId);
+        router.patch(
+            route('quotations.status', quotationId),
+            { status },
+            {
+                onFinish: () => setProcessingId(null),
+                preserveScroll: true,
+            }
+        );
+    };
+
     return (
         <ShilposetuLayout>
             <Head title={`Quotation Comparison - ${post.title} | Shilposetu`} />
@@ -33,7 +49,7 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                     Back to Order Details
                 </Link>
 
-                {/* Header (matching Page 1 Screen 6) */}
+                {/* Header */}
                 <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-3">
                     <div className="flex flex-wrap justify-between items-start gap-3">
                         <div>
@@ -65,19 +81,20 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                     <th className="p-4">Lead Time</th>
                                     <th className="p-4">Rating & Lines</th>
                                     <th className="p-4">Remarks</th>
+                                    <th className="p-4">Status</th>
                                     <th className="p-4 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {quotations.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="p-8 text-center text-slate-400">
+                                        <td colSpan={8} className="p-8 text-center text-slate-400">
                                             No quotations have been submitted for this order yet.
                                         </td>
                                     </tr>
                                 ) : (
                                     quotations.map((q) => (
-                                        <tr key={q.id} className="hover:bg-slate-50/80 transition">
+                                        <tr key={q.id} className={`transition ${q.status === 'accepted' ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}>
                                             <td className="p-4">
                                                 <div className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
                                                     {q.bidder_factory?.business_name || q.bidder_user?.name}
@@ -116,14 +133,66 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                             <td className="p-4 max-w-xs text-slate-600 truncate" title={q.note}>
                                                 {q.note || 'Ready to produce immediately'}
                                             </td>
+                                            <td className="p-4">
+                                                {q.status === 'accepted' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        <Check className="w-3 h-3" />
+                                                        Accepted
+                                                    </span>
+                                                ) : q.status === 'rejected' ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                        <X className="w-3 h-3" />
+                                                        Declined
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                        <Clock className="w-3 h-3" />
+                                                        Pending
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="p-4 text-right">
-                                                <div className="inline-flex gap-1.5">
-                                                    <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">
-                                                        Accept Bid
-                                                    </button>
-                                                    <button className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-2.5 py-1.5 rounded-lg text-xs transition">
-                                                        Message
-                                                    </button>
+                                                <div className="inline-flex items-center justify-end gap-1.5">
+                                                    {q.status === 'accepted' ? (
+                                                        <>
+                                                            {q.bidder_user?.phone && (
+                                                                <a
+                                                                    href={`tel:${q.bidder_user.phone}`}
+                                                                    className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs transition shadow-xs"
+                                                                >
+                                                                    <PhoneCall className="w-3 h-3" />
+                                                                    Call Factory
+                                                                </a>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(q.id, 'pending')}
+                                                                disabled={processingId === q.id}
+                                                                className="text-slate-400 hover:text-slate-600 text-[11px] font-medium px-2 py-1 transition disabled:opacity-50"
+                                                            >
+                                                                Revert
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(q.id, 'accepted')}
+                                                                disabled={processingId === q.id}
+                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm disabled:opacity-50 inline-flex items-center gap-1"
+                                                            >
+                                                                <Check className="w-3 h-3" />
+                                                                Accept Bid
+                                                            </button>
+                                                            {q.status !== 'rejected' && (
+                                                                <button
+                                                                    onClick={() => handleUpdateStatus(q.id, 'rejected')}
+                                                                    disabled={processingId === q.id}
+                                                                    className="bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 font-medium px-2.5 py-1.5 rounded-lg text-xs transition disabled:opacity-50"
+                                                                >
+                                                                    Decline
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

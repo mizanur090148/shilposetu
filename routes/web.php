@@ -29,6 +29,12 @@ Route::middleware('auth')->group(function () {
 
         // Submit Quotation Bid
         Route::post('/quotations/{postId}', [QuotationController::class, 'store'])->name('quotations.store');
+
+        // Withdraw Quotation Bid
+        Route::delete('/quotations/{id}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
+
+        // Update Quotation Status (Accept/Reject by Post Owner)
+        Route::patch('/quotations/{id}/status', [QuotationController::class, 'updateStatus'])->name('quotations.status');
     });
 
     Route::get('/quotations/{postId}/compare', [QuotationController::class, 'compare'])->name('quotations.compare');

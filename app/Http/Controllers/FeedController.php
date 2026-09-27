@@ -163,7 +163,7 @@ class FeedController extends Controller
             'user:id,name,customer_id,phone,email',
             'factory',
             'quotations.bidderFactory',
-            'quotations.bidderUser:id,name',
+            'quotations.bidderUser:id,name,customer_id,phone,email',
         ])->findOrFail($id);
 
         $post->increment('views_count');
