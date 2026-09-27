@@ -86,7 +86,14 @@ export default function VendorsIndex({
 }: VendorsIndexProps) {
     const [search, setSearch] = useState(filters.search || '');
 
-    const activeKnittingType = filters.knitting_type || filters.industry || 'all';
+    // Parse comma-separated or array of active knitting types
+    const parseSelectedKnittingTypes = (raw: string | undefined): string[] => {
+        if (!raw || raw === 'all') return [];
+        return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    };
+
+    const selectedKnittingTypes = parseSelectedKnittingTypes(filters.knitting_type || filters.industry);
+    const isAllSelected = selectedKnittingTypes.length === 0;
 
     const knittingTypePills = [
         { key: 'all', label: 'All Knitting Types' },
@@ -106,28 +113,27 @@ export default function VendorsIndex({
 
     const INITIAL_LIMIT = 8;
     const [isKnittingExpanded, setIsKnittingExpanded] = useState(() => {
-        const activeIdx = knittingTypePills.findIndex((p) => p.key === activeKnittingType);
-        return activeIdx >= INITIAL_LIMIT;
+        return knittingTypePills.slice(INITIAL_LIMIT).some((p) => selectedKnittingTypes.includes(p.key));
     });
 
     useEffect(() => {
-        const activeIdx = knittingTypePills.findIndex((p) => p.key === activeKnittingType);
-        if (activeIdx >= INITIAL_LIMIT) {
+        if (knittingTypePills.slice(INITIAL_LIMIT).some((p) => selectedKnittingTypes.includes(p.key))) {
             setIsKnittingExpanded(true);
         }
-    }, [activeKnittingType]);
+    }, [filters.knitting_type]);
 
     const visibleKnittingPills = isKnittingExpanded ? knittingTypePills : knittingTypePills.slice(0, INITIAL_LIMIT);
     const hiddenKnittingCount = knittingTypePills.length - INITIAL_LIMIT;
 
     const applyFilters = (overrides: Partial<typeof filters>) => {
+        const currentKnittingType = filters.knitting_type || filters.industry || 'all';
         router.get(
             route('vendors.index'),
             {
                 search: overrides.search !== undefined ? overrides.search : search,
                 district: overrides.district !== undefined ? overrides.district : filters.district,
-                knitting_type: overrides.knitting_type !== undefined ? overrides.knitting_type : activeKnittingType,
-                industry: overrides.industry !== undefined ? overrides.industry : activeKnittingType,
+                knitting_type: overrides.knitting_type !== undefined ? overrides.knitting_type : currentKnittingType,
+                industry: overrides.industry !== undefined ? overrides.industry : currentKnittingType,
                 lines: overrides.lines !== undefined ? overrides.lines : filters.lines,
                 verified_only: overrides.verified_only !== undefined ? overrides.verified_only : filters.verified_only,
                 sort: overrides.sort !== undefined ? overrides.sort : filters.sort,
@@ -137,6 +143,23 @@ export default function VendorsIndex({
                 preserveScroll: true,
             }
         );
+    };
+
+    const handleToggleKnittingType = (slug: string) => {
+        if (slug === 'all') {
+            applyFilters({ knitting_type: 'all', industry: 'all' });
+            return;
+        }
+
+        let nextSelected: string[];
+        if (selectedKnittingTypes.includes(slug)) {
+            nextSelected = selectedKnittingTypes.filter((s) => s !== slug);
+        } else {
+            nextSelected = [...selectedKnittingTypes, slug];
+        }
+
+        const nextVal = nextSelected.length > 0 ? nextSelected.join(',') : 'all';
+        applyFilters({ knitting_type: nextVal, industry: nextVal });
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -172,7 +195,7 @@ export default function VendorsIndex({
     const hasActiveFilters = 
         Boolean(filters.search) || 
         (filters.district && filters.district !== 'all') || 
-        (activeKnittingType && activeKnittingType !== 'all') || 
+        selectedKnittingTypes.length > 0 || 
         (filters.lines && filters.lines !== 'all') || 
         Boolean(filters.verified_only) ||
         (filters.sort && filters.sort !== 'latest');
@@ -213,24 +236,33 @@ export default function VendorsIndex({
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-                {/* Quick Knitting Type Filter Pills */}
+                {/* Quick Knitting Type Filter Pills (Multi-Select) */}
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-slate-400 whitespace-nowrap uppercase tracking-wider pl-1 mr-1">
                         Knitting Types:
                     </span>
                     {visibleKnittingPills.map((pill) => {
-                        const isActive = activeKnittingType === pill.key;
+                        const isAllPill = pill.key === 'all';
+                        const isSelected = isAllPill ? isAllSelected : selectedKnittingTypes.includes(pill.key);
+
                         return (
                             <button
                                 key={pill.key}
-                                onClick={() => applyFilters({ knitting_type: pill.key, industry: pill.key })}
+                                type="button"
+                                onClick={() => handleToggleKnittingType(pill.key)}
                                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    isActive
+                                    isSelected
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                                         : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                             >
-                                {pill.label}
+                                {isSelected && !isAllPill && (
+                                    <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                )}
+                                <span>{pill.label}</span>
+                                {isAllPill && selectedKnittingTypes.length > 0 && (
+                                    <span className="text-[10px] bg-slate-100 text-slate-600 rounded-full px-1.5 py-0.2">Reset</span>
+                                )}
                             </button>
                         );
                     })}
@@ -356,9 +388,12 @@ export default function VendorsIndex({
                                     </span>
                                 )}
 
-                                {activeKnittingType && activeKnittingType !== 'all' && (
+                                {selectedKnittingTypes.length > 0 && (
                                     <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg font-medium">
-                                        Knitting: {activeKnittingType}
+                                        Knitting ({selectedKnittingTypes.length}): {selectedKnittingTypes.map((k) => {
+                                            const match = knittingTypePills.find((p) => p.key === k);
+                                            return match ? match.label : k;
+                                        }).join(', ')}
                                         <button onClick={() => applyFilters({ knitting_type: 'all', industry: 'all' })}><X className="w-3 h-3 text-indigo-500 hover:text-indigo-700" /></button>
                                     </span>
                                 )}

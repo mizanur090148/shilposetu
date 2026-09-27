@@ -114,7 +114,14 @@ export default function FeedIndex({
     userCanViewFullDetails,
     auth
 }: FeedIndexProps) {
-    const activeKnittingType = filters.knitting_type || filters.category || 'all';
+    // Parse comma-separated or array of active knitting types
+    const parseSelectedKnittingTypes = (raw: string | undefined): string[] => {
+        if (!raw || raw === 'all') return [];
+        return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    };
+
+    const selectedKnittingTypes = parseSelectedKnittingTypes(filters.knitting_type || filters.category);
+    const isAllSelected = selectedKnittingTypes.length === 0;
 
     const categoryItems = [
         { id: 'all', label: 'All Knitting Types' },
@@ -135,16 +142,14 @@ export default function FeedIndex({
     ];
     const INITIAL_LIMIT = 8;
     const [isExpanded, setIsExpanded] = useState(() => {
-        const activeIdx = categoryItems.findIndex((c) => c.id === activeKnittingType);
-        return activeIdx >= INITIAL_LIMIT;
+        return categoryItems.slice(INITIAL_LIMIT).some((c) => selectedKnittingTypes.includes(c.id));
     });
 
     useEffect(() => {
-        const activeIdx = categoryItems.findIndex((c) => c.id === activeKnittingType);
-        if (activeIdx >= INITIAL_LIMIT) {
+        if (categoryItems.slice(INITIAL_LIMIT).some((c) => selectedKnittingTypes.includes(c.id))) {
             setIsExpanded(true);
         }
-    }, [activeKnittingType]);
+    }, [filters.knitting_type]);
 
     const visibleCategories = isExpanded ? categoryItems : categoryItems.slice(0, INITIAL_LIMIT);
     const hiddenCount = categoryItems.length - INITIAL_LIMIT;
@@ -155,8 +160,9 @@ export default function FeedIndex({
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
 
     const handleFilterChange = (key: string, value: string) => {
+        const currentKnittingType = filters.knitting_type || filters.category || 'all';
         const nextFilters: Record<string, string> = {
-            knitting_type: activeKnittingType,
+            knitting_type: currentKnittingType,
             district: filters.district || 'all',
             search: searchTerm,
             [key]: value,
@@ -166,6 +172,23 @@ export default function FeedIndex({
             preserveState: true,
             preserveScroll: true,
         });
+    };
+
+    const handleToggleKnittingType = (slug: string) => {
+        if (slug === 'all') {
+            handleFilterChange('knitting_type', 'all');
+            return;
+        }
+
+        let nextSelected: string[];
+        if (selectedKnittingTypes.includes(slug)) {
+            nextSelected = selectedKnittingTypes.filter((s) => s !== slug);
+        } else {
+            nextSelected = [...selectedKnittingTypes, slug];
+        }
+
+        const nextVal = nextSelected.length > 0 ? nextSelected.join(',') : 'all';
+        handleFilterChange('knitting_type', nextVal);
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -200,7 +223,7 @@ export default function FeedIndex({
                         </div>
                         
                         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight text-white text-center drop-shadow-xs">
-                            Bangladesh's Digital <span className="text-yellow-300">Subcontracting</span> & Extra Orders Board
+                            Digital <span className="text-yellow-300">Subcontracting</span> & Extra Orders Board
                         </h1>
                         
                         <p className="text-sky-50 text-xs sm:text-sm leading-relaxed max-w-2xl text-center font-medium">
@@ -266,20 +289,32 @@ export default function FeedIndex({
                         </div>
                     </div>
 
-                    {/* Knitting Type Filter Pills (No Scroll + Show More Toggle) */}
+                    {/* Knitting Type Filter Pills (Multi-Select) */}
                     <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-                        {visibleCategories.map((cat) => (
-                            <button
-                                key={cat.id}
-                                onClick={() => handleFilterChange('knitting_type', cat.id)}
-                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${activeKnittingType === cat.id
-                                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
-                                    }`}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
+                        {visibleCategories.map((cat) => {
+                            const isAllPill = cat.id === 'all';
+                            const isSelected = isAllPill ? isAllSelected : selectedKnittingTypes.includes(cat.id);
+
+                            return (
+                                <button
+                                    key={cat.id}
+                                    type="button"
+                                    onClick={() => handleToggleKnittingType(cat.id)}
+                                    className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${isSelected
+                                        ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                                        }`}
+                                >
+                                    {isSelected && !isAllPill && (
+                                        <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                    )}
+                                    <span>{cat.label}</span>
+                                    {isAllPill && selectedKnittingTypes.length > 0 && (
+                                        <span className="text-[10px] bg-slate-200 text-slate-700 rounded-full px-1.5 py-0.2">Reset</span>
+                                    )}
+                                </button>
+                            );
+                        })}
 
                         {hiddenCount > 0 && (
                             <button

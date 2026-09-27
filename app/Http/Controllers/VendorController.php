@@ -41,23 +41,29 @@ class VendorController extends Controller
             $query->where('district', $request->input('district'));
         }
 
-        // Knitting Type filter
-        if ($request->filled('knitting_type') && $request->input('knitting_type') !== 'all') {
-            $ktSlug = $request->input('knitting_type');
-            $query->whereHas('knittingTypes', function ($q) use ($ktSlug) {
-                $q->where('slug', $ktSlug);
-            });
-        } elseif ($request->filled('industry') && $request->input('industry') !== 'all') {
-            $industry = $request->input('industry');
-            $query->where(function ($q) use ($industry) {
-                $q->where('industry_type', 'like', '%'.$industry.'%')
-                    ->orWhere('capabilities', 'like', '%'.$industry.'%')
-                    ->orWhereHas('knittingTypes', function ($ktq) use ($industry) {
-                        $ktq->where('slug', $industry)
-                            ->orWhere('name', 'like', '%'.$industry.'%');
-                    });
+        // Knitting Type filter (supports multiple comma-separated, array, or single)
+        $rawKt = $request->input('knitting_type', $request->input('knitting_types', $request->input('industry', 'all')));
+        $selectedKnittingTypes = [];
+        if (is_array($rawKt)) {
+            $selectedKnittingTypes = array_values(array_filter($rawKt, fn ($v) => ! empty($v) && $v !== 'all'));
+        } elseif (is_string($rawKt) && ! empty($rawKt) && $rawKt !== 'all') {
+            $parts = explode(',', $rawKt);
+            $selectedKnittingTypes = array_values(array_filter(array_map('trim', $parts), fn ($v) => ! empty($v) && $v !== 'all'));
+        }
+
+        if (! empty($selectedKnittingTypes)) {
+            $query->where(function ($q) use ($selectedKnittingTypes) {
+                $q->whereHas('knittingTypes', function ($ktq) use ($selectedKnittingTypes) {
+                    $ktq->whereIn('slug', $selectedKnittingTypes);
+                });
+                foreach ($selectedKnittingTypes as $industry) {
+                    $clean = str_replace('-', ' ', $industry);
+                    $q->orWhere('industry_type', 'like', '%'.$industry.'%')
+                        ->orWhere('industry_type', 'like', '%'.$clean.'%');
+                }
             });
         }
+        $knittingTypeProp = ! empty($selectedKnittingTypes) ? implode(',', $selectedKnittingTypes) : 'all';
 
         // Verified-only toggle
         if ($request->boolean('verified_only')) {
@@ -107,8 +113,8 @@ class VendorController extends Controller
             'filters' => [
                 'search' => $request->input('search', ''),
                 'district' => $request->input('district', 'all'),
-                'knitting_type' => $request->input('knitting_type', $request->input('industry', 'all')),
-                'industry' => $request->input('industry', 'all'),
+                'knitting_type' => $knittingTypeProp,
+                'industry' => $knittingTypeProp,
                 'lines' => $request->input('lines', 'all'),
                 'verified_only' => $request->boolean('verified_only'),
                 'sort' => $sort,

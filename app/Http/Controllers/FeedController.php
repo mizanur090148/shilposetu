@@ -28,21 +28,34 @@ class FeedController extends Controller
             ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
             ->latest();
 
-        // Filter by knitting type (supports both knitting_type and legacy category query params)
-        $knittingType = $request->input('knitting_type', $request->input('category', 'all'));
-        if (! empty($knittingType) && $knittingType !== 'all') {
-            $cat = $knittingType;
-            $cleanCat = str_replace('-', '_', $cat);
-            $query->where(function ($q) use ($cat, $cleanCat) {
-                $q->where('category', $cat)
-                    ->orWhere('category', $cleanCat)
-                    ->orWhere('title', 'like', '%'.$cat.'%')
-                    ->orWhere('description', 'like', '%'.$cat.'%')
-                    ->orWhereHas('factory.knittingTypes', function ($ktq) use ($cat) {
-                        $ktq->where('slug', $cat)->orWhere('name', 'like', '%'.$cat.'%');
-                    });
+        // Filter by knitting type (supports multiple comma-separated, array, or single)
+        $rawKnittingType = $request->input('knitting_type', $request->input('category', $request->input('knitting_types', 'all')));
+        $selectedKnittingTypes = [];
+        if (is_array($rawKnittingType)) {
+            $selectedKnittingTypes = array_values(array_filter($rawKnittingType, fn ($v) => ! empty($v) && $v !== 'all'));
+        } elseif (is_string($rawKnittingType) && ! empty($rawKnittingType) && $rawKnittingType !== 'all') {
+            $parts = explode(',', $rawKnittingType);
+            $selectedKnittingTypes = array_values(array_filter(array_map('trim', $parts), fn ($v) => ! empty($v) && $v !== 'all'));
+        }
+
+        if (! empty($selectedKnittingTypes)) {
+            $query->where(function ($q) use ($selectedKnittingTypes) {
+                foreach ($selectedKnittingTypes as $cat) {
+                    $cleanCat = str_replace('-', '_', $cat);
+                    $cleanSpace = str_replace('-', ' ', $cat);
+                    $q->orWhere('category', $cat)
+                        ->orWhere('category', $cleanCat)
+                        ->orWhere('title', 'like', '%'.$cat.'%')
+                        ->orWhere('title', 'like', '%'.$cleanSpace.'%')
+                        ->orWhere('description', 'like', '%'.$cat.'%')
+                        ->orWhere('description', 'like', '%'.$cleanSpace.'%')
+                        ->orWhereHas('factory.knittingTypes', function ($ktq) use ($cat) {
+                            $ktq->where('slug', $cat)->orWhere('name', 'like', '%'.$cat.'%');
+                        });
+                }
             });
         }
+        $knittingTypeProp = ! empty($selectedKnittingTypes) ? implode(',', $selectedKnittingTypes) : 'all';
 
         // Filter by district
         if ($request->filled('district') && $request->input('district') !== 'all') {
@@ -95,8 +108,8 @@ class FeedController extends Controller
         return Inertia::render('Feed/Index', [
             'posts' => $posts,
             'filters' => [
-                'knitting_type' => $knittingType,
-                'category' => $knittingType,
+                'knitting_type' => $knittingTypeProp,
+                'category' => $knittingTypeProp,
                 'district' => $request->input('district', 'all'),
                 'search' => $request->input('search', ''),
             ],
