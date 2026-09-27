@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import { 
@@ -19,6 +19,8 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
+    ChevronUp,
     Sparkles
 } from 'lucide-react';
 
@@ -101,6 +103,22 @@ export default function VendorsIndex({
                 { key: 'jacquard-auto-stripe', label: 'Jacquard & Auto Stripe' },
             ]),
     ];
+
+    const INITIAL_LIMIT = 8;
+    const [isKnittingExpanded, setIsKnittingExpanded] = useState(() => {
+        const activeIdx = knittingTypePills.findIndex((p) => p.key === activeKnittingType);
+        return activeIdx >= INITIAL_LIMIT;
+    });
+
+    useEffect(() => {
+        const activeIdx = knittingTypePills.findIndex((p) => p.key === activeKnittingType);
+        if (activeIdx >= INITIAL_LIMIT) {
+            setIsKnittingExpanded(true);
+        }
+    }, [activeKnittingType]);
+
+    const visibleKnittingPills = isKnittingExpanded ? knittingTypePills : knittingTypePills.slice(0, INITIAL_LIMIT);
+    const hiddenKnittingCount = knittingTypePills.length - INITIAL_LIMIT;
 
     const applyFilters = (overrides: Partial<typeof filters>) => {
         router.get(
@@ -200,17 +218,17 @@ export default function VendorsIndex({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
                 {/* Quick Knitting Type Filter Pills */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    <span className="text-xs font-bold text-slate-400 whitespace-nowrap uppercase tracking-wider pl-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-slate-400 whitespace-nowrap uppercase tracking-wider pl-1 mr-1">
                         Knitting Types:
                     </span>
-                    {knittingTypePills.map((pill) => {
+                    {visibleKnittingPills.map((pill) => {
                         const isActive = activeKnittingType === pill.key;
                         return (
                             <button
                                 key={pill.key}
                                 onClick={() => applyFilters({ knitting_type: pill.key, industry: pill.key })}
-                                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                                     isActive
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                                         : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
@@ -220,6 +238,21 @@ export default function VendorsIndex({
                             </button>
                         );
                     })}
+
+                    {hiddenKnittingCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setIsKnittingExpanded(!isKnittingExpanded)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-semibold text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 transition-all cursor-pointer shadow-xs"
+                        >
+                            <span>{isKnittingExpanded ? 'Show Less' : `+ More (${hiddenKnittingCount})`}</span>
+                            {isKnittingExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                            ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 {/* Main Filter Toolbar */}

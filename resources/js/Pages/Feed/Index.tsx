@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import AuthGateModal from '@/Components/AuthGateModal';
@@ -20,6 +20,8 @@ import {
     AlertTriangle,
     Tag,
     ChevronRight,
+    ChevronDown,
+    ChevronUp,
     ArrowUpRight,
     MessageSquare,
     Eye,
@@ -118,6 +120,22 @@ export default function FeedIndex({
                 { id: 'mesh-eyelet', label: 'Mesh & Eyelet' },
             ]),
     ];
+    const INITIAL_LIMIT = 8;
+    const [isExpanded, setIsExpanded] = useState(() => {
+        const activeIdx = categoryItems.findIndex((c) => c.id === filters.category);
+        return activeIdx >= INITIAL_LIMIT;
+    });
+
+    useEffect(() => {
+        const activeIdx = categoryItems.findIndex((c) => c.id === filters.category);
+        if (activeIdx >= INITIAL_LIMIT) {
+            setIsExpanded(true);
+        }
+    }, [filters.category]);
+
+    const visibleCategories = isExpanded ? categoryItems : categoryItems.slice(0, INITIAL_LIMIT);
+    const hiddenCount = categoryItems.length - INITIAL_LIMIT;
+
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [activeGateTitle, setActiveGateTitle] = useState('');
@@ -253,20 +271,35 @@ export default function FeedIndex({
                         </div>
                     </div>
 
-                    {/* Category Filter Pills */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-                        {categoryItems.map((cat) => (
+                    {/* Category Filter Pills (No Scroll + Show More Toggle) */}
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+                        {visibleCategories.map((cat) => (
                             <button
                                 key={cat.id}
                                 onClick={() => handleFilterChange('category', cat.id)}
-                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition ${filters.category === cat.id
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                className={`px-3.5 py-1.5 rounded-full font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${filters.category === cat.id
+                                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
                                     }`}
                             >
                                 {cat.label}
                             </button>
                         ))}
+
+                        {hiddenCount > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-semibold text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 transition-all cursor-pointer shadow-xs"
+                            >
+                                <span>{isExpanded ? 'Show Less' : `+ More (${hiddenCount})`}</span>
+                                {isExpanded ? (
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                ) : (
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
 
