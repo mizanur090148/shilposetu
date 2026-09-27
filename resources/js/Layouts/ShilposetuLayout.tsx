@@ -86,16 +86,10 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                             <span className="text-slate-400">Industries & Mills:</span>
                             <span className="font-bold text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded text-[11px]">50,000+</span>
                         </div>
-                        {user ? (
+                        {user && (
                             <span className="text-slate-400">
                                 ID: <strong className="text-amber-400">{user.customer_id || `S${user.id}`}</strong>
                             </span>
-                        ) : (
-                            <div className="flex items-center space-x-3 text-xs">
-                                <Link href={route('login')} className="hover:text-white">Login</Link>
-                                <span>/</span>
-                                <Link href={route('register')} className="hover:text-emerald-400 font-medium">Registration</Link>
-                            </div>
                         )}
                     </div>
                 </div>
