@@ -37,6 +37,8 @@ class Factory extends Model
         'bin_file',
         'nid_file',
         'is_verified',
+        'capabilities',
+        'production_capacities',
     ];
 
     /**
@@ -49,6 +51,8 @@ class Factory extends Model
         return [
             'total_machines' => 'integer',
             'is_verified' => 'boolean',
+            'capabilities' => 'array',
+            'production_capacities' => 'array',
         ];
     }
 
@@ -82,5 +86,13 @@ class Factory extends Model
     public function knittingTypes(): BelongsToMany
     {
         return $this->belongsToMany(KnittingType::class, 'factory_knitting_types')->withTimestamps();
+    }
+
+    /**
+     * Machinery roster installed in this factory.
+     */
+    public function machines(): HasMany
+    {
+        return $this->hasMany(FactoryMachine::class)->orderBy('category')->orderBy('sort_order');
     }
 }
