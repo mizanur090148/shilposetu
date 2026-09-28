@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FactoryController;
 use App\Http\Controllers\FactoryProfileController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\ProfileController;
@@ -13,9 +14,15 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [FeedController::class, 'index'])->name('feed.index');
 Route::get('/feed/{id}', [FeedController::class, 'show'])->name('feed.show');
 
-// Public Vendor Directory & Profiles
-Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
-Route::get('/vendors/{id}', [VendorController::class, 'show'])->name('vendors.show');
+// Public Factory Directory & Profiles
+Route::get('/factories', [FactoryController::class, 'index'])->name('factories.index');
+Route::get('/factories/{id}', [FactoryController::class, 'show'])->name('factories.show');
+
+// Legacy URL redirects and alias support
+Route::redirect('/vendors', '/factories', 301)->name('vendors.index');
+Route::get('/vendors/{id}', function ($id) {
+    return redirect()->route('factories.show', ['id' => $id], 301);
+})->name('vendors.show');
 
 // SaaS Subscription Plans
 Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');

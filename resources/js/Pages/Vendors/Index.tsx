@@ -128,7 +128,7 @@ export default function VendorsIndex({
     const applyFilters = (overrides: Partial<typeof filters>) => {
         const currentKnittingType = filters.knitting_type || filters.industry || 'all';
         router.get(
-            route('vendors.index'),
+            route('factories.index'),
             {
                 search: overrides.search !== undefined ? overrides.search : search,
                 district: overrides.district !== undefined ? overrides.district : filters.district,
@@ -175,7 +175,7 @@ export default function VendorsIndex({
     const handleResetAll = () => {
         setSearch('');
         router.get(
-            route('vendors.index'),
+            route('factories.index'),
             {
                 search: '',
                 district: 'all',
@@ -578,7 +578,7 @@ export default function VendorsIndex({
                                         ID: <strong className="text-slate-600">{factory.user?.customer_id}</strong>
                                     </span>
                                     <Link
-                                        href={route('vendors.show', factory.id)}
+                                        href={route('factories.show', factory.id)}
                                         className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl transition"
                                     >
                                         View Full Profile

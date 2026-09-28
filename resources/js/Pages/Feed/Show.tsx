@@ -303,7 +303,7 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
 
                                 {post.factory_id && (
                                     <Link
-                                        href={route('vendors.show', post.factory_id)}
+                                        href={route('factories.show', post.factory_id)}
                                         className="self-start sm:self-center inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800 bg-white hover:bg-blue-50/80 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs transition"
                                     >
                                         <span>View Plant Profile</span>

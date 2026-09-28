@@ -79,7 +79,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                     </div>
                     <div className="flex items-center space-x-6 text-slate-300">
                         <div className="hidden md:flex items-center gap-1">
-                            <span className="text-slate-400">Registered Vendors:</span>
+                            <span className="text-slate-400">Registered Factories:</span>
                             <span className="font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded text-[11px]">10,00,000+</span>
                         </div>
                         <div className="hidden md:flex items-center gap-1">
@@ -125,7 +125,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                     Subcontracts
                                 </Link>
                                 <Link
-                                    href={route('vendors.index')}
+                                    href={route('factories.index')}
                                     className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition flex items-center gap-1.5"
                                 >
                                     <Factory className="w-4 h-4 text-emerald-600" />
@@ -475,7 +475,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                             Subcontracts
                         </Link>
                         <Link
-                            href={route('vendors.index')}
+                            href={route('factories.index')}
                             className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100"
                             onClick={() => setMobileMenuOpen(false)}
                         >

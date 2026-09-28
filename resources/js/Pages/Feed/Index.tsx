@@ -588,7 +588,7 @@ export default function FeedIndex({
                                 Featured Industrial Units
                             </h2>
                             <Link
-                                href={route('vendors.index')}
+                                href={route('factories.index')}
                                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
                             >
                                 <span>View All</span>
@@ -603,7 +603,7 @@ export default function FeedIndex({
                                     featuredFactories.map((fac) => (
                                         <Link
                                             key={fac.id}
-                                            href={route('vendors.show', fac.id)}
+                                            href={route('factories.show', fac.id)}
                                             className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
                                         >
                                             <div className="flex items-center justify-between">
@@ -622,7 +622,7 @@ export default function FeedIndex({
                                 ) : (
                                     <>
                                         <Link
-                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            href={route('factories.index', { knitting_type: 'all' })}
                                             className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
                                         >
                                             <div className="flex items-center justify-between">
@@ -637,7 +637,7 @@ export default function FeedIndex({
                                         </Link>
 
                                         <Link
-                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            href={route('factories.index', { knitting_type: 'all' })}
                                             className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
                                         >
                                             <div className="flex items-center justify-between">
@@ -652,7 +652,7 @@ export default function FeedIndex({
                                         </Link>
 
                                         <Link
-                                            href={route('vendors.index', { knitting_type: 'all' })}
+                                            href={route('factories.index', { knitting_type: 'all' })}
                                             className="block p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition group"
                                         >
                                             <div className="flex items-center justify-between">
@@ -670,7 +670,7 @@ export default function FeedIndex({
                             </div>
 
                             <Link
-                                href={route('vendors.index')}
+                                href={route('factories.index')}
                                 className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-slate-200 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition group mt-2"
                             >
                                 <span>Explore All Verified Factories</span>

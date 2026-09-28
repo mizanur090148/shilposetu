@@ -476,7 +476,7 @@ export default function FactoryEdit({ factory, machineTypes = [], knittingTypes 
 
                             {factory.id && (
                                 <Link
-                                    href={route('vendors.show', factory.id)}
+                                    href={route('factories.show', factory.id)}
                                     className="inline-flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800/90 text-slate-200 hover:text-white text-xs font-bold px-3.5 py-2.5 rounded-2xl border border-slate-700/70 shadow-lg shadow-black/20 transition group"
                                     title="View how buyers see your factory"
                                 >
