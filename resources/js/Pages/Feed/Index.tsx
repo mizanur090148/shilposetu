@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import ShilposetuLayout from '@/Layouts/ShilposetuLayout';
 import AuthGateModal from '@/Components/AuthGateModal';
@@ -32,6 +32,37 @@ import {
 } from 'lucide-react';
 
 import { KnittingType } from '@/types';
+
+const SORT_OPTIONS = [
+    {
+        id: 'latest',
+        label: 'Newest First',
+        description: 'Recently posted subcontract orders',
+        icon: Clock,
+        iconColor: 'text-blue-600 bg-blue-50 border-blue-200/80',
+    },
+    {
+        id: 'urgent',
+        label: 'Most Urgent First',
+        description: 'Orders with immediate production deadlines',
+        icon: Flame,
+        iconColor: 'text-amber-600 bg-amber-50 border-amber-200/80',
+    },
+    {
+        id: 'quantity_desc',
+        label: 'Quantity: High to Low',
+        description: 'Largest volume production runs first',
+        icon: Layers,
+        iconColor: 'text-indigo-600 bg-indigo-50 border-indigo-200/80',
+    },
+    {
+        id: 'quantity_asc',
+        label: 'Quantity: Low to High',
+        description: 'Smaller batches & sample runs',
+        icon: ArrowUpDown,
+        iconColor: 'text-emerald-600 bg-emerald-50 border-emerald-200/80',
+    },
+];
 
 interface SubcontractPostItem {
     id: number;
@@ -156,6 +187,33 @@ export default function FeedIndex({
     const [activeGateTitle, setActiveGateTitle] = useState('');
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+    const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+                setSortDropdownOpen(false);
+            }
+        };
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setSortDropdownOpen(false);
+            }
+        };
+
+        if (sortDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [sortDropdownOpen]);
+
+    const currentSortOption = SORT_OPTIONS.find((opt) => opt.id === (filters.sort || 'latest')) || SORT_OPTIONS[0];
+    const CurrentSortIcon = currentSortOption.icon;
 
     // Apply filters helper
     const applyFilters = (overrides: Partial<typeof filters>) => {
@@ -595,31 +653,105 @@ export default function FeedIndex({
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2.5 self-start sm:self-auto">
-                                {/* Sort Dropdown */}
-                                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
-                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                    <select
-                                        value={filters.sort || 'latest'}
-                                        onChange={(e) => applyFilters({ sort: e.target.value })}
-                                        className="bg-transparent text-xs font-semibold text-slate-700 border-none focus:ring-0 p-0 cursor-pointer"
-                                    >
-                                        <option value="latest">Newest First</option>
-                                        <option value="urgent">Most Urgent First</option>
-                                        <option value="quantity_desc">Quantity: High to Low</option>
-                                        <option value="quantity_asc">Quantity: Low to High</option>
-                                    </select>
-                                </div>
-
-                                {/* Post Demand CTA */}
+                            {/* Custom Sort Dropdown */}
+                            <div className="relative self-start sm:self-auto" ref={sortDropdownRef}>
                                 <button
                                     type="button"
-                                    onClick={() => setCreateModalOpen(true)}
-                                    className="hidden sm:inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition"
+                                    onClick={() => setSortDropdownOpen((prev) => !prev)}
+                                    aria-expanded={sortDropdownOpen}
+                                    aria-haspopup="listbox"
+                                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all duration-150 shadow-2xs cursor-pointer ${
+                                        sortDropdownOpen
+                                            ? 'bg-blue-50/80 border-blue-300 text-blue-900 ring-2 ring-blue-500/20'
+                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                                    }`}
                                 >
-                                    <PlusCircle className="w-3.5 h-3.5" />
-                                    <span>Post Demand</span>
+                                    <span className="flex items-center gap-1.5 text-slate-400">
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                                        <span className="text-[11px] font-medium text-slate-400">Sort:</span>
+                                    </span>
+                                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                        <CurrentSortIcon className="w-3.5 h-3.5 text-blue-600" />
+                                        <span>{currentSortOption.label}</span>
+                                    </span>
+                                    <ChevronDown
+                                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                                            sortDropdownOpen ? 'rotate-180 text-blue-600' : ''
+                                        }`}
+                                    />
                                 </button>
+
+                                {/* Dropdown Menu Popover */}
+                                {sortDropdownOpen && (
+                                    <div
+                                        role="listbox"
+                                        aria-label="Sort subcontract orders"
+                                        className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 z-30 p-2 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                                    >
+                                        <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between mb-1.5">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                Sort Subcontract Feed
+                                            </span>
+                                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-full">
+                                                4 Options
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            {SORT_OPTIONS.map((opt) => {
+                                                const isSelected = (filters.sort || 'latest') === opt.id;
+                                                const Icon = opt.icon;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        role="option"
+                                                        aria-selected={isSelected}
+                                                        onClick={() => {
+                                                            applyFilters({ sort: opt.id });
+                                                            setSortDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                                                            isSelected
+                                                                ? 'bg-blue-50/90 text-blue-900 ring-1 ring-blue-500/20 shadow-2xs'
+                                                                : 'hover:bg-slate-50 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        <div
+                                                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                                                                isSelected
+                                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                                                    : `${opt.iconColor}`
+                                                            }`}
+                                                        >
+                                                            <Icon className="w-4 h-4" />
+                                                        </div>
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between">
+                                                                <span
+                                                                    className={`text-xs font-bold leading-none ${
+                                                                        isSelected ? 'text-blue-950 font-extrabold' : 'text-slate-800'
+                                                                    }`}
+                                                                >
+                                                                    {opt.label}
+                                                                </span>
+                                                                {isSelected && (
+                                                                    <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 ml-1.5 shadow-2xs">
+                                                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug line-clamp-1">
+                                                                {opt.description}
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -689,6 +821,15 @@ export default function FeedIndex({
                                         <span className="inline-flex items-center gap-1 bg-blue-100 border border-blue-200 text-blue-800 px-2 py-0.5 rounded-lg text-xs font-semibold">
                                             <span>Verified Mills</span>
                                             <button onClick={() => applyFilters({ verified_only: false })} className="text-blue-400 hover:text-blue-600">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {filters.sort && filters.sort !== 'latest' && (
+                                        <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 px-2 py-0.5 rounded-lg text-xs font-medium">
+                                            <span>Sort: {currentSortOption.label}</span>
+                                            <button onClick={() => applyFilters({ sort: 'latest' })} className="text-slate-400 hover:text-slate-600">
                                                 <X className="w-3 h-3" />
                                             </button>
                                         </span>
