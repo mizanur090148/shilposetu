@@ -39,7 +39,7 @@ interface DashboardProps {
     };
     userPosts: any[];
     quotationsSubmitted: any[];
-    categoryBreakdown: Array<{ name: string; value: number; color: string }>;
+    categoryBreakdown: Array<{ name: string; value: number; color: string; slug?: string }>;
     initialTab?: string;
     auth: {
         user: any;
@@ -493,32 +493,55 @@ export default function Dashboard({
                         )}
                     </div>
 
-                    {/* Right: Order Summary Donut/Progress Breakdown */}
+                    {/* Right: Top 5 Knitting Types Breakdown */}
                     <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900">National Subcontract Breakdown</h3>
-                            <p className="text-xs text-slate-500">Distribution by manufacturing sector</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">Top Knitting Subcontract Demands</h3>
+                                <p className="text-xs text-slate-500">Distribution by top 5 knitting types</p>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                Knitting
+                            </span>
                         </div>
 
                         {/* Visual Breakdown Bars */}
                         <div className="space-y-3 pt-2">
-                            {categoryBreakdown.map((cat, i) => (
-                                <div key={i} className="space-y-1">
-                                    <div className="flex justify-between text-xs font-semibold">
-                                        <span className="text-slate-700">{cat.name}</span>
-                                        <span className="text-slate-900 font-bold">{cat.value} Orders</span>
-                                    </div>
-                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full rounded-full transition-all duration-500"
-                                            style={{ 
-                                                width: `${Math.min(100, Math.max(15, cat.value * 25))}%`, 
-                                                backgroundColor: cat.color 
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                            {categoryBreakdown.map((cat, i) => {
+                                const total = categoryBreakdown.reduce((sum, c) => sum + c.value, 0);
+                                const percentage = total > 0 ? Math.round((cat.value / total) * 100) : 0;
+                                const barWidth = cat.value > 0 ? `${Math.max(12, percentage)}%` : '4%';
+
+                                return (
+                                    <Link
+                                        key={i}
+                                        href={cat.slug ? route('feed.index', { knitting_type: cat.slug }) : route('feed.index')}
+                                        className="group block space-y-1 hover:opacity-90 transition"
+                                    >
+                                        <div className="flex justify-between text-xs font-semibold">
+                                            <span className="text-slate-700 group-hover:text-blue-600 transition flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                {cat.name}
+                                            </span>
+                                            <span className="text-slate-900 font-bold">
+                                                {cat.value} {cat.value === 1 ? 'Order' : 'Orders'}
+                                                {total > 0 && cat.value > 0 && (
+                                                    <span className="text-[10px] font-normal text-slate-400 ml-1">({percentage}%)</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full rounded-full transition-all duration-500"
+                                                style={{ 
+                                                    width: barWidth, 
+                                                    backgroundColor: cat.color 
+                                                }}
+                                            />
+                                        </div>
+                                    </Link>
+                                );
+                            })}
                         </div>
 
                         {/* Quick Action Box */}

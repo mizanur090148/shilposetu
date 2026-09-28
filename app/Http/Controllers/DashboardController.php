@@ -36,14 +36,33 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        // Order breakdown by category (matches donut chart in Screen 2)
-        $categoryBreakdown = [
-            ['name' => 'Knitting', 'value' => SubcontractPost::where('category', 'knitting')->count(), 'color' => '#3B82F6'],
-            ['name' => 'Dyeing', 'value' => SubcontractPost::whereIn('category', ['fabric_dyeing', 'yarn_dyeing'])->count(), 'color' => '#10B981'],
-            ['name' => 'Sewing', 'value' => SubcontractPost::where('category', 'sewing_production')->count(), 'color' => '#F59E0B'],
-            ['name' => 'Washing', 'value' => SubcontractPost::where('category', 'washing')->count(), 'color' => '#8B5CF6'],
-            ['name' => 'Printing', 'value' => SubcontractPost::where('category', 'print')->count(), 'color' => '#EC4899'],
-        ];
+        // Top 5 Knitting Types breakdown (focused on knitting sector)
+        $topKnittingTypes = \App\Models\KnittingType::active()
+            ->orderBy('sort_order')
+            ->take(5)
+            ->get();
+
+        $colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+
+        $categoryBreakdown = $topKnittingTypes->map(function ($kt, $index) use ($colors) {
+            $cat = $kt->slug;
+            $cleanCat = str_replace('-', '_', $cat);
+            $count = SubcontractPost::where(function ($q) use ($cat, $cleanCat) {
+                $q->where('category', $cat)
+                    ->orWhere('category', $cleanCat)
+                    ->orWhere('title', 'like', '%'.$cat.'%')
+                    ->orWhereHas('factory.knittingTypes', function ($ktq) use ($cat) {
+                        $ktq->where('slug', $cat);
+                    });
+            })->count();
+
+            return [
+                'name' => $kt->name,
+                'slug' => $kt->slug,
+                'value' => $count,
+                'color' => $colors[$index % count($colors)],
+            ];
+        })->values()->toArray();
 
         $kpis = [
             'active_rfqs' => SubcontractPost::where('user_id', $user->id)->where('status', 'open')->count(),
