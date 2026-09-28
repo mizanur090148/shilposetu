@@ -25,8 +25,7 @@ class FeedController extends Controller
                 $q->select('id', 'subcontract_post_id', 'offered_unit_price', 'offered_lead_days');
             },
         ])
-            ->where('post_type', 'DEMAND') // News feed only shows "Have Extra Orders (Need Subcontract)"
-            ->latest();
+            ->where('post_type', 'DEMAND'); // News feed only shows "Have Extra Orders (Need Subcontract)"
 
         // Filter by knitting type (supports multiple comma-separated, array, or single)
         $rawKnittingType = $request->input('knitting_type', $request->input('category', $request->input('knitting_types', 'all')));
@@ -75,6 +74,49 @@ class FeedController extends Controller
             });
         }
 
+        // Filter: Urgent orders only
+        if ($request->boolean('urgent_only')) {
+            $query->where('is_urgent', true);
+        }
+
+        // Filter: Rate negotiable only
+        if ($request->boolean('negotiable_only')) {
+            $query->where('rate_negotiable', true);
+        }
+
+        // Filter: Verified factories only
+        if ($request->boolean('verified_only')) {
+            $query->whereHas('factory', function ($fq) {
+                $fq->where('is_verified', true);
+            });
+        }
+
+        // Filter: Quantity range
+        if ($request->filled('quantity') && $request->input('quantity') !== 'all') {
+            $qty = $request->input('quantity');
+            if ($qty === 'under_5k') {
+                $query->where('target_quantity', '<', 5000);
+            } elseif ($qty === '5k_20k') {
+                $query->whereBetween('target_quantity', [5000, 20000]);
+            } elseif ($qty === '20k_50k') {
+                $query->whereBetween('target_quantity', [20000, 50000]);
+            } elseif ($qty === '50k_plus') {
+                $query->where('target_quantity', '>=', 50000);
+            }
+        }
+
+        // Sorting
+        $sort = $request->input('sort', 'latest');
+        if ($sort === 'urgent') {
+            $query->orderByDesc('is_urgent')->latest();
+        } elseif ($sort === 'quantity_desc') {
+            $query->orderByDesc('target_quantity');
+        } elseif ($sort === 'quantity_asc') {
+            $query->orderBy('target_quantity', 'asc');
+        } else {
+            $query->latest();
+        }
+
         $posts = $query->paginate(8)->withQueryString();
 
         $user = $request->user();
@@ -84,6 +126,7 @@ class FeedController extends Controller
             ->select('district')
             ->whereNotNull('district')
             ->distinct()
+            ->orderBy('district')
             ->pluck('district');
 
         $stats = [
@@ -95,16 +138,6 @@ class FeedController extends Controller
 
         $knittingTypes = KnittingType::active()->orderBy('sort_order')->get();
 
-        // Featured Knitting Units (all factories are Knitting units)
-        $featuredFactories = Factory::with('knittingTypes:id,name,slug')
-            ->where(function ($q) {
-                $q->where('industry_type', 'Knitting')
-                    ->orWhereHas('knittingTypes');
-            })
-            ->latest()
-            ->take(3)
-            ->get();
-
         return Inertia::render('Feed/Index', [
             'posts' => $posts,
             'filters' => [
@@ -112,11 +145,15 @@ class FeedController extends Controller
                 'category' => $knittingTypeProp,
                 'district' => $request->input('district', 'all'),
                 'search' => $request->input('search', ''),
+                'urgent_only' => $request->boolean('urgent_only'),
+                'negotiable_only' => $request->boolean('negotiable_only'),
+                'verified_only' => $request->boolean('verified_only'),
+                'quantity' => $request->input('quantity', 'all'),
+                'sort' => $sort,
             ],
             'knittingTypes' => $knittingTypes,
             'districts' => $districts,
             'stats' => $stats,
-            'featuredFactories' => $featuredFactories,
             'userCanViewFullDetails' => $isSubscribed,
         ]);
     }
