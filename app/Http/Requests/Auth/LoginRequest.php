@@ -50,6 +50,26 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user->account_type !== 'factory') {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Access denied. Only factory accounts are permitted to log in.',
+            ]);
+        }
+
+        if ($user->status === 'suspended') {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Your factory account has been suspended. Please contact platform support.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
