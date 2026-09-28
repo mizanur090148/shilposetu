@@ -334,10 +334,10 @@ export default function FeedIndex({
                 </div>
 
                 {/* Subcontract Post Feed (Like as Facebook) */}
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     {/* Left & Middle Column: The Main Feed */}
                     <div className="lg:col-span-8 space-y-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[36px]">
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <Layers className="w-5 h-5 text-blue-600" />
                                 Subcontract Live Feed ({posts.total} Extra Orders)
@@ -580,53 +580,24 @@ export default function FeedIndex({
                         )}
                     </div>
 
-                    {/* Right Sidebar: Quick Factory Access & Membership Card */}
+                    {/* Right Sidebar: Quick Factory Access & Featured Units */}
                     <div className="lg:col-span-4 space-y-6">
-                        {/* Membership SaaS Card (matching Page 7 specs) */}
-                        <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                            <div className="relative z-10 space-y-3">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300 bg-amber-950/70 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                                    SaaS Membership Model
-                                </span>
-                                <h3 className="text-lg font-bold leading-tight">
-                                    Connect Demand with Factory Capacity
-                                </h3>
-                                <p className="text-xs text-slate-300">
-                                    Unlock direct phone numbers of 10 Lakh+ registered factories and access measurement tech-packs.
-                                </p>
-
-                                <div className="bg-white/10 rounded-xl p-3 text-xs space-y-1">
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-300">Registration Fee:</span>
-                                        <span className="font-bold text-amber-300">100 BDT (One-Time)</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-300">Monthly Access:</span>
-                                        <span className="font-bold text-emerald-400">50 BDT / Month</span>
-                                    </div>
-                                </div>
-
-                                <Link
-                                    href={route('subscription.index')}
-                                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md transition"
-                                >
-                                    Activate SaaS Membership
-                                    <ArrowUpRight className="w-3.5 h-3.5" />
-                                </Link>
-                            </div>
+                        <div className="flex items-center justify-between min-h-[36px]">
+                            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-600" />
+                                Featured Industrial Units
+                            </h2>
+                            <Link
+                                href={route('vendors.index')}
+                                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                            >
+                                <span>View All</span>
+                                <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Link>
                         </div>
 
-                        {/* Verified Garment Factory Directory Teaser (matching Page 2) */}
-                        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    Featured Industrial Units
-                                </h3>
-                                <Link href={route('vendors.index')} className="text-xs text-blue-600 font-semibold hover:underline">
-                                    View All
-                                </Link>
-                            </div>
-
+                        {/* Verified Garment Factory Directory Teaser */}
+                        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-xs space-y-3">
                             <div className="space-y-3">
                                 {featuredFactories && featuredFactories.length > 0 ? (
                                     featuredFactories.map((fac) => (
@@ -697,6 +668,14 @@ export default function FeedIndex({
                                     </>
                                 )}
                             </div>
+
+                            <Link
+                                href={route('vendors.index')}
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-slate-200 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition group mt-2"
+                            >
+                                <span>Explore All Verified Factories</span>
+                                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            </Link>
                         </div>
                     </div>
                 </div>
