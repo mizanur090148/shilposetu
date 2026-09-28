@@ -220,7 +220,7 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
         <ShilposetuLayout>
             <Head title={`${post.title} - Shilposetu`} />
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Back button */}
                 <Link
                     href={route('feed.index')}
