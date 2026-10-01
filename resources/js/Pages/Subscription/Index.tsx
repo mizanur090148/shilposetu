@@ -79,7 +79,7 @@ export default function SubscriptionIndex({ subscription, plans }: SubscriptionI
                             <div>
                                 <h3 className="font-bold text-sm text-emerald-900">Your Subscription is Active</h3>
                                 <p className="text-xs text-emerald-700">
-                                    Customer ID: <strong>{user?.customer_id}</strong> • Expires: {user?.subscription_expires_at ? new Date(user.subscription_expires_at).toLocaleDateString() : 'Active Member'}
+                                    Expires: {user?.subscription_expires_at ? new Date(user.subscription_expires_at).toLocaleDateString() : 'Active Member'}
                                 </p>
                             </div>
                         </div>
@@ -177,7 +177,7 @@ export default function SubscriptionIndex({ subscription, plans }: SubscriptionI
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-slate-300">Reference:</span>
-                                    <strong className="text-emerald-300">{user?.customer_id || 'SHILPOSETU'}</strong>
+                                    <strong className="text-emerald-300">{user?.phone || 'SHILPOSETU'}</strong>
                                 </div>
                                 <div className="flex justify-between border-t border-white/10 pt-1">
                                     <span className="text-slate-300">Total Payable:</span>

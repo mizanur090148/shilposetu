@@ -573,10 +573,7 @@ export default function VendorsIndex({
                                 </div>
 
                                 {/* Action Button */}
-                                <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
-                                    <span className="text-xs text-slate-400">
-                                        ID: <strong className="text-slate-600">{factory.user?.customer_id}</strong>
-                                    </span>
+                                <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end">
                                     <Link
                                         href={route('factories.show', factory.id)}
                                         className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl transition"

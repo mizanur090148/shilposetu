@@ -133,7 +133,7 @@ export default function CompareQuotations({ post, quotations }: CompareProps) {
                                                     )}
                                                 </div>
                                                 <span className="text-[11px] text-slate-500">
-                                                    ID: {q.bidder_user?.customer_id} • {q.bidder_factory?.district || 'Gazipur'}
+                                                    {q.bidder_factory?.district || 'Gazipur'}
                                                 </span>
                                             </td>
                                             <td className="p-4">

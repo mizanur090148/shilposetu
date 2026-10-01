@@ -281,10 +281,6 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
-                                            <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-slate-700 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
-                                                ID: {post.user?.customer_id || 'S20260105'}
-                                            </span>
-                                            <span>•</span>
                                             <span className="inline-flex items-center gap-1 font-medium text-slate-600">
                                                 <MapPin className="w-3.5 h-3.5 text-blue-600" />
                                                 {post.district}
@@ -640,7 +636,6 @@ export default function PostShow({ post, userCanViewFullDetails, isOwner, auth }
                                                                 )}
                                                             </div>
                                                             <p className="text-xs text-slate-500">
-                                                                {isOwner && q.bidder_user?.customer_id ? `ID: ${q.bidder_user.customer_id} • ` : ''}
                                                                 {q.bidder_factory?.district || 'Gazipur'}
                                                                 {q.bidder_factory?.total_lines ? ` • ${q.bidder_factory.total_lines} Lines` : ''}
                                                             </p>

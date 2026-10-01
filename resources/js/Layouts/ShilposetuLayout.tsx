@@ -86,11 +86,6 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                             <span className="text-slate-400">Industries & Mills:</span>
                             <span className="font-bold text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded text-[11px]">50,000+</span>
                         </div>
-                        {user && (
-                            <span className="text-slate-400">
-                                ID: <strong className="text-amber-400">{user.customer_id || `S${user.id}`}</strong>
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
@@ -204,12 +199,9 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                                 )}
                                             </div>
                                             <p className="text-[10px] text-slate-500 flex items-center gap-1.5 font-medium mt-0.5">
-                                                <span className="font-mono text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200/70">
-                                                    {user.customer_id || `S${user.id}`}
-                                                </span>
-                                                {/* <span className="text-slate-400 truncate max-w-[80px]">
+                                                <span className="text-slate-500 truncate max-w-[120px]">
                                                     {user.factory?.business_name || 'Member'}
-                                                </span> */}
+                                                </span>
                                             </p>
                                         </div>
                                         <ChevronDown
@@ -250,9 +242,6 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                                                 <p className="text-[11px] text-slate-300 truncate mt-0.5">{user.email}</p>
                                                             </div>
                                                         </div>
-                                                        <span className="font-mono text-[10px] font-bold text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-lg shrink-0 shadow-inner">
-                                                            {user.customer_id || `S${user.id}`}
-                                                        </span>
                                                     </div>
 
                                                     {/* Quick Factory Card */}
@@ -502,9 +491,6 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                                 <p className="text-[10px] text-slate-300">{user.factory?.business_name || 'Factory Member'}</p>
                                             </div>
                                         </div>
-                                        <span className="font-mono text-[10px] bg-cyan-950 text-cyan-300 font-bold px-2 py-0.5 rounded-lg border border-cyan-500/30">
-                                            {user.customer_id || `S${user.id}`}
-                                        </span>
                                     </div>
                                 </div>
                                 <Link

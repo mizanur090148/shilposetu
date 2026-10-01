@@ -100,7 +100,7 @@ export default function Dashboard({
                                 )}
                             </div>
                             <p className="text-xs text-slate-500 mt-1">
-                                Customer ID: <strong className="text-slate-800">{kpis.customer_id}</strong> • {factory?.business_name || 'Individual Manufacturer'} • {factory?.district || 'Bangladesh'}
+                                {factory?.business_name || 'Individual Manufacturer'} • {factory?.district || 'Bangladesh'}
                             </p>
                         </div>
 

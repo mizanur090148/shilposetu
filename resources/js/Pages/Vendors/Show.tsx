@@ -59,8 +59,6 @@ export default function VendorShow({ factory }: VendorShowProps) {
                                     )}
                                 </div>
                                 <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
-                                    <span>ID: <strong className="text-slate-700">{factory.user?.customer_id}</strong></span>
-                                    <span>•</span>
                                     <span className="flex items-center gap-1">
                                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                                         {factory.district}

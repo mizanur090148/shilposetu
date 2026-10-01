@@ -902,8 +902,6 @@ export default function FeedIndex({
                                                             {post.district}
                                                         </span>
                                                         <span>•</span>
-                                                        <span className="font-mono font-semibold text-slate-600">ID: {post.user.customer_id || `S${post.user.id}`}</span>
-                                                        <span>•</span>
                                                         <span>{new Date(post.created_at).toLocaleDateString()}</span>
                                                     </div>
                                                 </div>
