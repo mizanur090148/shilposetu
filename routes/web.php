@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FactoryController;
 use App\Http\Controllers\FactoryProfileController;
 use App\Http\Controllers\FeedController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\SubscriptionController;
@@ -60,6 +61,11 @@ Route::middleware('auth')->group(function () {
     // Factory Profile Information Management
     Route::get('/factory/profile', [FactoryProfileController::class, 'edit'])->name('factory.edit');
     Route::patch('/factory/profile', [FactoryProfileController::class, 'update'])->name('factory.update');
+
+    // In-App Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
 });
 
 require __DIR__.'/auth.php';

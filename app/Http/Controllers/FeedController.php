@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Factory;
 use App\Models\KnittingType;
 use App\Models\SubcontractPost;
+use App\Services\SubcontractMatchService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -182,7 +183,7 @@ class FeedController extends Controller
         $user = $request->user();
         $factory = $user->factory;
 
-        SubcontractPost::create([
+        $post = SubcontractPost::create([
             'user_id' => $user->id,
             'factory_id' => $factory ? $factory->id : null,
             'post_type' => $validated['post_type'],
@@ -201,7 +202,15 @@ class FeedController extends Controller
             'status' => 'open',
         ]);
 
-        return redirect()->route('feed.index')->with('success', 'Subcontract post published successfully!');
+        // Automatically match relevant factories and send in-app + email notifications
+        $notifiedCount = app(SubcontractMatchService::class)->notifyMatchingFactories($post);
+
+        $successMsg = 'Subcontract post published successfully!';
+        if ($notifiedCount > 0) {
+            $successMsg .= " {$notifiedCount} matching factories have been notified.";
+        }
+
+        return redirect()->route('feed.index')->with('success', $successMsg);
     }
 
     /**

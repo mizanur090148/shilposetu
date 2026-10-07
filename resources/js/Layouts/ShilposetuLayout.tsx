@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
     Factory,
     Layers,
@@ -25,7 +25,9 @@ import {
     Handshake,
     Sparkles,
     ExternalLink,
-    AlertCircle
+    AlertCircle,
+    Bell,
+    CheckCheck
 } from 'lucide-react';
 
 interface ShilposetuLayoutProps {
@@ -34,22 +36,31 @@ interface ShilposetuLayoutProps {
 }
 
 export default function ShilposetuLayout({ children, onCreatePostClick }: ShilposetuLayoutProps) {
-    const { auth, flash } = usePage<any>().props;
+    const { auth, flash, notifications } = usePage<any>().props;
     const user = auth?.user;
+    const unreadNotificationsCount = notifications?.unread_count || 0;
+    const recentNotifications = notifications?.recent || [];
+
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const notificationsRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown on outside click or escape
+    // Close dropdowns on outside click or escape
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setProfileDropdownOpen(false);
             }
+            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+                setNotificationsOpen(false);
+            }
         };
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 setProfileDropdownOpen(false);
+                setNotificationsOpen(false);
             }
         };
 
@@ -168,6 +179,143 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                         <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">Pending</span>
                                     )}
                                 </button>
+                            )}
+
+                            {user && (
+                                <div className="relative" ref={notificationsRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setNotificationsOpen(!notificationsOpen);
+                                            setProfileDropdownOpen(false);
+                                        }}
+                                        className={`relative p-2.5 rounded-2xl transition-all duration-200 text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 focus:outline-none ${
+                                            notificationsOpen ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-500/30 shadow-sm' : ''
+                                        }`}
+                                        title="Order Alerts & Notifications"
+                                        aria-label="Notifications"
+                                    >
+                                        <Bell className="w-5 h-5" />
+                                        {unreadNotificationsCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md shadow-red-500/30 animate-pulse border-2 border-white">
+                                                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* Notification Dropdown Popover */}
+                                    {notificationsOpen && (
+                                        <div className="absolute right-0 sm:right-auto sm:-left-36 md:right-0 md:left-auto mt-2.5 w-80 sm:w-96 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                                            {/* Header */}
+                                            <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
+                                                        <Bell className="w-3.5 h-3.5 text-emerald-400" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-black text-sm tracking-tight text-white block leading-tight">Order Alerts</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium">Matching Subcontracts</span>
+                                                    </div>
+                                                    {unreadNotificationsCount > 0 && (
+                                                        <span className="ml-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm shadow-emerald-500/30">
+                                                            {unreadNotificationsCount} New
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {unreadNotificationsCount > 0 && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            router.post(route('notifications.markAllRead'), {}, { preserveScroll: true });
+                                                        }}
+                                                        className="text-[11px] text-slate-200 hover:text-white flex items-center gap-1 font-semibold bg-white/10 hover:bg-white/15 px-2.5 py-1 rounded-lg transition"
+                                                    >
+                                                        <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                                        <span>Mark all read</span>
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* List */}
+                                            <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
+                                                {recentNotifications.length === 0 ? (
+                                                    <div className="p-8 text-center text-slate-400">
+                                                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                                                        <p className="text-xs font-bold text-slate-700">No new notifications</p>
+                                                        <p className="text-[11px] text-slate-400 mt-0.5">নতুন ম্যাচিং সাবকন্ট্রাক্ট পোস্ট হলে এখানে দেখতে পাবেন</p>
+                                                    </div>
+                                                ) : (
+                                                    recentNotifications.map((notif: any) => {
+                                                        const d = notif.data;
+                                                        const isUnread = !notif.read_at;
+                                                        return (
+                                                            <div
+                                                                key={notif.id}
+                                                                onClick={() => {
+                                                                    setNotificationsOpen(false);
+                                                                    if (isUnread) {
+                                                                        router.post(route('notifications.read', notif.id), {}, { preserveScroll: true });
+                                                                    }
+                                                                    router.visit(route('feed.show', d.post_id));
+                                                                }}
+                                                                className={`p-3.5 cursor-pointer transition-colors duration-150 flex items-start gap-3 hover:bg-slate-50 ${
+                                                                    isUnread ? 'bg-blue-50/50' : 'bg-white'
+                                                                }`}
+                                                            >
+                                                                <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs ${
+                                                                    isUnread ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30' : 'bg-slate-100 text-slate-500'
+                                                                }`}>
+                                                                    <Sparkles className="w-4 h-4" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center justify-between gap-1 mb-1">
+                                                                        <p className={`text-xs truncate ${isUnread ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                                                            {d.title}
+                                                                        </p>
+                                                                        {isUnread && (
+                                                                            <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 mb-1">
+                                                                        <span className="bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.5 rounded text-[10px]">
+                                                                            {d.category}
+                                                                        </span>
+                                                                        <span>&bull;</span>
+                                                                        <span className="font-bold text-blue-600">
+                                                                            {Number(d.target_quantity).toLocaleString()} {d.unit}
+                                                                        </span>
+                                                                        <span>&bull;</span>
+                                                                        <span>{d.district}</span>
+                                                                    </div>
+                                                                    {d.match_reason && (
+                                                                        <div className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 inline-block px-1.5 py-0.5 rounded mb-1">
+                                                                            🎯 {d.match_reason}
+                                                                        </div>
+                                                                    )}
+                                                                    <p className="text-[10px] text-slate-400">
+                                                                        {notif.created_at}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="p-2.5 bg-slate-50 border-t border-slate-100 text-center">
+                                                <Link
+                                                    href={route('notifications.index')}
+                                                    onClick={() => setNotificationsOpen(false)}
+                                                    className="text-xs font-bold text-blue-600 hover:text-blue-700 transition inline-flex items-center gap-1"
+                                                >
+                                                    <span>View all notifications</span>
+                                                    <span>&rarr;</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             {user ? (
@@ -493,6 +641,21 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                         </div>
                                     </div>
                                 </div>
+                                <Link
+                                    href={route('notifications.index')}
+                                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Bell className="w-4 h-4 text-blue-600" />
+                                        <span>Order Alerts & Notifications</span>
+                                    </span>
+                                    {unreadNotificationsCount > 0 && (
+                                        <span className="text-[10px] bg-rose-500 text-white font-black px-2 py-0.5 rounded-full shadow-sm">
+                                            {unreadNotificationsCount}
+                                        </span>
+                                    )}
+                                </Link>
                                 <Link
                                     href={route('dashboard')}
                                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition"
