@@ -196,11 +196,11 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
                                             </div>
 
                                             {/* Action Button */}
-                                            <div className="pt-2 sm:pt-0 shrink-0 self-end sm:self-center">
+                                            <div className="pt-2 sm:pt-0 shrink-0 w-full sm:w-auto">
                                                 <Link
                                                     href={route('feed.show', d.post_id)}
                                                     onClick={() => handleItemClick(notification)}
-                                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 hover:shadow-lg transition transform active:scale-95"
+                                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 hover:shadow-lg transition transform active:scale-95 text-center"
                                                 >
                                                     <span>কাজের বিস্তারিত ও দরপত্র</span>
                                                     <ArrowRight className="w-4 h-4" />

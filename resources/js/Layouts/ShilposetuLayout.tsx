@@ -205,7 +205,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
 
                                     {/* Notification Dropdown Popover */}
                                     {notificationsOpen && (
-                                        <div className="absolute right-0 sm:right-auto sm:-left-36 md:right-0 md:left-auto mt-2.5 w-80 sm:w-96 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                                        <div className="fixed inset-x-3 top-16 sm:inset-auto sm:absolute sm:right-0 sm:top-full mt-2.5 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] sm:max-w-none bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
                                             {/* Header */}
                                             <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
@@ -361,7 +361,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
 
                                     {/* Desktop Profile Dropdown Sub-Menu */}
                                     {profileDropdownOpen && (
-                                        <div className="absolute right-0 mt-2.5 w-80 sm:w-88 bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                                        <div className="fixed inset-x-3 top-16 sm:inset-auto sm:absolute sm:right-0 sm:top-full mt-2.5 w-auto sm:w-88 max-w-[calc(100vw-1.5rem)] sm:max-w-none bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.22)] border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-3 duration-200">
                                             {/* Hero User & Factory Card */}
                                             <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-4 overflow-hidden">
                                                 {/* Ambient decorative glow */}
@@ -784,13 +784,13 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
             {/* Footer */}
             <footer className="bg-slate-900 text-slate-400 text-sm py-10 border-t border-slate-800 mt-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                        <div>
-                            <div className="flex items-center gap-2 text-white font-bold text-lg mb-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left">
+                        <div className="flex flex-col items-center md:items-start">
+                            <div className="flex items-center justify-center md:justify-start gap-2 text-white font-bold text-lg mb-2">
                                 <Building2 className="w-5 h-5 text-blue-400" />
                                 <span>শিল্পসেতু | SHILPOSETU</span>
                             </div>
-                            <p className="text-xs text-slate-400 leading-relaxed">
+                            <p className="text-xs text-slate-400 leading-relaxed max-w-sm md:max-w-none">
                                 Digital Subcontracting & Smarter Manufacturing Platform for Ready-Made Garments (RMG), Knitting, Dyeing, and Washing in Bangladesh.
                             </p>
                         </div>
@@ -814,16 +814,16 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                 <li>Plastisol & Rotary Screen Print</li>
                             </ul>
                         </div>
-                        <div>
+                        <div className="flex flex-col items-center md:items-start">
                             <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">Direct Support Hotline</h4>
                             <p className="text-xs text-slate-400 mb-2">Have extra capacity or urgent order requirements?</p>
-                            <a href="tel:+8801551200200" className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm bg-slate-800 px-3 py-2 rounded-lg">
+                            <a href="tel:+8801733714009" className="inline-flex items-center gap-2 text-emerald-400 font-bold text-sm bg-slate-800 px-3 py-2 rounded-lg">
                                 <Phone className="w-4 h-4" />
                                 +880 1733 714 009
                             </a>
                         </div>
                     </div>
-                    <div className="pt-6 border-t border-slate-800 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+                    <div className="pt-6 border-t border-slate-800 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
                         <p>© {new Date().getFullYear()} Shilposetu.com. All rights reserved.</p>
                         <p>Subcontract দেওয়া ও নেওয়ার প্ল্যাটফর্ম (Like as Social Feed)</p>
                     </div>

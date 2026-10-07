@@ -15,11 +15,11 @@ export default function AuthGateModal({ isOpen, onClose, postTitle, isLoggedIn, 
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
             onClick={canClose ? onClose : undefined}
         >
             <div 
-                className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 relative"
+                className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto border border-slate-100 relative my-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Cross Close Button */}

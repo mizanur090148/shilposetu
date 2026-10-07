@@ -119,10 +119,10 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-auto max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white px-5 py-2.5 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-950 text-white px-4 sm:px-5 py-3 flex items-center justify-between shrink-0">
                     <div>
                         <h3 className="text-sm sm:text-base font-bold text-white">Post Subcontract (Have Extra Orders)</h3>
                     </div>
@@ -134,7 +134,7 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
                     {/* Default Type: Have Extra Orders (Need Subcontract) */}
                     <div className="px-3.5 py-2.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between">
                         <div>
@@ -363,18 +363,18 @@ export default function CreatePostModal({ isOpen, onClose, user, onNeedAuth, kni
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                    <div className="pt-3 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl"
+                            className="px-4 py-2.5 sm:py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-center"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={processing}
-                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
+                            className="px-5 py-2.5 sm:py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50 text-center"
                         >
                             {processing ? 'Publishing...' : 'Publish Subcontract Post'}
                         </button>

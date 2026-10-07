@@ -385,8 +385,8 @@ export default function FeedIndex({
                     {/* ======================================================== */}
                     {/* LEFT SIDEBAR: Comprehensive Search, Facets & Filters     */}
                     {/* ======================================================== */}
-                    <aside className={`lg:col-span-4 xl:col-span-3.5 space-y-5 ${mobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
-                        <div className="sticky top-20 space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1 pb-6">
+                    <aside className={`lg:col-span-4 xl:col-span-3 space-y-5 ${mobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
+                        <div className="lg:sticky lg:top-20 space-y-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-1 pb-6">
 
                             {/* Sidebar Header & Reset */}
                             <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
@@ -400,16 +400,28 @@ export default function FeedIndex({
                                         </h2>
                                     </div>
 
-                                    {hasActiveFilters && (
+                                    <div className="flex items-center gap-2">
+                                        {hasActiveFilters && (
+                                            <button
+                                                type="button"
+                                                onClick={handleResetAll}
+                                                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:underline cursor-pointer"
+                                            >
+                                                <RotateCcw className="w-3 h-3" />
+                                                <span>Reset</span>
+                                            </button>
+                                        )}
+
+                                        {/* Mobile Close Button */}
                                         <button
                                             type="button"
-                                            onClick={handleResetAll}
-                                            className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:underline cursor-pointer"
+                                            onClick={() => setMobileFiltersOpen(false)}
+                                            className="lg:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                                            title="Close filters"
                                         >
-                                            <RotateCcw className="w-3 h-3" />
-                                            <span>Reset All</span>
+                                            <X className="w-4 h-4" />
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
 
                                 {/* Keyword Search Input */}
@@ -624,13 +636,27 @@ export default function FeedIndex({
                                 </div>
                             </div>
 
+                            {/* Mobile Apply Filters & Close Button */}
+                            <div className="lg:hidden pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileFiltersOpen(false)}
+                                    className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.99] transition"
+                                >
+                                    <span>Apply Filters & View Results</span>
+                                    <span className="bg-white/20 text-white px-2 py-0.5 rounded-full text-[10px]">
+                                        {posts.total} Orders
+                                    </span>
+                                </button>
+                            </div>
+
                         </div>
                     </aside>
 
                     {/* ======================================================== */}
                     {/* MAIN COLUMN: Subcontract Feed, Sorting & Live Orders     */}
                     {/* ======================================================== */}
-                    <main className="lg:col-span-8 xl:col-span-8.5 space-y-4">
+                    <main className="lg:col-span-8 xl:col-span-9 space-y-4">
                         
                         {/* Feed Header with Live Stats & Sorting Toolbar */}
                         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -925,26 +951,26 @@ export default function FeedIndex({
                                         {/* Card Body */}
                                         <div className="px-4 py-3.5 sm:px-5 space-y-2.5">
                                             {/* Category & Title */}
-                                            <div className="flex items-baseline gap-2 flex-wrap">
-                                                <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md shrink-0">
+                                            <div className="flex items-start sm:items-baseline gap-2 flex-wrap sm:flex-nowrap">
+                                                <span className="text-[10px] font-extrabold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md shrink-0 mt-0.5 sm:mt-0">
                                                     {post.category.replace(/[-_]/g, ' ')}
                                                 </span>
-                                                <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                                                <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 sm:line-clamp-1 min-w-0 flex-1">
                                                     {post.title}
                                                 </h4>
                                             </div>
 
                                             {/* Compact Key Order Metrics Strip */}
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2.5 px-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs">
-                                                <div className="flex items-baseline gap-1.5">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2.5 px-3 sm:px-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 text-xs">
+                                                <div className="flex items-baseline gap-1.5 min-w-0">
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Qty:</span>
-                                                    <span className="font-black text-slate-900 text-xs sm:text-sm">
+                                                    <span className="font-black text-slate-900 text-xs sm:text-sm truncate">
                                                         {post.target_quantity.toLocaleString()} {post.unit}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-baseline gap-1.5">
+                                                <div className="flex items-baseline gap-1.5 min-w-0">
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rate:</span>
-                                                    <span className="font-black text-emerald-600 text-xs sm:text-sm">
+                                                    <span className="font-black text-emerald-600 text-xs sm:text-sm truncate">
                                                         {post.target_rate ? `${post.target_rate} ৳/${post.unit}` : 'Negotiable'}
                                                     </span>
                                                 </div>

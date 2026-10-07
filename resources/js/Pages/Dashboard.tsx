@@ -208,18 +208,18 @@ export default function Dashboard({
                     {/* Left: Dual Role Orders Table */}
                     <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         {/* Dual Role Tab Switcher Header */}
-                        <div className="border-b border-slate-200 bg-slate-50/70 px-4 pt-3 flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center space-x-2">
+                        <div className="border-b border-slate-200 bg-slate-50/70 px-3 sm:px-4 pt-3 flex items-center justify-between gap-2 overflow-x-auto">
+                            <div className="flex items-center space-x-2 min-w-max">
                                 <button
                                     onClick={() => switchTab('posted')}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 -mb-px ${
+                                    className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 -mb-px shrink-0 ${
                                         activeTab === 'posted'
                                             ? 'bg-white border-blue-600 text-blue-600 shadow-sm'
                                             : 'border-transparent text-slate-500 hover:text-slate-800'
                                     }`}
                                 >
                                     <Send className="w-3.5 h-3.5" />
-                                    <span>Give Subcontract (Orders I Posted)</span>
+                                    <span>Give Subcontract <span className="hidden sm:inline">(Orders I Posted)</span></span>
                                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                                         activeTab === 'posted' ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'
                                     }`}>
@@ -229,14 +229,14 @@ export default function Dashboard({
 
                                 <button
                                     onClick={() => switchTab('taken')}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 -mb-px ${
+                                    className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 -mb-px shrink-0 ${
                                         activeTab === 'taken'
                                             ? 'bg-white border-emerald-600 text-emerald-600 shadow-sm'
                                             : 'border-transparent text-slate-500 hover:text-slate-800'
                                     }`}
                                 >
                                     <Handshake className="w-3.5 h-3.5" />
-                                    <span>Take Subcontract (Orders I Bid / Taken)</span>
+                                    <span>Take Subcontract <span className="hidden sm:inline">(Orders I Bid / Taken)</span></span>
                                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                                         activeTab === 'taken' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
                                     }`}>
