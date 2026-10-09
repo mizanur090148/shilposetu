@@ -107,7 +107,7 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                     <div className="flex items-center justify-between h-16">
                         {/* Brand Logo */}
                         <div className="flex items-center gap-3">
-                            <Link href={route('feed.index')} className="flex items-center gap-2.5 group">
+                            <Link href={route('home')} className="flex items-center gap-2.5 group">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
                                     <Building2 className="w-6 h-6" />
                                 </div>

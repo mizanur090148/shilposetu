@@ -9,10 +9,16 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\VendorController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
-// Public Subcontract Feed (Homepage & Feed)
-Route::get('/', [FeedController::class, 'index'])->name('feed.index');
+// Public Industrial Landing Page (Home)
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Public Subcontract Feed (Current Homepage & Marketplace)
+Route::get('/subcontracts', [FeedController::class, 'index'])->name('feed.index');
+Route::redirect('/feed', '/subcontracts', 301);
+Route::redirect('/orders', '/subcontracts', 301);
 Route::get('/feed/{id}', [FeedController::class, 'show'])->name('feed.show');
 
 // Public Factory Directory & Profiles
