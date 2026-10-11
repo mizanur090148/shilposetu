@@ -81,4 +81,7 @@ export interface KnitkhataProps {
     auth: {
         user: any;
     };
+    initialTab?: KnitkhataViewTab;
+    initialRole?: RoleMode;
+    initialOrderId?: string;
 }

@@ -23,12 +23,27 @@ export interface KnitkhataLayoutProps {
         business_name?: string;
     } | null;
     role: RoleMode;
-    onRoleChange: (role: RoleMode) => void;
+    onRoleChange?: (role: RoleMode) => void;
     activeTab: KnitkhataViewTab;
-    onNavigate: (tab: KnitkhataViewTab) => void;
+    onNavigate?: (tab: KnitkhataViewTab) => void;
     toastMessage?: string | null;
     children: React.ReactNode;
 }
+
+export const TAB_HREFS: Record<string, string> = {
+    dash: '/knitkhata',
+    orders: '/knitkhata/orders',
+    detail: '/knitkhata/orders',
+    entry: '/knitkhata/production-entry',
+    qc: '/knitkhata/qc',
+    acc: '/knitkhata/accounts',
+    att: '/knitkhata/attendance',
+    users: '/knitkhata/users',
+    wa: '/knitkhata/whatsapp',
+    plan: '/knitkhata/planning',
+    vorders: '/knitkhata/vendor/orders',
+    vreport: '/knitkhata/vendor/report',
+};
 
 const renderIcon = (type: string) => {
     switch (type) {
@@ -92,8 +107,12 @@ export default function KnitkhataLayout({
 
             {/* HEADER.TOP - EXACT PROTOYPE MATCH */}
             <header className="top">
-                <div className="brand">
-                    <div className="logo" onClick={() => onNavigate('dash')} title="নিটখাতা হোম">
+                <Link
+                    href="/knitkhata"
+                    className="brand"
+                    style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '10px' }}
+                >
+                    <div className="logo" title="নিটখাতা হোম">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--surface)" strokeWidth="2">
                             <path d="M4 8c4 0 4 8 8 8s4-8 8-8" />
                             <path d="M4 14c4 0 4 6 8 6s4-6 8-6" opacity="0.6" />
@@ -104,27 +123,29 @@ export default function KnitkhataLayout({
                         <b>নিটখাতা</b>
                         <small>{factoryDisplayName}</small>
                     </div>
-                </div>
+                </Link>
 
                 <span className="proto">প্রোটোটাইপ · নমুনা ডেটা</span>
 
                 <div className="roleswitch" role="group" aria-label="কার চোখে দেখবেন">
-                    <button
-                        type="button"
+                    <Link
+                        href="/knitkhata"
                         id="r-fac"
                         className={role === 'fac' ? 'on' : ''}
-                        onClick={() => onRoleChange('fac')}
+                        style={{ textDecoration: 'none' }}
+                        onClick={() => onRoleChange && onRoleChange('fac')}
                     >
                         ফ্যাক্টরি ভিউ
-                    </button>
-                    <button
-                        type="button"
+                    </Link>
+                    <Link
+                        href="/knitkhata/vendor/orders"
                         id="r-ven"
                         className={role === 'ven' ? 'on' : ''}
-                        onClick={() => onRoleChange('ven')}
+                        style={{ textDecoration: 'none' }}
+                        onClick={() => onRoleChange && onRoleChange('ven')}
                     >
                         ভেন্ডর ভিউ (ABC)
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Seamless Platform Back Links */}
@@ -156,17 +177,23 @@ export default function KnitkhataLayout({
                         const isOn =
                             activeTab === tabId ||
                             (activeTab === 'detail' && tabId === (role === 'fac' ? 'orders' : 'vorders'));
+                        const href = TAB_HREFS[tabId] || '/knitkhata';
 
                         return (
-                            <button
+                            <Link
                                 key={tabId}
-                                type="button"
+                                href={href}
                                 className={isOn ? 'on' : ''}
-                                onClick={() => onNavigate(tabId)}
+                                preserveScroll
+                                onClick={() => {
+                                    if (onNavigate) {
+                                        onNavigate(tabId);
+                                    }
+                                }}
                             >
                                 {renderIcon(iconKey)}
                                 <span>{label}</span>
-                            </button>
+                            </Link>
                         );
                     })}
                 </nav>

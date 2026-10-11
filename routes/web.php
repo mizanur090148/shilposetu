@@ -60,8 +60,24 @@ Route::middleware('auth')->group(function () {
     // Industrial SaaS Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Knitkhata Industrial Factory Floor Dashboard (Only logged-in users)
-    Route::get('/knitkhata', [KnitkhataController::class, 'index'])->name('knitkhata');
+    // Knitkhata Industrial Factory Floor Dashboard (Dedicated routes for every menu page)
+    Route::prefix('knitkhata')->name('knitkhata.')->group(function () {
+        Route::get('/', [KnitkhataController::class, 'dashboard'])->name('dashboard');
+        Route::get('/orders', [KnitkhataController::class, 'orders'])->name('orders');
+        Route::get('/orders/{id}', [KnitkhataController::class, 'orderDetail'])->name('orders.show');
+        Route::get('/production-entry', [KnitkhataController::class, 'entry'])->name('entry');
+        Route::get('/qc', [KnitkhataController::class, 'qc'])->name('qc');
+        Route::get('/accounts', [KnitkhataController::class, 'accounts'])->name('accounts');
+        Route::get('/attendance', [KnitkhataController::class, 'attendance'])->name('attendance');
+        Route::get('/users', [KnitkhataController::class, 'users'])->name('users');
+        Route::get('/whatsapp', [KnitkhataController::class, 'whatsapp'])->name('whatsapp');
+        Route::get('/planning', [KnitkhataController::class, 'planning'])->name('planning');
+
+        // Vendor View
+        Route::get('/vendor/orders', [KnitkhataController::class, 'vendorOrders'])->name('vendor.orders');
+        Route::get('/vendor/report', [KnitkhataController::class, 'vendorReport'])->name('vendor.report');
+    });
+    Route::get('/knitkhata', [KnitkhataController::class, 'dashboard'])->name('knitkhata');
 
     // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

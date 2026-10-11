@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
-import KnitkhataLayout from '../../Layouts/KnitkhataLayout';
+import React, { useState, useEffect } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import KnitkhataLayout, { TAB_HREFS } from '../../Layouts/KnitkhataLayout';
 import './knitkhata.css';
 import {
     RoleMode,
@@ -22,15 +22,39 @@ import {
     calcEta
 } from './mockData';
 
-export default function KnitkhataIndex({ factory, auth }: KnitkhataProps) {
-    const [role, setRole] = useState<RoleMode>('fac');
-    const [view, setView] = useState<KnitkhataViewTab>('dash');
-    const [curOrder, setCurOrder] = useState<string>('SC-2610-014');
+export default function KnitkhataIndex({
+    factory,
+    auth,
+    initialTab = 'dash',
+    initialRole = 'fac',
+    initialOrderId = 'SC-2610-014'
+}: KnitkhataProps) {
+    const [role, setRole] = useState<RoleMode>(initialRole);
+    const [view, setView] = useState<KnitkhataViewTab>(initialTab);
+    const [curOrder, setCurOrder] = useState<string>(initialOrderId);
     const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
     const [machineState] = useState<Record<string, string>>(INITIAL_MACHINE_STATE);
     const [prodLog, setProdLog] = useState<ProductionLogItem[]>(INITIAL_PROD_LOG);
     const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
     const vendors = INITIAL_VENDORS;
+
+    useEffect(() => {
+        if (initialTab && initialTab !== view) {
+            setView(initialTab);
+        }
+    }, [initialTab]);
+
+    useEffect(() => {
+        if (initialRole && initialRole !== role) {
+            setRole(initialRole);
+        }
+    }, [initialRole]);
+
+    useEffect(() => {
+        if (initialOrderId && initialOrderId !== curOrder) {
+            setCurOrder(initialOrderId);
+        }
+    }, [initialOrderId]);
 
     // Accounts tab
     const [accTab, setAccTab] = useState<'exp' | 'util' | 'bank' | 'lc' | 'party'>('exp');
@@ -68,19 +92,18 @@ export default function KnitkhataIndex({ factory, auth }: KnitkhataProps) {
             if (!orders.find(o => o.id === curOrder && o.v === 'abc')) {
                 setCurOrder('SC-2610-014');
             }
-            setView('vorders');
+            router.visit('/knitkhata/vendor/orders');
             showToast('ABC Knit Composite ভিউ চালু করা হয়েছে');
         } else {
-            setView('dash');
+            router.visit('/knitkhata');
             showToast('ফ্যাক্টরি ভিউ চালু করা হয়েছে');
         }
     };
 
     const handleNavigate = (tab: KnitkhataViewTab) => {
         setView(tab);
-        if (typeof window !== 'undefined') {
-            window.scrollTo(0, 0);
-        }
+        const href = TAB_HREFS[tab] || '/knitkhata';
+        router.visit(href, { preserveScroll: true });
     };
 
     const handleSelectOrder = (orderId: string) => {
@@ -90,10 +113,7 @@ export default function KnitkhataIndex({ factory, auth }: KnitkhataProps) {
             setEtaM(target.machines.length || 1);
             setEtaR(target.rate || 350);
         }
-        setView('detail');
-        if (typeof window !== 'undefined') {
-            window.scrollTo(0, 0);
-        }
+        router.visit(`/knitkhata/orders/${orderId}`, { preserveScroll: true });
     };
 
     // Save shift entry
@@ -235,13 +255,13 @@ export default function KnitkhataIndex({ factory, auth }: KnitkhataProps) {
             <>
                 <div className="head">
                     <div>
-                        <button
-                            type="button"
+                        <Link
+                            href={readonly ? '/knitkhata/vendor/orders' : '/knitkhata/orders'}
                             className="btn sm"
-                            onClick={() => handleNavigate(readonly ? 'vorders' : 'orders')}
+                            style={{ textDecoration: 'none', display: 'inline-block' }}
                         >
                             ← সব অর্ডার
-                        </button>
+                        </Link>
                         <h2 style={{ marginTop: '8px' }}>
                             {o.id} · {o.fabric} {o.gsm} GSM
                         </h2>
@@ -601,20 +621,20 @@ export default function KnitkhataIndex({ factory, auth }: KnitkhataProps) {
                             <p>শনিবার, ৩ অক্টোবর ২০২৬ · শিফট A চলছে</p>
                         </div>
                         <div className="row">
-                            <button
-                                type="button"
+                            <Link
+                                href="/knitkhata/production-entry"
                                 className="btn"
-                                onClick={() => handleNavigate('entry')}
+                                style={{ textDecoration: 'none' }}
                             >
                                 + প্রোডাকশন এন্ট্রি
-                            </button>
-                            <button
-                                type="button"
+                            </Link>
+                            <Link
+                                href="/knitkhata/orders"
                                 className="btn pri"
-                                onClick={() => handleNavigate('orders')}
+                                style={{ textDecoration: 'none' }}
                             >
                                 অর্ডার দেখুন
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
