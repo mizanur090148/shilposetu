@@ -145,13 +145,22 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                     Membership
                                 </Link>
                                 {user && (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition flex items-center gap-1.5"
-                                    >
-                                        <BarChart3 className="w-4 h-4 text-purple-600" />
-                                        Dashboard
-                                    </Link>
+                                    <>
+                                        <Link
+                                            href={route('dashboard')}
+                                            className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition flex items-center gap-1.5"
+                                        >
+                                            <BarChart3 className="w-4 h-4 text-purple-600" />
+                                            Dashboard
+                                        </Link>
+                                        <Link
+                                            href={route('knitkhata')}
+                                            className="px-3 py-2 rounded-lg text-sm font-bold text-[#0E6B66] hover:text-[#094F4B] hover:bg-teal-50 transition flex items-center gap-1.5"
+                                        >
+                                            <span className="w-2 h-2 rounded-full bg-[#0E6B66] animate-pulse" />
+                                            নিটখাতা
+                                        </Link>
+                                    </>
                                 )}
                             </nav>
                         </div>
@@ -442,6 +451,27 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                                     </div>
                                                 </Link>
 
+                                                {/* 2. KnitKhata Factory Floor Dashboard */}
+                                                <Link
+                                                    href={route('knitkhata')}
+                                                    onClick={() => setProfileDropdownOpen(false)}
+                                                    className="group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-slate-700 hover:text-slate-900 hover:bg-teal-50/70 transition duration-150"
+                                                >
+                                                    <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0E6B66] flex items-center justify-center shrink-0 group-hover:bg-[#0E6B66] group-hover:text-white transition-colors duration-200">
+                                                        <Layers className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-bold text-slate-900 group-hover:text-[#0E6B66] transition-colors flex items-center gap-1.5">
+                                                                <span>নিটখাতা ড্যাশবোর্ড</span>
+                                                                <span className="text-[9px] bg-teal-100 text-[#094F4B] font-bold px-1.5 py-0.5 rounded-full">Floor</span>
+                                                            </p>
+                                                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0E6B66] group-hover:translate-x-0.5 transition-all" />
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 truncate">শপ-ফ্লোর ট্র্যাকিং, ২৪ মেশিন বোর্ড ও ভেন্ডর পোর্টাল</p>
+                                                    </div>
+                                                </Link>
+
                                                 {/* 2. Section: Factory & Account */}
                                                 <div className="px-3 pt-2 pb-1 border-t border-slate-100 flex items-center justify-between">
                                                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
@@ -663,6 +693,17 @@ export default function ShilposetuLayout({ children, onCreatePostClick }: Shilpo
                                 >
                                     <LayoutDashboard className="w-4 h-4 text-purple-600" />
                                     <span>Dashboard Overview</span>
+                                </Link>
+                                <Link
+                                    href={route('knitkhata')}
+                                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <Layers className="w-4 h-4 text-[#0E6B66]" />
+                                        <span>নিটখাতা ড্যাশবোর্ড</span>
+                                    </span>
+                                    <span className="text-[10px] bg-teal-100 text-[#094F4B] font-bold px-2 py-0.5 rounded-full">Floor</span>
                                 </Link>
                                 <Link
                                     href={route('profile.edit')}

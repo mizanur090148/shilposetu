@@ -10,6 +10,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\KnitkhataController;
 use Illuminate\Support\Facades\Route;
 
 // Public Industrial Landing Page (Home)
@@ -58,6 +59,9 @@ Route::middleware('auth')->group(function () {
 
     // Industrial SaaS Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Knitkhata Industrial Factory Floor Dashboard (Only logged-in users)
+    Route::get('/knitkhata', [KnitkhataController::class, 'index'])->name('knitkhata');
 
     // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

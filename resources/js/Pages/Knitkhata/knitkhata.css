@@ -1,0 +1,751 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* Knitkhata Bespoke Industrial Design System (Exact Match to Prototype) */
+:root {
+  --bg: #EEEFEA;
+  --surface: #FBFBF8;
+  --surface2: #F3F4EF;
+  --line: #D9DBD2;
+  --ink: #1C2830;
+  --muted: #5E6B70;
+  --accent: #0E6B66;
+  --accent-soft: #D5EAE7;
+  --yarn: #B9731F;
+  --yarn-soft: #F4E4CC;
+  --ok: #2E7D4F;
+  --ok-soft: #DCEFE2;
+  --warn: #A86A00;
+  --warn-soft: #F7E9C8;
+  --bad: #B23A30;
+  --bad-soft: #F6DCD8;
+  --idle: #C9CCC3;
+  --wa: #1F8F5A;
+  --wa-bubble: #DCF5E3;
+  --wa-bg: #E9E3D8;
+  --shadow: 0 1px 2px rgba(20,30,35,.06), 0 4px 14px rgba(20,30,35,.05);
+  --f-body: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --f-display: "Tiro Bangla", "Hind Siliguri", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141B1F; --surface: #1B2429; --surface2: #222D33; --line: #33424A;
+    --ink: #E4EAE8; --muted: #97A6AB; --accent: #4FB8AE; --accent-soft: #183A39;
+    --yarn: #E0A35A; --yarn-soft: #3A2D1C;
+    --ok: #6CC58E; --ok-soft: #1C3527; --warn: #E3B04F; --warn-soft: #3A3019; --bad: #EE8277; --bad-soft: #3E2220;
+    --idle: #3A474E; --wa: #4CC38A; --wa-bubble: #1E3A2B; --wa-bg: #11181B;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+  }
+}
+
+.kk-app {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  width: 100%;
+}
+.kk-app * {
+  box-sizing: border-box;
+}
+.kk-app .num, .kk-app td.n, .kk-app th.n, .kk-app .mono {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.kk-app h1, .kk-app h2, .kk-app h3 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  text-wrap: balance;
+  margin: 0;
+  color: var(--ink);
+}
+.kk-app h2 { font-size: 1.55rem; }
+.kk-app h3 { font-size: 1.15rem; }
+.kk-app button, .kk-app input, .kk-app select {
+  font: inherit;
+  color: inherit;
+}
+.kk-app :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Header Top */
+.kk-app .top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 10px 16px;
+  width: 100%;
+}
+.kk-app .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+}
+.kk-app .logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.kk-app .brand b {
+  font-family: var(--f-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: block;
+  line-height: 1.2;
+}
+.kk-app .brand small {
+  display: block;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.2;
+}
+.kk-app .roleswitch {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+}
+.kk-app .roleswitch button {
+  border: 0;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: .86rem;
+  color: var(--muted);
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.kk-app .roleswitch button.on {
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+.kk-app .proto {
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--yarn);
+  border: 1px solid var(--yarn);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--f-mono);
+  font-weight: 500;
+}
+
+/* App Shell */
+.kk-app .shell {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: calc(100vh - 56px);
+  width: 100%;
+}
+.kk-app nav.rail {
+  border-right: 1px solid var(--line);
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+.kk-app nav.rail .grp {
+  font-size: .72rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 10px 4px;
+  font-weight: 700;
+}
+.kk-app nav.rail button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 14px;
+  width: 100%;
+  transition: background 0.12s ease;
+}
+.kk-app nav.rail button:hover {
+  background: var(--surface2);
+}
+.kk-app nav.rail button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.kk-app nav.rail svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+}
+
+/* Main Canvas */
+.kk-app main {
+  padding: 22px 24px 60px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+.kk-app .head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: end;
+  justify-content: space-between;
+}
+.kk-app .head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Cards & Layout */
+.kk-app .card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.kk-app .card h3 {
+  margin-bottom: 10px;
+}
+.kk-app .grid {
+  display: grid;
+  gap: 14px;
+}
+.kk-app .g2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+.kk-app .kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.kk-app .kpi {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.kk-app .kpi span {
+  font-size: .82rem;
+  color: var(--muted);
+}
+.kk-app .kpi b {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 1.45rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.kk-app .kpi i {
+  font-style: normal;
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+/* Tables */
+.kk-app .tw {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.kk-app table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .9rem;
+  background: var(--surface);
+}
+.kk-app th {
+  text-align: left;
+  font-weight: 600;
+  font-size: .78rem;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 8px 10px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+.kk-app td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.kk-app tr:last-child td {
+  border-bottom: 0;
+}
+.kk-app td.n, .kk-app th.n {
+  text-align: right;
+}
+.kk-app tr.click {
+  cursor: pointer;
+}
+.kk-app tr.click:hover td {
+  background: var(--surface2);
+}
+
+/* Pills */
+.kk-app .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .78rem;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.kk-app .pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.kk-app .p-ok { background: var(--ok-soft); color: var(--ok); }
+.kk-app .p-warn { background: var(--warn-soft); color: var(--warn); }
+.kk-app .p-bad { background: var(--bad-soft); color: var(--bad); }
+.kk-app .p-acc { background: var(--accent-soft); color: var(--accent); }
+.kk-app .p-idle { background: var(--surface2); color: var(--muted); }
+.kk-app .p-yarn { background: var(--yarn-soft); color: var(--yarn); }
+
+/* Progress Bar */
+.kk-app .bar {
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+  min-width: 90px;
+}
+.kk-app .bar>i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+}
+.kk-app .bar.big {
+  height: 12px;
+}
+
+/* Buttons & Rows */
+.kk-app .btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+.kk-app .btn:hover {
+  border-color: var(--accent);
+}
+.kk-app .btn.pri {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+.kk-app .btn.sm {
+  padding: 3px 10px;
+  font-size: .8rem;
+}
+.kk-app .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.kk-app .muted { color: var(--muted); }
+.kk-app .small { font-size: .82rem; }
+
+/* 24 Machines */
+.kk-app .machines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+.kk-app .mc {
+  border-radius: 8px;
+  padding: 7px 6px;
+  text-align: center;
+  font-size: .75rem;
+  border: 1px solid var(--line);
+  background: var(--surface2);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+  user-select: none;
+}
+.kk-app .mc:hover {
+  transform: translateY(-1px);
+}
+.kk-app .mc b {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: .82rem;
+}
+.kk-app .mc.run {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.kk-app .mc.down {
+  background: var(--bad-soft);
+  border-color: transparent;
+  color: var(--bad);
+}
+.kk-app .mc.wait {
+  background: var(--yarn-soft);
+  border-color: transparent;
+  color: var(--yarn);
+}
+.kk-app .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: .8rem;
+  color: var(--muted);
+  margin-top: 10px;
+}
+.kk-app .legend span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  background: var(--c);
+}
+
+/* Alerts */
+.kk-app .alert {
+  display: flex;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: .9rem;
+}
+.kk-app .alert:last-child {
+  border-bottom: 0;
+}
+.kk-app .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 8px;
+  flex: none;
+}
+
+/* Facts & Form */
+.kk-app .facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 18px;
+}
+.kk-app .facts div span {
+  display: block;
+  font-size: .76rem;
+  color: var(--muted);
+}
+.kk-app .facts div b {
+  font-weight: 600;
+}
+.kk-app .form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.kk-app label.f {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .82rem;
+  color: var(--muted);
+}
+.kk-app label.f input, .kk-app label.f select {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-size: .95rem;
+  color: var(--ink);
+  min-width: 0;
+}
+.kk-app .eta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  align-items: end;
+  background: var(--yarn-soft);
+  border-radius: 10px;
+  padding: 14px;
+}
+.kk-app .eta .out b {
+  font-family: var(--f-mono);
+  font-size: 1.3rem;
+  color: var(--yarn);
+  display: block;
+}
+
+/* Tabs & Switches */
+.kk-app .tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.kk-app .tabs button {
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.kk-app .tabs button.on {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.kk-app .switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 99px;
+  background: var(--idle);
+  border: 0;
+  cursor: pointer;
+  flex: none;
+}
+.kk-app .switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: left .15s;
+}
+.kk-app .switch.on { background: var(--ok); }
+.kk-app .switch.on::after { left: 19px; }
+.kk-app .chk {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 7px 0;
+  font-size: .9rem;
+}
+.kk-app .chk input {
+  margin-top: 5px;
+  accent-color: var(--accent);
+}
+.kk-app .vbanner {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: .92rem;
+}
+
+/* WhatsApp Phone Frame */
+.kk-app .phone {
+  max-width: 340px;
+  width: 100%;
+  margin: 0 auto;
+  border: 8px solid var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--wa-bg);
+}
+.kk-app .phone .wh {
+  background: var(--wa);
+  color: #fff;
+  padding: 10px 14px;
+  font-size: .88rem;
+}
+.kk-app .phone .wh b {
+  display: block;
+}
+.kk-app .phone .body {
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 360px;
+}
+.kk-app .bub {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: .84rem;
+  max-width: 92%;
+  box-shadow: var(--shadow);
+  color: #111;
+}
+.kk-app .bub.file {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.kk-app .xl {
+  width: 34px;
+  height: 40px;
+  border-radius: 4px;
+  background: var(--ok);
+  color: #fff;
+  font-family: var(--f-mono);
+  font-size: .7rem;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-weight: 700;
+}
+.kk-app .bub time {
+  display: block;
+  text-align: right;
+  font-size: .7rem;
+  color: var(--muted);
+}
+.kk-app .sheet td, .kk-app .sheet th {
+  font-family: var(--f-mono);
+  font-size: .78rem;
+  padding: 5px 8px;
+}
+.kk-app .sheet th {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+/* Project Plan */
+.kk-app .phase {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.kk-app .phase:first-of-type {
+  border-top: 0;
+}
+.kk-app .phase .when {
+  font-family: var(--f-mono);
+  font-size: .82rem;
+  color: var(--yarn);
+}
+.kk-app .phase ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.kk-app .phase li {
+  margin: 3px 0;
+}
+.kk-app .stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.kk-app .stack div {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 12px;
+}
+.kk-app .stack div b {
+  display: block;
+  margin-bottom: 2px;
+}
+.kk-app .prose {
+  max-width: 70ch;
+}
+.kk-app .toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--surface);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: .9rem;
+  z-index: 50;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* Responsive */
+@media (max-width: 820px) {
+  .kk-app .shell {
+    grid-template-columns: 1fr;
+  }
+  .kk-app nav.rail {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 8px 16px;
+    gap: 6px;
+    height: auto;
+    position: static;
+  }
+  .kk-app nav.rail .grp {
+    display: none;
+  }
+  .kk-app nav.rail button {
+    white-space: nowrap;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 12px;
+    width: auto;
+  }
+  .kk-app nav.rail button svg {
+    display: none;
+  }
+  .kk-app main {
+    padding: 16px 16px 60px;
+  }
+  .kk-app .phase {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
