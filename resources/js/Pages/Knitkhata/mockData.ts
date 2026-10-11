@@ -32,6 +32,11 @@ export const INITIAL_ORDERS: Order[] = [
             { d: '02 Oct', roll: 'R-142', m: 'M-07', issue: 'Needle mark (১টি সুঁচ ভাঙা)', kg: 22, s: 'bad', res: 'রিজেক্ট' },
             { d: '01 Oct', roll: 'R-098', m: 'M-04', issue: 'Lycra out (২ ইঞ্চি)', kg: 21, s: 'warn', res: 'কাটিং আলাদা' },
             { d: '29 Sep', roll: 'R-041', m: 'M-12', issue: 'Oil spot (লুব্রিকেশন)', kg: 23, s: 'ok', res: 'ওয়াশিংয়ে দূর' }
+        ],
+        challans: [
+            { challanNo: 'CH-2610-041', date: '28 Sep 2026', rolls: 45, kg: 1800, vehicle: 'ঢাকা মেট্রো-ন ১২-৮৮৪০', driverPhone: '০১৭১১-২২৩৩৪৪' },
+            { challanNo: 'CH-2610-048', date: '01 Oct 2026', rolls: 52, kg: 2100, vehicle: 'ঢাকা মেট্রো-ন ১৫-২০১০', driverPhone: '০১৮১৬-৭৭১১০০' },
+            { challanNo: 'CH-2610-053', date: '03 Oct 2026', rolls: 32, kg: 1300, vehicle: 'ঢাকা মেট্রো-ন ১২-৮৮৪০', driverPhone: '০১৭১১-২২৩৩৪৪' }
         ]
     },
     {
@@ -50,7 +55,8 @@ export const INITIAL_ORDERS: Order[] = [
         start: '—',
         status: 'wait',
         yarnIn: [],
-        qc: []
+        qc: [],
+        challans: []
     },
     {
         id: 'SC-2609-011',
@@ -72,6 +78,10 @@ export const INITIAL_ORDERS: Order[] = [
         ],
         qc: [
             { d: '25 Sep', roll: 'R-180', m: 'M-01', issue: 'Hole (ফ্লাই সুতা)', kg: 24, s: 'warn', res: 'ফ্যাক্টরি ক্ষতিপূরণ' }
+        ],
+        challans: [
+            { challanNo: 'CH-2609-018', date: '25 Sep 2026', rolls: 80, kg: 3200, vehicle: 'পিকআপ ঢাকা মেট্রো-ন ১৯-৫৪৩২', driverPhone: '০১৯১১-২২৩৩৪৪' },
+            { challanNo: 'CH-2609-026', date: '01 Oct 2026', rolls: 70, kg: 2810, vehicle: 'কাভার্ডভ্যান ঢাকা মেট্রো-উ ১১-৭৬৫৪', driverPhone: '০১৭৯৯-৮৮৭৭৬৬' }
         ]
     },
     {
@@ -92,7 +102,10 @@ export const INITIAL_ORDERS: Order[] = [
         yarnIn: [
             { count: '40s Combed', spinner: 'Noman', lot: 'NS-2290', bags: 72, kg: 3600 }
         ],
-        qc: []
+        qc: [],
+        challans: [
+            { challanNo: 'CH-2609-012', date: '16 Sep 2026', rolls: 88, kg: 3500, vehicle: 'ঢাকা মেট্রো-ন ১২-৮৮৪০', driverPhone: '০১৭১১-২২৩৩৪৪' }
+        ]
     },
     {
         id: 'SC-2609-001',
@@ -112,7 +125,10 @@ export const INITIAL_ORDERS: Order[] = [
         yarnIn: [
             { count: '34s CVC', spinner: 'Matin', lot: 'MT-901', bags: 104, kg: 5200 }
         ],
-        qc: []
+        qc: [],
+        challans: [
+            { challanNo: 'CH-2609-007', date: '12 Sep 2026', rolls: 125, kg: 5000, vehicle: 'কাভার্ডভ্যান ঢাকা মেট্রো-উ ১৫-৯৮৭৬', driverPhone: '০১৮১৮-৪৪৩৩২২' }
+        ]
     }
 ];
 

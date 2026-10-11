@@ -350,6 +350,28 @@
   background: var(--surface2);
 }
 
+/* Orders Table sticky actions and compact layout */
+.kk-app table.orders-table th,
+.kk-app table.orders-table td {
+  padding: 8px 7px;
+  font-size: .83rem;
+}
+.kk-app table.orders-table th:last-child,
+.kk-app table.orders-table td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.06);
+  z-index: 2;
+}
+.kk-app table.orders-table th:last-child {
+  background: var(--surface2);
+}
+.kk-app table.orders-table td .btn.sm {
+  padding: 3px 7px;
+  font-size: .74rem;
+}
+
 /* Pills */
 .kk-app .pill {
   display: inline-flex;
@@ -742,6 +764,137 @@
   font-size: .9rem;
   z-index: 50;
   box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* Grid variations */
+.kk-app .g3 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+.kk-app .g4 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+/* Machine Card in Own Machines view */
+.kk-app .machine-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  position: relative;
+}
+.kk-app .machine-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+/* Vendor summary card in Orders view */
+.kk-app .vendor-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kk-app .vendor-summary-card:hover, .kk-app .vendor-summary-card.act {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-1px);
+}
+.kk-app .vendor-summary-card.act {
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.kk-app .vendor-summary-card .v-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kk-app .vendor-summary-card .v-top b {
+  font-size: .95rem;
+}
+.kk-app .machine-card .mc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kk-app .machine-card .mc-badge {
+  font-family: var(--f-mono);
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.kk-app .machine-card .mc-badge.run {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+.kk-app .machine-card .mc-badge.down {
+  background: var(--bad-soft);
+  color: var(--bad);
+  border-color: transparent;
+}
+.kk-app .machine-card .mc-badge.wait {
+  background: var(--yarn-soft);
+  color: var(--yarn);
+  border-color: transparent;
+}
+.kk-app .machine-card .mc-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .88rem;
+}
+.kk-app .machine-card .mc-specs span {
+  color: var(--muted);
+  font-size: .8rem;
+}
+.kk-app .machine-card .mc-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  margin-top: auto;
+}
+
+/* Modal */
+.kk-app .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.kk-app .modal-box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  padding: 20px;
 }
 
 /* Responsive */

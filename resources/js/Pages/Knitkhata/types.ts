@@ -22,6 +22,15 @@ export interface QcIssue {
     res: string;
 }
 
+export interface DeliveryChallan {
+    challanNo: string;
+    date: string;
+    rolls: number;
+    kg: number;
+    vehicle?: string;
+    driverPhone?: string;
+}
+
 export interface Order {
     id: string;
     v: string; // vendor key e.g. 'abc', 'xyz', 'nobo'
@@ -39,6 +48,7 @@ export interface Order {
     status: 'run' | 'wait' | 'done';
     yarnIn: YarnIntake[];
     qc: QcIssue[];
+    challans?: DeliveryChallan[];
 }
 
 export interface ProductionLogItem {
@@ -70,11 +80,39 @@ export type KnitkhataViewTab =
     | 'qc' 
     | 'acc' 
     | 'att' 
+    | 'machines'
     | 'users' 
     | 'wa' 
     | 'plan' 
     | 'vorders' 
     | 'vreport';
+
+export interface FactoryMachineItem {
+    id: number;
+    category?: string;
+    no_of_machine: number;
+    capacity_per_machine: number;
+    total_capacity_per_day: number;
+    unit_type: string;
+    machine_type: string;
+    brand_or_model: string;
+}
+
+export interface CustomMachineItem {
+    id: number;
+    name: string;
+    cph?: number | string;
+    unit?: string;
+    brand_or_model?: string;
+    serial_number?: string;
+    is_active?: boolean;
+    notes?: string;
+    machine_type?: {
+        id: number;
+        name: string;
+        brand_or_model?: string;
+    };
+}
 
 export interface KnitkhataProps {
     factory?: any;
@@ -84,4 +122,7 @@ export interface KnitkhataProps {
     initialTab?: KnitkhataViewTab;
     initialRole?: RoleMode;
     initialOrderId?: string;
+    factoryMachines?: FactoryMachineItem[];
+    customMachines?: CustomMachineItem[];
+    machineTypes?: any[];
 }

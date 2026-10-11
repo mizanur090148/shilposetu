@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/qc', [KnitkhataController::class, 'qc'])->name('qc');
         Route::get('/accounts', [KnitkhataController::class, 'accounts'])->name('accounts');
         Route::get('/attendance', [KnitkhataController::class, 'attendance'])->name('attendance');
+        Route::get('/my-machines', [KnitkhataController::class, 'machines'])->name('machines');
+        Route::post('/my-machines', [KnitkhataController::class, 'storeMachine'])->name('machines.store');
         Route::get('/users', [KnitkhataController::class, 'users'])->name('users');
         Route::get('/whatsapp', [KnitkhataController::class, 'whatsapp'])->name('whatsapp');
         Route::get('/planning', [KnitkhataController::class, 'planning'])->name('planning');
