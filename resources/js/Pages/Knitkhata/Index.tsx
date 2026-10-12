@@ -32,7 +32,9 @@ export default function KnitkhataIndex({
     initialOrderId = 'SC-2610-014',
     factoryMachines = [],
     customMachines = [],
-    machineTypes = []
+    machineTypes = [],
+    userPosts = [],
+    quotationsSubmitted = []
 }: KnitkhataProps) {
     const [role, setRole] = useState<RoleMode>(initialRole);
     const [view, setView] = useState<KnitkhataViewTab>(initialTab);
@@ -369,6 +371,78 @@ export default function KnitkhataIndex({
             return b.id.localeCompare(a.id);
         });
 
+    // Vendor Perspective Orders (Give Subcontract: Orders I Posted)
+    const vendorOrdersList = orders.filter(o => o.v === 'abc');
+    const vendorTotalQty = vendorOrdersList.reduce((sum, o) => sum + o.qty, 0);
+    const vendorDoneQty = vendorOrdersList.reduce((sum, o) => sum + o.done, 0);
+    const vendorProgressPct = calcPct(vendorDoneQty, vendorTotalQty);
+    const vendorRunningCount = vendorOrdersList.filter(o => o.status === 'run').length;
+    const vendorDoneCount = vendorOrdersList.filter(o => o.status === 'done').length;
+    const vendorWaitingCount = vendorOrdersList.filter(o => o.status === 'wait').length;
+    const vendorYarnSentKg = vendorOrdersList.reduce((sum, o) => sum + o.yarnIn.reduce((ys, y) => ys + y.kg, 0), 0);
+    const vendorTotalChallansCount = vendorOrdersList.reduce((sum, o) => sum + (o.challans?.length || 0), 0);
+    const vendorTotalBill = vendorOrdersList.reduce((sum, o) => sum + (o.qty * (o.rateTk || 22)), 0);
+
+    const [vendorOrderFilter, setVendorOrderFilter] = useState<'all' | 'run' | 'done'>('all');
+    const [vendorOrderSearch, setVendorOrderSearch] = useState('');
+
+    const filteredVendorOrders = vendorOrdersList.filter(o => {
+        if (vendorOrderFilter !== 'all' && o.status !== vendorOrderFilter) return false;
+        if (vendorOrderSearch.trim()) {
+            const q = vendorOrderSearch.toLowerCase();
+            const lotMatches = o.yarnIn.some(y => y.lot.toLowerCase().includes(q));
+            return (
+                o.id.toLowerCase().includes(q) ||
+                o.fabric.toLowerCase().includes(q) ||
+                o.color.toLowerCase().includes(q) ||
+                lotMatches
+            );
+        }
+        return true;
+    });
+
+    const handleExportVendorCsv = () => {
+        const headers = ['Order ID', 'Date Posted', 'Factory', 'Fabric Specs', 'Yarn & Lot Sent', 'Order Qty (kg)', 'Produced (kg)', 'Delivered (kg)', 'Pending (kg)', 'Progress (%)', 'Assigned Machines', 'Rate (Tk/kg)', 'Total Bill (Tk)', 'Status'];
+        const rows = filteredVendorOrders.map(o => {
+            const rem = Math.max(0, o.qty - o.done);
+            const bill = o.qty * (o.rateTk || 22);
+            const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা বাকি';
+            const st = o.status === 'run' ? 'ফ্যাক্টরিতে চলমান' : o.status === 'wait' ? 'সুতার অপেক্ষায়' : 'সম্পন্ন';
+            return [
+                o.id,
+                o.start,
+                '"রহমান নিটিং ইন্ডাস্ট্রিজ"',
+                `"${o.fabric} ${o.gsm} GSM"`,
+                `"${o.yarn} (লট: ${lot})"`,
+                o.qty,
+                o.done,
+                o.done,
+                rem,
+                `${pct(o)}%`,
+                `"${o.machines.join(', ')}"`,
+                o.rateTk || 22,
+                bill,
+                `"${st}"`
+            ];
+        });
+        const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `abc_subcontract_orders_posted_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('ABC Knit Composite এর অর্ডারের Excel/CSV ফাইল ডাউনলোড সম্পন্ন হয়েছে');
+    };
+
+    const formatDeadline = (d: string | null | undefined) => {
+        if (!d) return 'জরুরি / ফ্লেক্সিবল';
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return d;
+        return date.toLocaleDateString('bn-BD', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     // Own Factory Machines state
     const [machineFilter, setMachineFilter] = useState<'all' | 'run' | 'wait' | 'down' | 'idle'>('all');
     const [machineSearch, setMachineSearch] = useState('');
@@ -559,15 +633,25 @@ export default function KnitkhataIndex({
 
     const handleRoleSwitch = (newRole: RoleMode) => {
         setRole(newRole);
+        if (view === 'orders') {
+            const newUrl = newRole === 'ven' ? '/knitkhata/orders?role=ven' : '/knitkhata/orders?role=fac';
+            window.history.replaceState({}, '', newUrl);
+            showToast(
+                newRole === 'ven'
+                    ? 'ভেন্ডর ভিউ: গিভ সাব-কন্ট্রাক্ট (Orders I Posted) চালু করা হয়েছে'
+                    : 'ফ্যাক্টরি ভিউ: টেক সাব-কন্ট্রাক্ট (Orders I Bid / Taken) চালু করা হয়েছে'
+            );
+            return;
+        }
         if (newRole === 'ven') {
             if (!orders.find(o => o.id === curOrder && o.v === 'abc')) {
                 setCurOrder('SC-2610-014');
             }
-            router.visit('/knitkhata/vendor/orders');
-            showToast('ABC Knit Composite ভিউ চালু করা হয়েছে');
+            router.visit('/knitkhata/orders?role=ven', { preserveScroll: true });
+            showToast('ভেন্ডর ভিউ: গিভ সাব-কন্ট্রাক্ট (Orders I Posted) চালু করা হয়েছে');
         } else {
-            router.visit('/knitkhata');
-            showToast('ফ্যাক্টরি ভিউ চালু করা হয়েছে');
+            router.visit('/knitkhata/orders?role=fac', { preserveScroll: true });
+            showToast('ফ্যাক্টরি ভিউ: টেক সাব-কন্ট্রাক্ট (Orders I Bid / Taken) চালু করা হয়েছে');
         }
     };
 
@@ -1164,8 +1248,8 @@ export default function KnitkhataIndex({
             title={
                 view === 'dash'
                     ? 'ড্যাশবোর্ড'
-                    : view === 'orders'
-                    ? 'সাব-কন্ট্রাক্ট অর্ডার'
+                    : view === 'orders' || view === 'vorders'
+                    ? (role === 'ven' ? 'আমার দেওয়া সাব-কন্ট্রাক্ট (Give Subcontract)' : 'সাব-কন্ট্রাক্ট অর্ডার (Take Subcontract)')
                     : view === 'detail'
                     ? `অর্ডার বিবরণ (${curOrder})`
                     : view === 'machines'
@@ -1306,377 +1390,779 @@ export default function KnitkhataIndex({
             {/* SCREEN: ORDERS (SUBCONTRACT ORDERS) */}
             {view === 'orders' && (
                 <>
-                    {/* PAGE HEADER & QUICK ACTIONS */}
-                    <div className="head">
-                        <div>
-                            <h2>সাব-কন্ট্রাক্ট অর্ডার</h2>
-                            <p>
-                                বিভিন্ন কম্পোজিট ও ভেন্ডর থেকে আসা সকল সাব-কন্ট্রাক্ট নিটিং কাজের লাইভ ট্র্যাকিং, সুতা ও ডেলিভারি ব্যবস্থাপনা
-                            </p>
-                        </div>
-                        <div className="row">
-                            <button
-                                type="button"
-                                className="btn pri"
-                                onClick={() => setShowAddOrderModal(true)}
-                            >
-                                + নতুন অর্ডার তৈরি করুন
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={() => {
-                                    if (orders.length > 0) {
-                                        handleOpenYarnModal(orders[0].id);
-                                    }
-                                }}
-                            >
-                                + সুতা গ্রহণ এন্ট্রি
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={() => {
-                                    const running = orders.find(o => o.status === 'run') || orders[0];
-                                    if (running) {
-                                        handleOpenDeliveryModal(running.id);
-                                    }
-                                }}
-                            >
-                                + ডেলিভারি চালান তৈরি
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={handleExportOrdersCsv}
-                                title="Excel / CSV রিপোর্ট ডাউনলোড"
-                            >
-                                এক্সপোর্ট Excel
-                            </button>
-                        </div>
+                    {/* DUAL-ROLE SUBCONTRACT TABS (FACTORY VIEW: TAKE SUBCONTRACT vs VENDOR VIEW: GIVE SUBCONTRACT) */}
+                    <div className="subcontract-role-tabs">
+                        <button
+                            type="button"
+                            className={`role-tab-btn ${role === 'fac' ? 'active-fac' : ''}`}
+                            onClick={() => handleRoleSwitch('fac')}
+                        >
+                            <span className="tab-icon">🏭</span>
+                            <div className="tab-info">
+                                <div className="tab-title">
+                                    <span>ফ্যাক্টরি ভিউ</span>
+                                    <span className="tab-pill fac-pill">Take Subcontract (Orders I Bid / Taken)</span>
+                                </div>
+                                <span className="tab-sub">অর্ডার নেওয়া হয়েছে (যেসব কাজের সাব-কন্ট্রাক্ট কারখানায় তৈরির জন্য নিয়েছি ও বিড করেছি)</span>
+                            </div>
+                            <div className="tab-stat">
+                                <b>{bn(orders.length)}টি</b>
+                                <span>সাব-কন্ট্রাক্ট অর্ডার</span>
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`role-tab-btn ${role === 'ven' ? 'active-ven' : ''}`}
+                            onClick={() => handleRoleSwitch('ven')}
+                        >
+                            <span className="tab-icon">📦</span>
+                            <div className="tab-info">
+                                <div className="tab-title">
+                                    <span>ভেন্ডর ভিউ</span>
+                                    <span className="tab-pill ven-pill">Give Subcontract (Orders I Posted)</span>
+                                </div>
+                                <span className="tab-sub">অর্ডার দেওয়া হয়েছে (ডেটাবেসে পোস্টকৃত সাব-কন্ট্রাক্ট অর্ডার ডিমান্ড)</span>
+                            </div>
+                            <div className="tab-stat">
+                                <b>{bn(userPosts.length || vendorOrdersList.length)}টি</b>
+                                <span>পোস্ট করা অর্ডার</span>
+                            </div>
+                        </button>
                     </div>
 
-                    {/* TOP EXECUTIVE METRICS STRIP */}
-                    <div className="kpis">
-                        <div className="kpi">
-                            <span>মোট সাব-কন্ট্রাক্ট অর্ডার</span>
-                            <b>{bn(orders.length)}টি</b>
-                            <i>সর্বমোট {bn(totalOrderQty)} kg</i>
-                        </div>
-                        <div className="kpi">
-                            <span>চলমান অর্ডার</span>
-                            <b>{bn(runningOrdersCount)}টি</b>
-                            <i>ফ্লোরে নিটিং রানিং</i>
-                        </div>
-                        <div className="kpi">
-                            <span>সুতার অপেক্ষায়</span>
-                            <b>{bn(waitingOrdersCount)}টি</b>
-                            <i>সুতা পেলেই কাজ শুরু</i>
-                        </div>
-                        <div className="kpi">
-                            <span>সম্পন্ন / ডেলিভারি</span>
-                            <b>{bn(doneOrdersCount)}টি</b>
-                            <i>চালান তৈরি সম্পন্ন</i>
-                        </div>
-                        <div className="kpi">
-                            <span>মোট তৈরি হয়েছে</span>
-                            <b>{bn(totalDoneQty)} kg</b>
-                            <i>{bn(totalOrderProgress)}% সম্পূর্ণ</i>
-                        </div>
-                        <div className="kpi">
-                            <span>মোট চুক্তি মূল্য</span>
-                            <b>৳ {bn(totalOrderRevenue)}</b>
-                            <i>গড় নিটিং চার্জ</i>
-                        </div>
-                    </div>
+                    {/* ROLE 1: FACTORY VIEW (TAKE SUBCONTRACT: ORDERS I BID / TAKEN) */}
+                    {role === 'fac' && (
+                        <>
+                            {/* PAGE HEADER & QUICK ACTIONS */}
+                            <div className="head">
+                                <div>
+                                    <h2>সাব-কন্ট্রাক্ট অর্ডার (Take Subcontract · Orders I Bid / Taken)</h2>
+                                    <p>
+                                        বিভিন্ন বায়ার ও কম্পোজিট থেকে পাওয়া সাব-কন্ট্রাক্ট অর্ডার এবং কারখানার ফ্লোরে চলমান নিটিং অগ্রগতি
+                                    </p>
+                                </div>
+                                <div className="row">
+                                    <button
+                                        type="button"
+                                        className="btn pri"
+                                        onClick={() => setShowAddOrderModal(true)}
+                                    >
+                                        + নতুন অর্ডার তৈরি করুন
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => {
+                                            if (orders.length > 0) {
+                                                handleOpenYarnModal(orders[0].id);
+                                            }
+                                        }}
+                                    >
+                                        + সুতা গ্রহণ এন্ট্রি
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => {
+                                            const running = orders.find(o => o.status === 'run') || orders[0];
+                                            if (running) {
+                                                handleOpenDeliveryModal(running.id);
+                                            }
+                                        }}
+                                    >
+                                        + ডেলিভারি চালান তৈরি
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={handleExportOrdersCsv}
+                                        title="Excel / CSV রিপোর্ট ডাউনলোড"
+                                    >
+                                        এক্সপোর্ট Excel
+                                    </button>
+                                </div>
+                            </div>
 
-                    {/* VENDOR SUMMARY CARDS (Interactive filtering) */}
-                    <div className="grid g3">
-                        {Object.entries(vendors).map(([k, v]) => {
-                            const vOrders = orders.filter(o => o.v === k);
-                            const vQty = vOrders.reduce((a, o) => a + o.qty, 0);
-                            const vDone = vOrders.reduce((a, o) => a + o.done, 0);
-                            const vPct = calcPct(vDone, vQty);
-                            const isSelected = orderVendorFilter === k;
+                            {/* TOP EXECUTIVE METRICS STRIP */}
+                            <div className="kpis">
+                                <div className="kpi">
+                                    <span>মোট সাব-কন্ট্রাক্ট অর্ডার</span>
+                                    <b>{bn(orders.length)}টি</b>
+                                    <i>সর্বমোট {bn(totalOrderQty)} kg</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>চলমান অর্ডার</span>
+                                    <b>{bn(runningOrdersCount)}টি</b>
+                                    <i>ফ্লোরে নিটিং রানিং</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>সুতার অপেক্ষায়</span>
+                                    <b>{bn(waitingOrdersCount)}টি</b>
+                                    <i>সুতা পেলেই কাজ শুরু</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>সম্পন্ন / ডেলিভারি</span>
+                                    <b>{bn(doneOrdersCount)}টি</b>
+                                    <i>চালান তৈরি সম্পন্ন</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>মোট তৈরি হয়েছে</span>
+                                    <b>{bn(totalDoneQty)} kg</b>
+                                    <i>{bn(totalOrderProgress)}% সম্পূর্ণ</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>মোট চুক্তি মূল্য</span>
+                                    <b>৳ {bn(totalOrderRevenue)}</b>
+                                    <i>গড় নিটিং চার্জ</i>
+                                </div>
+                            </div>
 
-                            return (
-                                <div
-                                    key={k}
-                                    className={`vendor-summary-card ${isSelected ? 'act' : ''}`}
-                                    onClick={() => setOrderVendorFilter(prev => prev === k ? 'all' : k)}
-                                    title="ক্লিক করে এই ভেন্ডরের অর্ডারে ফিল্টার করুন"
-                                >
-                                    <div className="v-top">
-                                        <b>{v.name}</b>
-                                        <span className={`pill ${isSelected ? 'p-acc' : 'p-idle'}`}>
-                                            {isSelected ? 'ফিল্টার সক্রিয়' : `${vOrders.length}টি অর্ডার`}
-                                        </span>
-                                    </div>
-                                    <div className="small muted">
-                                        ফোন: {v.phone} · {vOrders.filter(o => o.status === 'run').length}টি রানিং
-                                    </div>
-                                    <div style={{ marginTop: '4px' }}>
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: '2px' }}>
-                                            <span className="small muted">উৎপাদন অগ্রগতি</span>
-                                            <b className="mono small">{bn(vDone)} / {bn(vQty)} kg ({vPct}%)</b>
+                            {/* VENDOR SUMMARY CARDS (Interactive filtering) */}
+                            <div className="grid g3">
+                                {Object.entries(vendors).map(([k, v]) => {
+                                    const vOrders = orders.filter(o => o.v === k);
+                                    const vQty = vOrders.reduce((a, o) => a + o.qty, 0);
+                                    const vDone = vOrders.reduce((a, o) => a + o.done, 0);
+                                    const vPct = calcPct(vDone, vQty);
+                                    const isSelected = orderVendorFilter === k;
+
+                                    return (
+                                        <div
+                                            key={k}
+                                            className={`vendor-summary-card ${isSelected ? 'act' : ''}`}
+                                            onClick={() => setOrderVendorFilter(prev => prev === k ? 'all' : k)}
+                                            title="ক্লিক করে এই ভেন্ডরের অর্ডারে ফিল্টার করুন"
+                                        >
+                                            <div className="v-top">
+                                                <b>{v.name}</b>
+                                                <span className={`pill ${isSelected ? 'p-acc' : 'p-idle'}`}>
+                                                    {isSelected ? 'ফিল্টার সক্রিয়' : `${vOrders.length}টি অর্ডার`}
+                                                </span>
+                                            </div>
+                                            <div className="small muted">
+                                                ফোন: {v.phone} · {vOrders.filter(o => o.status === 'run').length}টি রানিং
+                                            </div>
+                                            <div style={{ marginTop: '4px' }}>
+                                                <div className="row" style={{ justifyContent: 'space-between', marginBottom: '2px' }}>
+                                                    <span className="small muted">উৎপাদন অগ্রগতি</span>
+                                                    <b className="mono small">{bn(vDone)} / {bn(vQty)} kg ({vPct}%)</b>
+                                                </div>
+                                                <div className="bar">
+                                                    <i style={{ width: `${vPct}%` }} />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="bar">
-                                            <i style={{ width: `${vPct}%` }} />
-                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* MAIN ORDERS SECTION WITH FILTERS, SEARCH, SORT & TABLE */}
+                            <div className="card">
+                                <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                                    {/* Filter Tabs */}
+                                    <div className="roleswitch" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        <button
+                                            type="button"
+                                            className={orderFilter === 'all' ? 'on' : ''}
+                                            onClick={() => setOrderFilter('all')}
+                                        >
+                                            সব অর্ডার ({bn(orders.length)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={orderFilter === 'run' ? 'on' : ''}
+                                            onClick={() => setOrderFilter('run')}
+                                        >
+                                            চলমান ({bn(runningOrdersCount)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={orderFilter === 'wait' ? 'on' : ''}
+                                            onClick={() => setOrderFilter('wait')}
+                                        >
+                                            সুতার অপেক্ষায় ({bn(waitingOrdersCount)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={orderFilter === 'done' ? 'on' : ''}
+                                            onClick={() => setOrderFilter('done')}
+                                        >
+                                            সম্পন্ন ({bn(doneOrdersCount)})
+                                        </button>
+                                    </div>
+
+                                    {/* Vendor Selector & Sort & Search */}
+                                    <div className="row" style={{ gap: '8px' }}>
+                                        <select
+                                            value={orderVendorFilter}
+                                            onChange={e => setOrderVendorFilter(e.target.value)}
+                                            style={{
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        >
+                                            <option value="all">সব ভেন্ডর</option>
+                                            {Object.entries(vendors).map(([k, v]) => (
+                                                <option key={k} value={k}>{v.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={orderSort}
+                                            onChange={e => setOrderSort(e.target.value as any)}
+                                            style={{
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        >
+                                            <option value="date">অর্ডার আইডি অনুযায়ী</option>
+                                            <option value="progress">অগ্রগতির হার অনুযায়ী</option>
+                                            <option value="qty">অর্ডারের পরিমাণ (kg)</option>
+                                        </select>
+
+                                        <input
+                                            type="search"
+                                            placeholder="অর্ডার নং, ভেন্ডর, ফেব্রিক বা লট..."
+                                            value={orderSearch}
+                                            onChange={e => setOrderSearch(e.target.value)}
+                                            style={{
+                                                minWidth: '220px',
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        />
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
 
-                    {/* MAIN ORDERS SECTION WITH FILTERS, SEARCH, SORT & TABLE */}
-                    <div className="card">
-                        <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-                            {/* Filter Tabs */}
-                            <div className="roleswitch" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                <button
-                                    type="button"
-                                    className={orderFilter === 'all' ? 'on' : ''}
-                                    onClick={() => setOrderFilter('all')}
-                                >
-                                    সব অর্ডার ({bn(orders.length)})
-                                </button>
-                                <button
-                                    type="button"
-                                    className={orderFilter === 'run' ? 'on' : ''}
-                                    onClick={() => setOrderFilter('run')}
-                                >
-                                    চলমান ({bn(runningOrdersCount)})
-                                </button>
-                                <button
-                                    type="button"
-                                    className={orderFilter === 'wait' ? 'on' : ''}
-                                    onClick={() => setOrderFilter('wait')}
-                                >
-                                    সুতার অপেক্ষায় ({bn(waitingOrdersCount)})
-                                </button>
-                                <button
-                                    type="button"
-                                    className={orderFilter === 'done' ? 'on' : ''}
-                                    onClick={() => setOrderFilter('done')}
-                                >
-                                    সম্পন্ন ({bn(doneOrdersCount)})
-                                </button>
-                            </div>
-
-                            {/* Vendor Selector & Sort & Search */}
-                            <div className="row" style={{ gap: '8px' }}>
-                                <select
-                                    value={orderVendorFilter}
-                                    onChange={e => setOrderVendorFilter(e.target.value)}
-                                    style={{
-                                        padding: '7px 12px',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--line)',
-                                        background: 'var(--surface2)',
-                                        color: 'var(--ink)'
-                                    }}
-                                >
-                                    <option value="all">সব ভেন্ডর</option>
-                                    {Object.entries(vendors).map(([k, v]) => (
-                                        <option key={k} value={k}>{v.name}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={orderSort}
-                                    onChange={e => setOrderSort(e.target.value as any)}
-                                    style={{
-                                        padding: '7px 12px',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--line)',
-                                        background: 'var(--surface2)',
-                                        color: 'var(--ink)'
-                                    }}
-                                >
-                                    <option value="date">অর্ডার আইডি অনুযায়ী</option>
-                                    <option value="progress">অগ্রগতির হার অনুযায়ী</option>
-                                    <option value="qty">অর্ডারের পরিমাণ (kg)</option>
-                                </select>
-
-                                <input
-                                    type="search"
-                                    placeholder="অর্ডার নং, ভেন্ডর, ফেব্রিক বা লট..."
-                                    value={orderSearch}
-                                    onChange={e => setOrderSearch(e.target.value)}
-                                    style={{
-                                        minWidth: '220px',
-                                        padding: '7px 12px',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--line)',
-                                        background: 'var(--surface2)',
-                                        color: 'var(--ink)'
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* ORDER TABLE */}
-                        <div className="tw">
-                            <table className="orders-table">
-                                <thead>
-                                    <tr>
-                                        <th>অর্ডার নং</th>
-                                        <th>ভেন্ডর / পার্টি</th>
-                                        <th>ফেব্রিক ও স্পেক্স</th>
-                                        <th>সুতা ও লট</th>
-                                        <th className="n">অর্ডার (kg)</th>
-                                        <th className="n">হয়েছে (kg)</th>
-                                        <th className="n">বাকি (kg)</th>
-                                        <th>অগ্রগতি</th>
-                                        <th>মেশিন</th>
-                                        <th className="n">চার্জ / মূল্য</th>
-                                        <th>সম্ভাব্য শেষ</th>
-                                        <th>অবস্থা</th>
-                                        <th>অ্যাকশন</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredOrders.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={13} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
-                                                কোনো সাব-কন্ট্রাক্ট অর্ডার পাওয়া যায়নি।
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredOrders.map(o => {
-                                            const e = etaOf(o);
-                                            const p = pct(o);
-                                            const remKg = Math.max(0, o.qty - o.done);
-                                            const totalBill = o.qty * (o.rateTk || 22);
-                                            const primaryLot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা বাকি';
-
-                                            return (
-                                                <tr key={o.id}>
-                                                    <td
-                                                        className="mono click"
-                                                        onClick={() => handleSelectOrder(o.id)}
-                                                        style={{ fontWeight: 600, color: 'var(--accent)' }}
-                                                        title="বিস্তারিত দেখতে ক্লিক করুন"
-                                                    >
-                                                        {o.id}
-                                                        <div className="small muted" style={{ fontWeight: 'normal' }}>
-                                                            {o.start}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <b>{vName(o.v)}</b>
-                                                        <div className="small muted">{vendors[o.v]?.phone}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div>{o.fabric}</div>
-                                                        <div className="small muted">{o.gsm} GSM · {o.dia} · {o.color}</div>
-                                                    </td>
-                                                    <td>
-                                                        <span className="mono small">{o.yarn}</span>
-                                                        <div className="small muted">
-                                                            লট: {primaryLot} {o.yarnIn.length > 1 && `(+${o.yarnIn.length - 1})`}
-                                                        </div>
-                                                    </td>
-                                                    <td className="n"><b>{bn(o.qty)}</b></td>
-                                                    <td className="n" style={{ color: 'var(--ok)' }}><b>{bn(o.done)}</b></td>
-                                                    <td className="n mono small">{bn(remKg)}</td>
-                                                    <td>
-                                                        <div className="row" style={{ flexWrap: 'nowrap', gap: '6px' }}>
-                                                            <div className="bar" style={{ width: '80px' }}>
-                                                                <i style={{ width: `${p}%` }} />
-                                                            </div>
-                                                            <span className="mono small">{p}%</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        {o.machines.length > 0 ? (
-                                                            <div className="row" style={{ gap: '3px' }}>
-                                                                {o.machines.map(m => (
-                                                                    <span key={m} className="pill p-acc" style={{ fontSize: '.72rem', padding: '1px 6px' }}>
-                                                                        {m}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="small muted">অ্যাসাইন বাকি</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="n">
-                                                        <div className="mono small">৳{o.rateTk}/kg</div>
-                                                        <div className="small muted">মোট: ৳{bn(totalBill)}</div>
-                                                    </td>
-                                                    <td className="mono small">
-                                                        {o.status === 'done' ? 'সম্পন্ন' : e ? fmtD(e.date) : 'সুতা এলে'}
-                                                    </td>
-                                                    <td>{stPill(o)}</td>
-                                                    <td>
-                                                        <div className="row" style={{ flexWrap: 'nowrap', gap: '4px' }}>
-                                                            <button
-                                                                type="button"
-                                                                className="btn sm"
-                                                                onClick={() => handleSelectOrder(o.id)}
-                                                                title="অর্ডারের বিস্তারিত দেখুন"
-                                                            >
-                                                                বিস্তারিত
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="btn sm"
-                                                                onClick={() => handleOpenYarnModal(o.id)}
-                                                                title="এই অর্ডারে সুতা গ্রহণ যোগ করুন"
-                                                            >
-                                                                + সুতা
-                                                            </button>
-                                                            {o.status === 'run' && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn sm"
-                                                                    onClick={() => handleOpenDeliveryModal(o.id)}
-                                                                    title="ডেলিভারি চালান তৈরি করুন"
-                                                                >
-                                                                    + চালান
-                                                                </button>
-                                                            )}
-                                                            {o.status === 'wait' && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn sm pri"
-                                                                    onClick={() => handleUpdateOrderStatus(o.id, 'run')}
-                                                                    title="অর্ডারটি সচল করুন"
-                                                                >
-                                                                    সচল
-                                                                </button>
-                                                            )}
-                                                            {o.status === 'run' && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn sm"
-                                                                    onClick={() => handleUpdateOrderStatus(o.id, 'done')}
-                                                                    title="ডেলিভারি সম্পন্ন চিহ্নিত করুন"
-                                                                >
-                                                                    সম্পন্ন
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                {/* ORDER TABLE */}
+                                <div className="tw">
+                                    <table className="orders-table">
+                                        <thead>
+                                            <tr>
+                                                <th>অর্ডার নং</th>
+                                                <th>ভেন্ডর / পার্টি</th>
+                                                <th>ফেব্রিক ও স্পেক্স</th>
+                                                <th>সুতা ও লট</th>
+                                                <th className="n">অর্ডার (kg)</th>
+                                                <th className="n">হয়েছে (kg)</th>
+                                                <th className="n">বাকি (kg)</th>
+                                                <th>অগ্রগতি</th>
+                                                <th>মেশিন</th>
+                                                <th className="n">চার্জ / মূল্য</th>
+                                                <th>সম্ভাব্য শেষ</th>
+                                                <th>অবস্থা</th>
+                                                <th>অ্যাকশন</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredOrders.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={13} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                        কোনো সাব-কন্ট্রাক্ট অর্ডার পাওয়া যায়নি।
                                                     </td>
                                                 </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                            ) : (
+                                                filteredOrders.map(o => {
+                                                    const e = etaOf(o);
+                                                    const p = pct(o);
+                                                    const remKg = Math.max(0, o.qty - o.done);
+                                                    const totalBill = o.qty * (o.rateTk || 22);
+                                                    const primaryLot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা বাকি';
 
-                        <div className="row" style={{ justifyContent: 'space-between', marginTop: '14px', alignItems: 'center' }}>
-                            <span className="small muted">
-                                মোট {bn(filteredOrders.length)}টি সাব-কন্ট্রাক্ট অর্ডার প্রদর্শিত হচ্ছে
-                            </span>
-                            <span className="small muted">
-                                যেকোনো অর্ডারে ক্লিক করলে সুতা হিসাব, লট ব্যালেন্স, রোল QC ও প্রোডাকশন ইতিহাস পাওয়া যাবে।
-                            </span>
-                        </div>
-                    </div>
+                                                    return (
+                                                        <tr key={o.id}>
+                                                            <td
+                                                                className="mono click"
+                                                                onClick={() => handleSelectOrder(o.id)}
+                                                                style={{ fontWeight: 600, color: 'var(--accent)' }}
+                                                                title="বিস্তারিত দেখতে ক্লিক করুন"
+                                                            >
+                                                                {o.id}
+                                                                <div className="small muted" style={{ fontWeight: 'normal' }}>
+                                                                    {o.start}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <b>{vName(o.v)}</b>
+                                                                <div className="small muted">{vendors[o.v]?.phone}</div>
+                                                            </td>
+                                                            <td>
+                                                                <div>{o.fabric}</div>
+                                                                <div className="small muted">{o.gsm} GSM · {o.dia} · {o.color}</div>
+                                                            </td>
+                                                            <td>
+                                                                <span className="mono small">{o.yarn}</span>
+                                                                <div className="small muted">
+                                                                    লট: {primaryLot} {o.yarnIn.length > 1 && `(+${o.yarnIn.length - 1})`}
+                                                                </div>
+                                                            </td>
+                                                            <td className="n"><b>{bn(o.qty)}</b></td>
+                                                            <td className="n" style={{ color: 'var(--ok)' }}><b>{bn(o.done)}</b></td>
+                                                            <td className="n mono small">{bn(remKg)}</td>
+                                                            <td>
+                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '6px' }}>
+                                                                    <div className="bar" style={{ width: '80px' }}>
+                                                                        <i style={{ width: `${p}%` }} />
+                                                                    </div>
+                                                                    <span className="mono small">{p}%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                {o.machines.length > 0 ? (
+                                                                    <div className="row" style={{ gap: '3px' }}>
+                                                                        {o.machines.map(m => (
+                                                                            <span key={m} className="pill p-acc" style={{ fontSize: '.72rem', padding: '1px 6px' }}>
+                                                                                {m}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="small muted">অ্যাসাইন বাকি</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="n">
+                                                                <div className="mono small">৳{o.rateTk}/kg</div>
+                                                                <div className="small muted">মোট: ৳{bn(totalBill)}</div>
+                                                            </td>
+                                                            <td className="mono small">
+                                                                {o.status === 'done' ? 'সম্পন্ন' : e ? fmtD(e.date) : 'সুতা এলে'}
+                                                            </td>
+                                                            <td>{stPill(o)}</td>
+                                                            <td>
+                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        onClick={() => handleSelectOrder(o.id)}
+                                                                        title="অর্ডারের বিস্তারিত দেখুন"
+                                                                    >
+                                                                        বিস্তারিত
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        onClick={() => handleOpenYarnModal(o.id)}
+                                                                        title="এই অর্ডারে সুতা গ্রহণ যোগ করুন"
+                                                                    >
+                                                                        + সুতা
+                                                                    </button>
+                                                                    {o.status === 'run' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn sm"
+                                                                            onClick={() => handleOpenDeliveryModal(o.id)}
+                                                                            title="ডেলিভারি চালান তৈরি করুন"
+                                                                        >
+                                                                            + চালান
+                                                                        </button>
+                                                                    )}
+                                                                    {o.status === 'wait' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn sm pri"
+                                                                            onClick={() => handleUpdateOrderStatus(o.id, 'run')}
+                                                                            title="অর্ডারটি সচল করুন"
+                                                                        >
+                                                                            সচল
+                                                                        </button>
+                                                                    )}
+                                                                    {o.status === 'run' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn sm"
+                                                                            onClick={() => handleUpdateOrderStatus(o.id, 'done')}
+                                                                            title="ডেলিভারি সম্পন্ন চিহ্নিত করুন"
+                                                                        >
+                                                                            সম্পন্ন
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="row" style={{ justifyContent: 'space-between', marginTop: '14px', alignItems: 'center' }}>
+                                    <span className="small muted">
+                                        মোট {bn(filteredOrders.length)}টি সাব-কন্ট্রাক্ট অর্ডার প্রদর্শিত হচ্ছে
+                                    </span>
+                                    <span className="small muted">
+                                        যেকোনো অর্ডারে ক্লিক করলে সুতা হিসাব, লট ব্যালেন্স, রোল QC ও প্রোডাকশন ইতিহাস পাওয়া যাবে।
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ROLE 2: VENDOR VIEW (GIVE SUBCONTRACT: ORDERS I POSTED) */}
+                    {role === 'ven' && (
+                        <>
+                            {/* VENDOR BANNER */}
+                            <div className="vbanner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                                <div>
+                                    আপনি <b>মো. কামরুল হাসান</b> হিসেবে লগইন আছেন — <b>ABC Knit Composite (বায়ার / সাব-কন্ট্রাক্ট দাতা)</b>।
+                                    <div style={{ fontSize: '.84rem', marginTop: '3px', opacity: 0.9 }}>
+                                        এখানে কেবল আপনার দেওয়া সাব-কন্ট্রাক্ট অর্ডারসমূহ, সুতা সরবরাহ হিসাব, কারখানার নিটিং অগ্রগতি ও ডেলিভারি চালানের লাইভ ট্র্যাকিং দেখা যাচ্ছে।
+                                    </div>
+                                </div>
+                                <span className="pill p-acc" style={{ fontSize: '.76rem', background: '#ffffff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                                    🔒 ভেন্ডর কনফিডেনশিয়াল ভিউ
+                                </span>
+                            </div>
+
+                            {/* VENDOR PAGE HEADER & ACTIONS */}
+                            <div className="head" style={{ marginTop: '12px' }}>
+                                <div>
+                                    <h2>আমার দেওয়া সাব-কন্ট্রাক্ট অর্ডার (Give Subcontract · Orders I Posted)</h2>
+                                    <p>
+                                        ডেটাবেসে পোস্টকৃত আপনার সকল সাব-কন্ট্রাক্ট চাহিদা ও সরবরাহকৃত সুতা ও ফিনিশ রোল ডেলিভারি ট্র্যাকিং
+                                    </p>
+                                </div>
+                                <div className="row">
+                                    <Link
+                                        href="/dashboard?create=1"
+                                        className="btn pri"
+                                        style={{ textDecoration: 'none' }}
+                                    >
+                                        + নতুন সাব-কন্ট্রাক্ট দিন
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => {
+                                            if (vendorOrdersList.length > 0) {
+                                                handleOpenYarnModal(vendorOrdersList[0].id);
+                                            }
+                                        }}
+                                    >
+                                        + সুতা প্রেরণের চালান
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={handleExportVendorCsv}
+                                        title="ABC Knit Composite এর অর্ডার রিপোর্ট ডাউনলোড"
+                                    >
+                                        এক্সপোর্ট Excel
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* VENDOR EXECUTIVE KPIS */}
+                            <div className="kpis">
+                                <div className="kpi">
+                                    <span>আমার দেওয়া মোট অর্ডার</span>
+                                    <b>{bn(userPosts.length || vendorOrdersList.length)}টি</b>
+                                    <i>ডেটাবেসে পোস্টকৃত</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>ফ্যাক্টরিতে চলমান</span>
+                                    <b>{bn(vendorRunningCount)}টি</b>
+                                    <i>রহমান নিটিং এ নিটিং রানিং</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>সুতা পাঠিয়েছি</span>
+                                    <b>{bn(vendorYarnSentKg)} kg</b>
+                                    <i>সরবরাহকৃত সুতা</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>ডেলিভারি পেয়েছি</span>
+                                    <b>{bn(vendorDoneQty)} kg</b>
+                                    <i>{bn(vendorProgressPct)}% ডেলিভার্ড</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>বাকি ফেব্রিক</span>
+                                    <b>{bn(Math.max(0, vendorTotalQty - vendorDoneQty))} kg</b>
+                                    <i>উৎপাদন বাকি</i>
+                                </div>
+                                <div className="kpi">
+                                    <span>মোট প্রদেয় নিটিং বিল</span>
+                                    <b>৳ {bn(vendorTotalBill)}</b>
+                                    <i>গড় ৳২২-২৪/kg</i>
+                                </div>
+                            </div>
+
+                            {/* DATABASE POSTED ORDERS (GIVE SUBCONTRACT: ORDERS I POSTED) */}
+                            <div className="card" style={{ marginBottom: '20px' }}>
+                                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0 }}>
+                                            📦 ডেটাবেসে পোস্টকৃত সাব-কন্ট্রাক্ট ডিমান্ডসমূহ (Give Subcontract · Orders I Posted)
+                                        </h3>
+                                        <p className="small muted" style={{ margin: '2px 0 0' }}>
+                                            আপনার অ্যাকাউন্টের মাধ্যমে পোস্ট করা সকল সাব-কন্ট্রাক্ট কাজ ও প্রাপ্ত দরপত্র
+                                        </p>
+                                    </div>
+                                    <Link href="/dashboard" className="btn sm">
+                                        মূল ড্যাশবোর্ডে দেখুন →
+                                    </Link>
+                                </div>
+
+                                <div className="tw">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>অর্ডারের বিবরণ ও শিরোনাম</th>
+                                                <th>ক্যাটাগরি</th>
+                                                <th className="n">অর্ডার ভলিউম</th>
+                                                <th>ডেলিভারি ডেডলাইন</th>
+                                                <th>প্রাপ্ত দরপত্র (Bids)</th>
+                                                <th>অবস্থা</th>
+                                                <th>অ্যাকশন</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {userPosts.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                        এখনো কোনো সাব-কন্ট্রাক্ট অর্ডার পোস্ট করা হয়নি।
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                userPosts.map((post: any) => (
+                                                    <tr key={post.id}>
+                                                        <td>
+                                                            <Link
+                                                                href={`/feed/${post.id}`}
+                                                                style={{ fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}
+                                                            >
+                                                                {post.title}
+                                                            </Link>
+                                                            <div className="small muted">
+                                                                📍 {post.district || 'বাংলাদেশ'} · আইডি: #{post.id}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span className="pill p-acc" style={{ textTransform: 'capitalize' }}>
+                                                                {post.category?.replace('_', ' ') || 'সিঙ্গেল জার্সি'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="n">
+                                                            <b>{post.target_quantity?.toLocaleString()}</b> {post.unit || 'kg'}
+                                                        </td>
+                                                        <td className="mono small">
+                                                            {formatDeadline(post.deadline)}
+                                                        </td>
+                                                        <td>
+                                                            <span className={`pill ${(post.quotations_count || 0) > 0 ? 'p-ok' : 'p-idle'}`}>
+                                                                {post.quotations_count || 0}টি দরপত্র
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {post.accepted_factory ? (
+                                                                <span className="pill p-ok" title={`অনুমোদিত ফ্যাক্টরি: ${post.accepted_factory?.business_name}`}>
+                                                                    ✓ {post.accepted_factory?.business_name || 'অনুমোদিত'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="pill p-idle">
+                                                                    {post.status === 'open' ? 'উন্মুক্ত' : post.status}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <div className="row" style={{ gap: '4px' }}>
+                                                                {(post.quotations_count || 0) > 0 ? (
+                                                                    <Link
+                                                                        href={`/quotations/compare/${post.id}`}
+                                                                        className="btn sm pri"
+                                                                        style={{ textDecoration: 'none' }}
+                                                                    >
+                                                                        দরপত্র তুলনা ({post.quotations_count})
+                                                                    </Link>
+                                                                ) : (
+                                                                    <Link
+                                                                        href={`/feed/${post.id}`}
+                                                                        className="btn sm"
+                                                                        style={{ textDecoration: 'none' }}
+                                                                    >
+                                                                        দেখুন
+                                                                    </Link>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* VENDOR PRODUCTION MONITORING TABLE (ABC KNIT COMPOSITE FLOOR ORDERS) */}
+                            <div className="card">
+                                <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0 }}>ফ্যাক্টরি উৎপাদন অগ্রগতি ও সুতা চালান ট্র্যাকিং</h3>
+                                        <p className="small muted" style={{ margin: '2px 0 0' }}>
+                                            রহমান নিটিং এ চলমান আপনার ব্যাচসমূহের রিয়েল-টাইম নিটিং স্ট্যাটাস
+                                        </p>
+                                    </div>
+
+                                    <div className="row" style={{ gap: '8px' }}>
+                                        <input
+                                            type="search"
+                                            placeholder="অর্ডার নং, ফেব্রিক, রঙ বা সুতা লট..."
+                                            value={vendorOrderSearch}
+                                            onChange={e => setVendorOrderSearch(e.target.value)}
+                                            style={{
+                                                minWidth: '240px',
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* VENDOR ORDERS TABLE */}
+                                <div className="tw">
+                                    <table className="orders-table">
+                                        <thead>
+                                            <tr>
+                                                <th>অর্ডার নং</th>
+                                                <th>সাব-কন্ট্রাক্টর ফ্যাক্টরি</th>
+                                                <th>ফেব্রিক ও স্পেক্স</th>
+                                                <th>সরবরাহকৃত সুতা ও লট</th>
+                                                <th className="n">অর্ডার (kg)</th>
+                                                <th className="n">ফ্যাক্টরিতে তৈরি (kg)</th>
+                                                <th className="n">বাকি (kg)</th>
+                                                <th>অগ্রগতি</th>
+                                                <th>চলমান মেশিন</th>
+                                                <th className="n">নিটিং বিল</th>
+                                                <th>সম্ভাব্য ডেলিভারি</th>
+                                                <th>অবস্থা</th>
+                                                <th>অ্যাকশন</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredVendorOrders.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={13} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                        কোনো উৎপাদন রেকর্ড পাওয়া যায়নি।
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                filteredVendorOrders.map(o => {
+                                                    const e = etaOf(o);
+                                                    const p = pct(o);
+                                                    const remKg = Math.max(0, o.qty - o.done);
+                                                    const bill = o.qty * (o.rateTk || 22);
+                                                    const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা পাঠানো বাকি';
+
+                                                    return (
+                                                        <tr key={o.id}>
+                                                            <td
+                                                                className="mono click"
+                                                                onClick={() => handleSelectOrder(o.id)}
+                                                                style={{ fontWeight: 600, color: 'var(--accent)' }}
+                                                                title="অর্ডারের লাইভ অগ্রগতি দেখতে ক্লিক করুন"
+                                                            >
+                                                                {o.id}
+                                                                <div className="small muted" style={{ fontWeight: 'normal' }}>
+                                                                    {o.start}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <b>রহমান নিটিং ইন্ডাস্ট্রিজ</b>
+                                                                <div className="small muted">ফতুল্লা, নারায়ণগঞ্জ · +8801711000000</div>
+                                                            </td>
+                                                            <td>
+                                                                <div>{o.fabric}</div>
+                                                                <div className="small muted">{o.gsm} GSM · {o.dia} · {o.color}</div>
+                                                            </td>
+                                                            <td>
+                                                                <span className="mono small">{o.yarn}</span>
+                                                                <div className="small muted">
+                                                                    লট: {lot} {o.yarnIn.length > 1 && `(+${o.yarnIn.length - 1})`}
+                                                                </div>
+                                                            </td>
+                                                            <td className="n"><b>{bn(o.qty)}</b></td>
+                                                            <td className="n" style={{ color: 'var(--ok)' }}><b>{bn(o.done)}</b></td>
+                                                            <td className="n mono small">{bn(remKg)}</td>
+                                                            <td>
+                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '6px' }}>
+                                                                    <div className="bar" style={{ width: '80px' }}>
+                                                                        <i style={{ width: `${p}%` }} />
+                                                                    </div>
+                                                                    <span className="mono small">{p}%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                {o.machines.length > 0 ? (
+                                                                    <div className="row" style={{ gap: '3px' }}>
+                                                                        {o.machines.map(m => (
+                                                                            <span key={m} className="pill p-acc" style={{ fontSize: '.72rem', padding: '1px 6px' }}>
+                                                                                {m}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="small muted">মেশিন বরাদ্দ বাকি</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="n">
+                                                                <div className="mono small">৳{o.rateTk || 22}/kg</div>
+                                                                <div className="small muted">মোট: ৳{bn(bill)}</div>
+                                                            </td>
+                                                            <td className="mono small">
+                                                                {o.status === 'done' ? 'ডেলিভারি সম্পন্ন' : e ? fmtD(e.date) : 'সুতা পৌঁছালে'}
+                                                            </td>
+                                                            <td>{stPill(o)}</td>
+                                                            <td>
+                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        onClick={() => handleSelectOrder(o.id)}
+                                                                        title="লাইভ উৎপাদন ট্র্যাকিং দেখুন"
+                                                                    >
+                                                                        লাইভ ট্র্যাকিং
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        onClick={() => handleOpenYarnModal(o.id)}
+                                                                        title="এই অর্ডারের জন্য সুতা প্রেরণের এন্ট্রি"
+                                                                    >
+                                                                        + সুতা পাঠান
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="row" style={{ justifyContent: 'space-between', marginTop: '14px', alignItems: 'center' }}>
+                                    <span className="small muted">
+                                        মোট {bn(filteredVendorOrders.length)}টি সাব-কন্ট্রাক্ট ব্যাচ প্রদর্শিত হচ্ছে (ABC Knit Composite)
+                                    </span>
+                                    <span className="small muted" style={{ color: 'var(--muted)' }}>
+                                        গোপনীয়তার স্বার্থে অন্য কোনো পার্টির অর্ডার বা ইন্টারনাল অপারেটর ডেটা এখানে প্রদর্শিত হয় না।
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* MODAL: ADD NEW SUBCONTRACT ORDER */}
                     {showAddOrderModal && (

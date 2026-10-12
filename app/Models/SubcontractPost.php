@@ -19,6 +19,7 @@ class SubcontractPost extends Model
     protected $fillable = [
         'user_id',
         'factory_id',
+        'accepted_factory_id',
         'post_type',
         'category',
         'title',
@@ -71,6 +72,14 @@ class SubcontractPost extends Model
     public function factory(): BelongsTo
     {
         return $this->belongsTo(Factory::class);
+    }
+
+    /**
+     * Accepted/awarded subcontractor factory for this order.
+     */
+    public function acceptedFactory(): BelongsTo
+    {
+        return $this->belongsTo(Factory::class, 'accepted_factory_id');
     }
 
     /**

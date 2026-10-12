@@ -119,9 +119,16 @@ class QuotationController extends Controller
                 'status' => 'accepted',
             ]);
 
-            if ($quotation->post->status === 'open') {
-                $quotation->post->update(['status' => 'in_progress']);
+            // Determine the winning factory ID
+            $acceptedFactoryId = $quotation->bidder_factory_id;
+            if (!$acceptedFactoryId && $quotation->bidder_user_id) {
+                $acceptedFactoryId = \App\Models\Factory::where('user_id', $quotation->bidder_user_id)->value('id');
             }
+
+            $quotation->post->update([
+                'accepted_factory_id' => $acceptedFactoryId,
+                'status' => 'in_progress',
+            ]);
 
             return back()->with('success', 'Quotation accepted! You can now contact the factory directly to finalize the work order.');
         }
@@ -135,19 +142,34 @@ class QuotationController extends Controller
             $otherAccepted = Quotation::where('subcontract_post_id', $quotation->subcontract_post_id)
                 ->where('id', '!=', $quotation->id)
                 ->where('status', 'accepted')
-                ->exists();
+                ->first();
 
-            if (!$otherAccepted && $quotation->post->status === 'in_progress') {
-                $quotation->post->update(['status' => 'open']);
+            if ($otherAccepted) {
+                $quotation->post->update([
+                    'accepted_factory_id' => $otherAccepted->bidder_factory_id,
+                ]);
+            } else {
+                $quotation->post->update([
+                    'accepted_factory_id' => null,
+                    'status' => 'open',
+                ]);
             }
 
             return back()->with('success', 'Quotation status reverted to pending. All factories are now eligible for acceptance.');
         }
 
         // Rejected
+        $wasAccepted = $quotation->status === 'accepted';
         $quotation->update([
             'status' => 'rejected',
         ]);
+
+        if ($wasAccepted) {
+            $quotation->post->update([
+                'accepted_factory_id' => null,
+                'status' => 'open',
+            ]);
+        }
 
         return back()->with('success', 'Quotation has been declined.');
     }

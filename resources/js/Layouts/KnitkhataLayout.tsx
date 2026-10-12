@@ -80,9 +80,9 @@ const navFac: [string, string, string?][] = [
 ];
 
 const navVen: [string, string, string?][] = [
-    ['grp', 'ABC Knit Composite'],
-    ['vorders', 'আমার অর্ডার', 'ord'],
-    ['vreport', 'দৈনিক রিপোর্ট', 'wa']
+    ['grp', 'ABC Knit Composite (ভেন্ডর)'],
+    ['orders', 'দেওয়া সাব-কন্ট্রাক্ট অর্ডার', 'ord'],
+    ['vreport', 'দৈনিক রিপোর্ট ও Excel', 'wa']
 ];
 
 export default function KnitkhataLayout({
@@ -131,24 +131,22 @@ export default function KnitkhataLayout({
                 <span className="proto">প্রোটোটাইপ · নমুনা ডেটা</span>
 
                 <div className="roleswitch" role="group" aria-label="কার চোখে দেখবেন">
-                    <Link
-                        href="/knitkhata"
+                    <button
+                        type="button"
                         id="r-fac"
                         className={role === 'fac' ? 'on' : ''}
-                        style={{ textDecoration: 'none' }}
                         onClick={() => onRoleChange && onRoleChange('fac')}
                     >
                         ফ্যাক্টরি ভিউ
-                    </Link>
-                    <Link
-                        href="/knitkhata/vendor/orders"
+                    </button>
+                    <button
+                        type="button"
                         id="r-ven"
                         className={role === 'ven' ? 'on' : ''}
-                        style={{ textDecoration: 'none' }}
                         onClick={() => onRoleChange && onRoleChange('ven')}
                     >
                         ভেন্ডর ভিউ (ABC)
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Seamless Platform Back Links */}

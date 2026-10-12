@@ -21,6 +21,7 @@ class DashboardController extends Controller
 
         // User's own posts (GIVE Subcontract)
         $userPosts = SubcontractPost::where('user_id', $user->id)
+            ->with(['acceptedFactory', 'factory'])
             ->withCount('quotations')
             ->latest()
             ->get();
@@ -32,7 +33,7 @@ class DashboardController extends Controller
 
         // Quotations submitted by user (TAKE Subcontract)
         $quotationsSubmitted = Quotation::where('bidder_user_id', $user->id)
-            ->with(['post.user', 'post.factory'])
+            ->with(['post.user', 'post.factory', 'post.acceptedFactory'])
             ->latest()
             ->get();
 

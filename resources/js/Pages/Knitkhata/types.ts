@@ -125,4 +125,6 @@ export interface KnitkhataProps {
     factoryMachines?: FactoryMachineItem[];
     customMachines?: CustomMachineItem[];
     machineTypes?: any[];
+    userPosts?: any[];
+    quotationsSubmitted?: any[];
 }

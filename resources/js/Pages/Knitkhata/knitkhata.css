@@ -897,6 +897,99 @@
   padding: 20px;
 }
 
+/* Subcontract Role Tabs (Dual Role: Take Subcontract vs Give Subcontract) */
+.kk-app .subcontract-role-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kk-app .role-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: all .2s ease;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.kk-app .role-tab-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+.kk-app .role-tab-btn .tab-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.kk-app .role-tab-btn .tab-info {
+  flex: 1;
+  min-width: 0;
+}
+.kk-app .role-tab-btn .tab-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.kk-app .role-tab-btn .tab-pill {
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.kk-app .role-tab-btn .fac-pill {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.kk-app .role-tab-btn .ven-pill {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.kk-app .role-tab-btn .tab-sub {
+  display: block;
+  font-size: .76rem;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kk-app .role-tab-btn .tab-stat {
+  text-align: right;
+  flex-shrink: 0;
+}
+.kk-app .role-tab-btn .tab-stat b {
+  display: block;
+  font-size: .95rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.kk-app .role-tab-btn .tab-stat span {
+  font-size: .72rem;
+  color: var(--muted);
+}
+.kk-app .role-tab-btn.active-fac {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, var(--surface) 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+}
+.kk-app .role-tab-btn.active-ven {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, var(--surface) 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+}
+
 /* Responsive */
 @media (max-width: 820px) {
   .kk-app .shell {

@@ -14,8 +14,34 @@ class KnitkhataController extends Controller
     private function renderKnitkhata(Request $request, string $tab, array $extra = []): Response
     {
         $user = $request->user();
-        $factory = $user->factory;
-        $role = $extra['role'] ?? (str_starts_with($tab, 'v') ? 'ven' : 'fac');
+        $factory = $user?->factory;
+        $role = $extra['role'] ?? $request->query('role', (str_starts_with($tab, 'v') ? 'ven' : 'fac'));
+
+        // Fetch user's posted subcontract orders and submitted bids for dual-role sync
+        $userPosts = $user ? \App\Models\SubcontractPost::where('user_id', $user->id)
+            ->with(['acceptedFactory', 'factory'])
+            ->withCount('quotations')
+            ->latest()
+            ->get() : collect();
+
+        if ($userPosts->isEmpty()) {
+            $userPosts = \App\Models\SubcontractPost::with(['acceptedFactory', 'factory'])
+                ->withCount('quotations')
+                ->latest()
+                ->take(10)
+                ->get();
+        }
+
+        $quotationsSubmitted = $user ? \App\Models\Quotation::where('bidder_user_id', $user->id)
+            ->with(['post.user', 'post.factory', 'post.acceptedFactory'])
+            ->latest()
+            ->get() : collect();
+
+        if ($quotationsSubmitted->isEmpty()) {
+            $quotationsSubmitted = \App\Models\Quotation::with(['post.user', 'post.factory', 'post.acceptedFactory'])
+                ->latest()
+                ->get();
+        }
 
         return Inertia::render('Knitkhata/Index', array_merge([
             'factory' => $factory,
@@ -25,6 +51,8 @@ class KnitkhataController extends Controller
             'initialTab' => $tab,
             'initialRole' => $role,
             'initialOrderId' => $extra['orderId'] ?? 'SC-2610-014',
+            'userPosts' => $userPosts,
+            'quotationsSubmitted' => $quotationsSubmitted,
         ], $extra));
     }
 
@@ -40,7 +68,8 @@ class KnitkhataController extends Controller
 
     public function orders(Request $request): Response
     {
-        return $this->renderKnitkhata($request, 'orders');
+        $role = $request->query('role', 'fac');
+        return $this->renderKnitkhata($request, 'orders', ['role' => $role]);
     }
 
     public function orderDetail(Request $request, string $id): Response
@@ -163,7 +192,7 @@ class KnitkhataController extends Controller
 
     public function vendorOrders(Request $request): Response
     {
-        return $this->renderKnitkhata($request, 'vorders', ['role' => 'ven']);
+        return $this->renderKnitkhata($request, 'orders', ['role' => 'ven']);
     }
 
     public function vendorReport(Request $request): Response
