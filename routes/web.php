@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/status', [KnitkhataController::class, 'updateOrderStatus'])->name('orders.updateStatus');
         Route::post('/orders/yarn-intake', [KnitkhataController::class, 'recordYarnIntake'])->name('orders.yarnIntake');
         Route::post('/orders/delivery-challan', [KnitkhataController::class, 'recordDeliveryChallan'])->name('orders.deliveryChallan');
+        Route::post('/orders/assign-machines', [KnitkhataController::class, 'assignMachines'])->name('orders.assignMachines');
         Route::get('/orders/{id}', [KnitkhataController::class, 'orderDetail'])->name('orders.show');
         Route::get('/production-entry', [KnitkhataController::class, 'entry'])->name('entry');
         Route::get('/qc', [KnitkhataController::class, 'qc'])->name('qc');

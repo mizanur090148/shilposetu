@@ -595,4 +595,33 @@ class KnitkhataController extends Controller
 
         return redirect()->back()->with('success', 'ডেলিভারি চালান সফলভাবে তৈরি হয়েছে!');
     }
+
+    /**
+     * Assign machines to a subcontract post.
+     */
+    public function assignMachines(Request $request)
+    {
+        $validated = $request->validate([
+            'order_id' => 'required',
+            'machines' => 'nullable|array',
+        ]);
+
+        $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
+        $post = \App\Models\SubcontractPost::find($id);
+
+        if ($post) {
+            $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+            $specs['machines'] = $validated['machines'] ?? [];
+
+            $updateData = ['specs' => $specs];
+            // If machines are assigned and status is open, optionally transition to in_progress if accepted
+            if (!empty($specs['machines']) && $post->status === 'open' && $post->accepted_factory_id) {
+                $updateData['status'] = 'in_progress';
+            }
+
+            $post->update($updateData);
+        }
+
+        return redirect()->back()->with('success', 'মেশিন সফলভাবে বরাদ্দ / অ্যাসাইন করা হয়েছে!');
+    }
 }

@@ -1031,3 +1031,26 @@
     gap: 4px;
   }
 }
+
+/* Assign Machine Modal Search Input */
+.kk-app .assign-search-input {
+  width: 100%;
+  padding: 9px 34px 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #cbd5e1);
+  background: var(--surface, #ffffff);
+  font-size: .88rem;
+  color: var(--ink);
+  outline: none !important;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.kk-app .assign-search-input:focus,
+.kk-app .assign-search-input:focus-visible {
+  outline: none !important;
+  border-color: var(--accent, #059669) !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+}
+

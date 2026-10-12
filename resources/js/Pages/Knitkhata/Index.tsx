@@ -286,6 +286,12 @@ export default function KnitkhataIndex({
     const [deliveryKgInput, setDeliveryKgInput] = useState('1000');
     const [deliveryVehicleInput, setDeliveryVehicleInput] = useState('পিকআপ ঢাকা মেট্রো-ন ১২-৮৮৪০');
     const [deliveryDriverPhone, setDeliveryDriverPhone] = useState('+8801711223344');
+    // Assign Machines modal state
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [assignOrderId, setAssignOrderId] = useState<string>('');
+    const [selectedMachines, setSelectedMachines] = useState<string[]>([]);
+    const [assignMachineSearch, setAssignMachineSearch] = useState<string>('');
+    const [assignMachineFilter, setAssignMachineFilter] = useState<'all' | 'idle' | 'assigned'>('all');
 
     const handleOpenDeliveryModal = (orderId: string) => {
         setDeliveryTargetOrder(orderId);
@@ -294,6 +300,75 @@ export default function KnitkhataIndex({
         setDeliveryKgInput(String(Math.min(rem > 0 ? rem : 1000, 1500)));
         setDeliveryChallanNo(`CH-2610-0${Math.floor(Math.random() * 80 + 20)}`);
         setShowDeliveryModal(true);
+    };
+
+    // Open Assign Machines modal for a specific order
+    const handleOpenAssignModal = (orderId: string) => {
+        setAssignOrderId(orderId);
+        const target = orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId);
+        setSelectedMachines(target?.machines || []);
+        setAssignMachineSearch('');
+        setAssignMachineFilter('all');
+        setShowAssignModal(true);
+    };
+
+    const handleAssignSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!assignOrderId) return;
+
+        // 1. Update orders state
+        setOrders(prev =>
+            prev.map(o => {
+                if (o.id === assignOrderId) {
+                    return {
+                        ...o,
+                        machines: selectedMachines,
+                        status: o.status === 'wait' && selectedMachines.length > 0 ? 'run' : o.status,
+                    };
+                }
+                return o;
+            })
+        );
+
+        // 2. Update vendorOrders state
+        setVendorOrders(prev =>
+            prev.map(o => {
+                if (o.id === assignOrderId) {
+                    return {
+                        ...o,
+                        machines: selectedMachines,
+                        status: o.status === 'wait' && selectedMachines.length > 0 ? 'run' : o.status,
+                    };
+                }
+                return o;
+            })
+        );
+
+        // 3. Update machineState
+        setMachineState(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(code => {
+                if (next[code] === `run:${assignOrderId}`) {
+                    next[code] = 'idle';
+                }
+            });
+            selectedMachines.forEach(code => {
+                next[code] = `run:${assignOrderId}`;
+            });
+            return next;
+        });
+
+        setShowAssignModal(false);
+
+        // 4. Persist to backend if this order has a DB ID
+        const target = orders.find(o => o.id === assignOrderId) || vendorOrders.find(o => o.id === assignOrderId);
+        const dbId = target?.db_id || parseInt((assignOrderId || '').replace(/\D/g, ''), 10);
+        if (dbId) {
+            router.post('/knitkhata/orders/assign-machines', {
+                order_id: dbId,
+                machines: selectedMachines,
+            }, { preserveScroll: true });
+        }
     };
 
     const handleDeliverySubmit = (e: React.FormEvent) => {
@@ -901,7 +976,20 @@ export default function KnitkhataIndex({
                                         <span className="mono small">{pct(o)}%</span>
                                     </div>
                                 </td>
-                                <td className="n">{o.machines.length || '—'}</td>
+                                <td
+                                    className="n click"
+                                    title="মেশিন বরাদ্দ করতে ক্লিক করুন"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenAssignModal(o.id);
+                                    }}
+                                >
+                                    {o.machines.length > 0 ? (
+                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{bn(o.machines.length)}টি ⚙️</span>
+                                    ) : (
+                                        <span className="small muted">+ অ্যাসাইন</span>
+                                    )}
+                                </td>
                                 <td className="mono small">
                                     {o.status === 'done' ? '—' : e ? fmtD(e.date) : 'সুতা এলে'}
                                 </td>
@@ -1780,17 +1868,35 @@ export default function KnitkhataIndex({
                                                                     <span className="mono small">{p}%</span>
                                                                 </div>
                                                             </td>
-                                                            <td>
+                                                            <td
+                                                                style={{ cursor: 'pointer' }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleOpenAssignModal(o.id);
+                                                                }}
+                                                                title="মেশিন বরাদ্দ বা পরিবর্তন করতে ক্লিক করুন"
+                                                            >
                                                                 {o.machines.length > 0 ? (
-                                                                    <div className="row" style={{ gap: '3px' }}>
+                                                                    <div className="row" style={{ gap: '3px', alignItems: 'center', flexWrap: 'wrap' }}>
                                                                         {o.machines.map(m => (
                                                                             <span key={m} className="pill p-acc" style={{ fontSize: '.72rem', padding: '1px 6px' }}>
                                                                                 {m}
                                                                             </span>
                                                                         ))}
+                                                                        <span style={{ fontSize: '.75rem', color: 'var(--accent)', marginLeft: '2px' }} title="মেশিন এডিট করুন">✏️</span>
                                                                     </div>
                                                                 ) : (
-                                                                    <span className="small muted">অ্যাসাইন বাকি</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        style={{ fontSize: '.72rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenAssignModal(o.id);
+                                                                        }}
+                                                                    >
+                                                                        + অ্যাসাইন করুন
+                                                                    </button>
                                                                 )}
                                                             </td>
                                                             <td className="n">
@@ -1802,7 +1908,7 @@ export default function KnitkhataIndex({
                                                             </td>
                                                             <td>{stPill(o)}</td>
                                                             <td>
-                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px' }}>
+                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px', alignItems: 'center' }}>
                                                                     <button
                                                                         type="button"
                                                                         className="btn sm"
@@ -1842,6 +1948,28 @@ export default function KnitkhataIndex({
                                                                             সম্পন্ন
                                                                         </button>
                                                                     )}
+
+                                                                    {/* THREE DOT (⋮) BUTTON FOR ASSIGN MACHINES */}
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenAssignModal(o.id);
+                                                                        }}
+                                                                        title="মেশিন অ্যাসাইন করুন (Assign Machines)"
+                                                                        style={{
+                                                                            padding: '0 8px',
+                                                                            fontSize: '1.25rem',
+                                                                            fontWeight: 900,
+                                                                            lineHeight: '1.2',
+                                                                            color: 'var(--accent)',
+                                                                            borderColor: 'var(--accent)',
+                                                                            background: '#f0fdf4'
+                                                                        }}
+                                                                    >
+                                                                        ⋮
+                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -2520,6 +2648,291 @@ export default function KnitkhataIndex({
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: ASSIGN MACHINES TO ORDER */}
+                    {showAssignModal && (
+                        <div
+                            className="modal-backdrop"
+                            onClick={() => setShowAssignModal(false)}
+                            style={{ zIndex: 1000 }}
+                        >
+                            <div
+                                className="modal-box"
+                                onClick={e => e.stopPropagation()}
+                                style={{ maxWidth: '780px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+                            >
+                                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', borderBottom: '1px solid var(--border, #e5e7eb)', paddingBottom: '12px' }}>
+                                    <div>
+                                        <div className="row" style={{ gap: '8px', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '1.4rem' }}>⚙️</span>
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>অর্ডারে মেশিন বরাদ্দ (Assign Machines)</h3>
+                                        </div>
+                                        <p style={{ margin: '6px 0 0 0', fontSize: '.88rem', color: 'var(--muted)' }}>
+                                            অর্ডার নং: <b style={{ color: 'var(--accent)' }}>{assignOrderId}</b>
+                                            {(() => {
+                                                const target = orders.find(o => o.id === assignOrderId) || vendorOrders.find(o => o.id === assignOrderId);
+                                                return target ? ` · বায়ার: ${target.vendorName || vName(target.v)} · ${target.fabric} (${bn(target.qty)} kg)` : '';
+                                            })()}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="btn sm"
+                                        onClick={() => setShowAssignModal(false)}
+                                        style={{ fontSize: '1rem', padding: '2px 8px' }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                                    {/* Search & Filter Bar */}
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                                        <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+                                            <input
+                                                type="text"
+                                                className="assign-search-input"
+                                                placeholder="🔍 মেশিন কোড (যেমন M-01), টাইপ, ডায়ামিটার বা ব্র্যান্ড..."
+                                                value={assignMachineSearch}
+                                                onChange={e => setAssignMachineSearch(e.target.value)}
+                                            />
+                                            {assignMachineSearch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAssignMachineSearch('')}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        right: '10px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        color: 'var(--muted)',
+                                                        fontSize: '1rem',
+                                                        padding: 0
+                                                    }}
+                                                    title="মুছে ফেলুন"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                className={`btn sm ${assignMachineFilter === 'all' ? 'pri' : ''}`}
+                                                onClick={() => setAssignMachineFilter('all')}
+                                                style={{ fontSize: '.8rem', padding: '4px 10px' }}
+                                            >
+                                                সকল ({bn(allMyMachines.length)})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`btn sm ${assignMachineFilter === 'idle' ? 'pri' : ''}`}
+                                                onClick={() => setAssignMachineFilter('idle')}
+                                                style={{ fontSize: '.8rem', padding: '4px 10px' }}
+                                            >
+                                                খালি / প্রস্তুত ({bn(idleMyMachinesCount)})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`btn sm ${assignMachineFilter === 'assigned' ? 'pri' : ''}`}
+                                                onClick={() => setAssignMachineFilter('assigned')}
+                                                style={{ fontSize: '.8rem', padding: '4px 10px' }}
+                                            >
+                                                নির্বাচিত ({bn(selectedMachines.length)})
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Stats Strip */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        background: 'var(--surface, #f8fafc)',
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border, #e2e8f0)',
+                                        marginBottom: '14px'
+                                    }}>
+                                        <span style={{ fontSize: '.83rem', color: 'var(--ink)' }}>
+                                            মোট মেশিন: <b>{bn(allMyMachines.length)}</b>টি · সচল: <b>{bn(runningMyMachinesCount)}</b>টি · খালি: <b>{bn(idleMyMachinesCount)}</b>টি
+                                        </span>
+                                        <span className="pill p-acc" style={{ fontWeight: 700, fontSize: '.8rem' }}>
+                                            নির্বাচিত: {bn(selectedMachines.length)}টি মেশিন
+                                        </span>
+                                    </div>
+
+                                    {/* Machine Grid */}
+                                    {(() => {
+                                        const modalFilteredMachines = allMyMachines.filter(m => {
+                                            if (assignMachineFilter === 'idle' && m.status !== 'idle') return false;
+                                            if (assignMachineFilter === 'assigned' && !selectedMachines.includes(m.code)) return false;
+                                            if (!assignMachineSearch.trim()) return true;
+                                            const q = assignMachineSearch.toLowerCase().trim();
+                                            return (
+                                                m.code.toLowerCase().includes(q) ||
+                                                m.type.toLowerCase().includes(q) ||
+                                                m.dia.toLowerCase().includes(q) ||
+                                                m.brand.toLowerCase().includes(q) ||
+                                                (m.op && m.op.toLowerCase().includes(q))
+                                            );
+                                        });
+
+                                        if (modalFilteredMachines.length === 0) {
+                                            return (
+                                                <div style={{
+                                                    textAlign: 'center',
+                                                    padding: '36px 16px',
+                                                    background: 'var(--surface, #f8fafc)',
+                                                    borderRadius: '8px',
+                                                    border: '1px dashed var(--border, #cbd5e1)',
+                                                    color: 'var(--muted)',
+                                                    marginBottom: '16px'
+                                                }}>
+                                                    <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>🔍</div>
+                                                    <b>কোনো মেশিন পাওয়া যায়নি</b>
+                                                    <p style={{ margin: '4px 0 0 0', fontSize: '.85rem' }}>
+                                                        {assignMachineSearch ? `"${assignMachineSearch}" সার্চের সাথে মিল পাওয়া যায়নি।` : 'এই ফিল্টারে কোনো মেশিন নেই।'}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="btn sm"
+                                                        style={{ marginTop: '10px' }}
+                                                        onClick={() => {
+                                                            setAssignMachineSearch('');
+                                                            setAssignMachineFilter('all');
+                                                        }}
+                                                    >
+                                                        ফিল্টার রিসেট করুন
+                                                    </button>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                                                gap: '12px',
+                                                marginBottom: '16px'
+                                            }}>
+                                                {modalFilteredMachines.map(m => {
+                                                    const isSelected = selectedMachines.includes(m.code);
+                                                    const isCurrentOrder = m.assignedOrder === assignOrderId;
+                                                    const isBusyOther = m.status === 'run' && !isCurrentOrder;
+
+                                                    return (
+                                                        <div
+                                                            key={m.code}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setSelectedMachines(prev => prev.filter(c => c !== m.code));
+                                                                } else {
+                                                                    setSelectedMachines(prev => [...prev, m.code]);
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                border: isSelected ? '2px solid var(--accent, #059669)' : '1px solid var(--border, #e2e8f0)',
+                                                                background: isSelected ? '#ecfdf5' : '#fff',
+                                                                borderRadius: '10px',
+                                                                padding: '12px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease',
+                                                                boxShadow: isSelected ? '0 3px 10px rgba(5, 150, 105, 0.18)' : 'none',
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                                <div className="row" style={{ gap: '6px', alignItems: 'center' }}>
+                                                                    <span style={{ fontSize: '.9rem' }}>⚙</span>
+                                                                    <b style={{ fontSize: '1.05rem', color: isSelected ? 'var(--accent, #059669)' : 'var(--ink)' }}>
+                                                                        {m.code}
+                                                                    </b>
+                                                                </div>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => {}}
+                                                                    style={{
+                                                                        cursor: 'pointer',
+                                                                        accentColor: 'var(--accent, #059669)',
+                                                                        width: '18px',
+                                                                        height: '18px'
+                                                                    }}
+                                                                />
+                                                            </div>
+
+                                                            <div style={{ fontSize: '.8rem', color: 'var(--ink)', fontWeight: 500, marginBottom: '2px' }}>
+                                                                {m.type}
+                                                            </div>
+                                                            <div style={{ fontSize: '.76rem', color: 'var(--muted)', marginBottom: '6px' }}>
+                                                                {m.dia} · {m.brand}
+                                                            </div>
+
+                                                            <div style={{ fontSize: '.76rem', color: 'var(--muted)', marginBottom: '8px' }}>
+                                                                ক্ষমতা: <b>{m.cph} kg/ঘণ্টা</b> (~{bn(Math.round(m.cph * 24))} kg/দিন)
+                                                            </div>
+
+                                                            <div>
+                                                                {isCurrentOrder ? (
+                                                                    <span className="pill p-acc" style={{ fontSize: '.7rem', padding: '1px 6px' }}>
+                                                                        • এই অর্ডারে সচল
+                                                                    </span>
+                                                                ) : isBusyOther ? (
+                                                                    <span className="pill" style={{ fontSize: '.7rem', padding: '1px 6px', background: '#fef3c7', color: '#92400e' }}>
+                                                                        • অন্য অর্ডারে ব্যস্ত ({m.assignedOrder || 'রানিং'})
+                                                                    </span>
+                                                                ) : m.status === 'down' ? (
+                                                                    <span className="pill" style={{ fontSize: '.7rem', padding: '1px 6px', background: '#fee2e2', color: '#b91c1c' }}>
+                                                                        • মেরামত / ডাউন
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="pill p-ok" style={{ fontSize: '.7rem', padding: '1px 6px' }}>
+                                                                        • প্রস্তুত / খালি
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: '14px' }}>
+                                    <div style={{ fontSize: '.88rem' }}>
+                                        মোট নির্বাচিত: <b style={{ color: 'var(--accent)', fontSize: '1rem' }}>{bn(selectedMachines.length)}</b>টি মেশিন
+                                        {selectedMachines.length > 0 && (
+                                            <span style={{ color: 'var(--muted)', marginLeft: '8px', fontSize: '.82rem' }}>
+                                                (সম্মিলিত ক্ষমতা: ~{bn(Math.round(allMyMachines.filter(m => selectedMachines.includes(m.code)).reduce((s, m) => s + m.cph * 24, 0)))} kg/দিন)
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="row" style={{ gap: '8px' }}>
+                                        <button
+                                            type="button"
+                                            className="btn"
+                                            onClick={() => setShowAssignModal(false)}
+                                        >
+                                            বাতিল
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn pri"
+                                            onClick={handleAssignSubmit}
+                                        >
+                                            ✓ মেশিন বরাদ্দ সেভ করুন
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
