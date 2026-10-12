@@ -33,8 +33,13 @@ export interface DeliveryChallan {
 
 export interface Order {
     id: string;
+    db_id?: number;
     v: string; // vendor key e.g. 'abc', 'xyz', 'nobo'
+    vendorName?: string;
+    vendorPhone?: string;
+    vendorEmail?: string;
     fabric: string;
+    category?: string;
     gsm: number;
     dia: string;
     color: string;
@@ -46,9 +51,15 @@ export interface Order {
     rateTk: number; // Tk/kg
     start: string;
     status: 'run' | 'wait' | 'done';
+    db_status?: string;
     yarnIn: YarnIntake[];
     qc: QcIssue[];
     challans?: DeliveryChallan[];
+    factory_location?: string;
+    is_awarded?: boolean;
+    accepted_factory?: any;
+    quotations_count?: number;
+    deadline?: string;
 }
 
 export interface ProductionLogItem {
@@ -127,4 +138,8 @@ export interface KnitkhataProps {
     machineTypes?: any[];
     userPosts?: any[];
     quotationsSubmitted?: any[];
+    initialOrders?: Order[];
+    initialVendors?: Record<string, Vendor>;
+    initialVendorOrders?: Order[];
+    subcontractorFactories?: Record<string, any>;
 }

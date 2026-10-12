@@ -9,6 +9,7 @@ import {
     ProductionLogItem,
     UserItem,
     KnitkhataProps,
+    Vendor,
     YarnIntake,
     DeliveryChallan
 } from './types';
@@ -34,16 +35,54 @@ export default function KnitkhataIndex({
     customMachines = [],
     machineTypes = [],
     userPosts = [],
-    quotationsSubmitted = []
+    quotationsSubmitted = [],
+    initialOrders = [],
+    initialVendors = {},
+    initialVendorOrders = [],
+    subcontractorFactories = {}
 }: KnitkhataProps) {
     const [role, setRole] = useState<RoleMode>(initialRole);
     const [view, setView] = useState<KnitkhataViewTab>(initialTab);
     const [curOrder, setCurOrder] = useState<string>(initialOrderId);
-    const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+    const [orders, setOrders] = useState<Order[]>(() => {
+        if (initialOrders && initialOrders.length > 0) {
+            return initialOrders;
+        }
+        return INITIAL_ORDERS;
+    });
+    const [vendorOrders, setVendorOrders] = useState<Order[]>(() => {
+        if (initialVendorOrders && initialVendorOrders.length > 0) {
+            return initialVendorOrders;
+        }
+        return [];
+    });
     const [machineState, setMachineState] = useState<Record<string, string>>(INITIAL_MACHINE_STATE);
     const [prodLog, setProdLog] = useState<ProductionLogItem[]>(INITIAL_PROD_LOG);
     const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
-    const vendors = INITIAL_VENDORS;
+    const [vendors, setVendors] = useState<Record<string, Vendor>>(() => {
+        if (initialVendors && Object.keys(initialVendors).length > 0) {
+            return { ...INITIAL_VENDORS, ...initialVendors };
+        }
+        return INITIAL_VENDORS;
+    });
+
+    useEffect(() => {
+        if (initialOrders && initialOrders.length > 0) {
+            setOrders(initialOrders);
+        }
+    }, [initialOrders]);
+
+    useEffect(() => {
+        if (initialVendorOrders && initialVendorOrders.length > 0) {
+            setVendorOrders(initialVendorOrders);
+        }
+    }, [initialVendorOrders]);
+
+    useEffect(() => {
+        if (initialVendors && Object.keys(initialVendors).length > 0) {
+            setVendors(prev => ({ ...prev, ...initialVendors }));
+        }
+    }, [initialVendors]);
 
     useEffect(() => {
         if (initialTab && initialTab !== view) {
@@ -118,14 +157,7 @@ export default function KnitkhataIndex({
     const [newOYarnKg, setNewOYarnKg] = useState('2500');
     const [newOYarnBags, setNewOYarnBags] = useState('50');
 
-    // Quick Yarn Intake Modal state
-    const [showYarnModal, setShowYarnModal] = useState(false);
-    const [yarnTargetOrder, setYarnTargetOrder] = useState<string>('SC-2610-018');
-    const [yarnCountInput, setYarnCountInput] = useState('26s Melange');
-    const [yarnSpinnerInput, setYarnSpinnerInput] = useState('Square Textiles');
-    const [yarnLotInput, setYarnLotInput] = useState('SQ-91040');
-    const [yarnBagsInput, setYarnBagsInput] = useState('60');
-    const [yarnKgInput, setYarnKgInput] = useState('3000');
+
 
     // Subcontract Order Handlers
     const handleAddOrderSubmit = (e: React.FormEvent) => {
@@ -185,7 +217,24 @@ export default function KnitkhataIndex({
 
         setShowAddOrderModal(false);
         setNewOId(`SC-2610-02${orders.length + 2}`);
-        showToast(`নতুন অর্ডার ${createdOrder.id} সফলভাবে যুক্ত হয়েছে!`);
+
+        router.post('/knitkhata/orders', {
+            fabric: newOFabric,
+            qty: qtyNum,
+            status: newOStatus,
+            vendor: newOVendor,
+            gsm: gsmNum,
+            dia: newODia,
+            color: newOColor,
+            yarn: newOYarnCount,
+            rate_tk: rateTkNum,
+            machines: machinesList,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showToast(`নতুন সাব-কন্ট্রাক্ট অর্ডার সফলভাবে ডাটাবেজে যুক্ত হয়েছে!`);
+            }
+        });
     };
 
     const handleUpdateOrderStatus = (orderId: string, nextStatus: 'run' | 'wait' | 'done') => {
@@ -197,48 +246,36 @@ export default function KnitkhataIndex({
                 return o;
             })
         );
-        showToast(`অর্ডার ${orderId} এর অবস্থা পরিবর্তন করা হয়েছে`);
-    };
-
-    const handleOpenYarnModal = (orderId: string) => {
-        setYarnTargetOrder(orderId);
-        const target = orders.find(o => o.id === orderId);
-        if (target) {
-            setYarnCountInput(target.yarn || '30s Combed');
-        }
-        setShowYarnModal(true);
-    };
-
-    const handleYarnIntakeSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const kg = parseFloat(yarnKgInput) || 0;
-        const bags = parseInt(yarnBagsInput) || 0;
-
-        setOrders(prev =>
+        setVendorOrders(prev =>
             prev.map(o => {
-                if (o.id === yarnTargetOrder) {
-                    const newIntake: YarnIntake = {
-                        count: yarnCountInput,
-                        spinner: yarnSpinnerInput,
-                        lot: yarnLotInput,
-                        bags,
-                        kg
-                    };
-                    const updatedYarn = [...o.yarnIn, newIntake];
-                    const nextStatus = o.status === 'wait' ? 'run' : o.status;
-                    return {
-                        ...o,
-                        yarnIn: updatedYarn,
-                        status: nextStatus
-                    };
+                if (o.id === orderId) {
+                    return { ...o, status: nextStatus };
                 }
                 return o;
             })
         );
 
-        setShowYarnModal(false);
-        showToast(`অর্ডার ${yarnTargetOrder} এ ${kg} kg সুতা গ্রহণ সফলভাবে সেভ হয়েছে!`);
+        const target = orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId);
+        const dbId = target?.db_id || parseInt(orderId.replace(/\D/g, ''), 10);
+
+        if (dbId) {
+            router.post('/knitkhata/orders/status', {
+                order_id: dbId,
+                status: nextStatus
+            }, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    const stText = nextStatus === 'run' ? 'চলমান' : nextStatus === 'wait' ? 'অপেক্ষায়' : 'সম্পন্ন';
+                    showToast(`অর্ডার ${orderId} সফলভাবে '${stText}' করা হয়েছে!`);
+                }
+            });
+        } else {
+            showToast(`অর্ডার ${orderId} এর অবস্থা পরিবর্তন করা হয়েছে`);
+        }
     };
+
+
 
     // Delivery Challan Modal state & handlers
     const [showDeliveryModal, setShowDeliveryModal] = useState(false);
@@ -252,7 +289,7 @@ export default function KnitkhataIndex({
 
     const handleOpenDeliveryModal = (orderId: string) => {
         setDeliveryTargetOrder(orderId);
-        const target = orders.find(o => o.id === orderId);
+        const target = orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId);
         const rem = target ? Math.max(0, target.qty - target.done) : 1000;
         setDeliveryKgInput(String(Math.min(rem > 0 ? rem : 1000, 1500)));
         setDeliveryChallanNo(`CH-2610-0${Math.floor(Math.random() * 80 + 20)}`);
@@ -290,9 +327,47 @@ export default function KnitkhataIndex({
                 return o;
             })
         );
+        setVendorOrders(prev =>
+            prev.map(o => {
+                if (o.id === deliveryTargetOrder) {
+                    const newDone = Math.min(o.qty, o.done + kg);
+                    const updatedChallans = [...(o.challans || []), newChallan];
+                    const nextStatus = newDone >= o.qty ? 'done' : o.status;
+                    return {
+                        ...o,
+                        done: newDone,
+                        status: nextStatus,
+                        challans: updatedChallans
+                    };
+                }
+                return o;
+            })
+        );
 
         setShowDeliveryModal(false);
-        showToast(`ডেলিভারি চালান ${chNo} সম্পন্ন! ${kg} kg ডেলিভারি রেকর্ড করা হয়েছে`);
+
+        const target = orders.find(o => o.id === deliveryTargetOrder) || vendorOrders.find(o => o.id === deliveryTargetOrder);
+        const dbId = target?.db_id || parseInt((deliveryTargetOrder || '').replace(/\D/g, ''), 10);
+
+        if (dbId) {
+            router.post('/knitkhata/orders/delivery-challan', {
+                order_id: dbId,
+                challan_no: chNo,
+                date: deliveryDateInput,
+                rolls,
+                kg,
+                vehicle: deliveryVehicleInput,
+                driver_phone: deliveryDriverPhone
+            }, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    showToast(`চালান ${chNo} সম্পন্ন! ${kg} kg ডেলিভারি রেকর্ড করা হয়েছে`);
+                }
+            });
+        } else {
+            showToast(`ডেলিভারি চালান ${chNo} সম্পন্ন! ${kg} kg ডেলিভারি রেকর্ড করা হয়েছে`);
+        }
     };
 
     const handleExportOrdersCsv = () => {
@@ -372,50 +447,67 @@ export default function KnitkhataIndex({
         });
 
     // Vendor Perspective Orders (Give Subcontract: Orders I Posted)
-    const vendorOrdersList = orders.filter(o => o.v === 'abc');
-    const vendorTotalQty = vendorOrdersList.reduce((sum, o) => sum + o.qty, 0);
-    const vendorDoneQty = vendorOrdersList.reduce((sum, o) => sum + o.done, 0);
+    const vendorTotalQty = vendorOrders.reduce((sum, o) => sum + o.qty, 0);
+    const vendorDoneQty = vendorOrders.reduce((sum, o) => sum + o.done, 0);
     const vendorProgressPct = calcPct(vendorDoneQty, vendorTotalQty);
-    const vendorRunningCount = vendorOrdersList.filter(o => o.status === 'run').length;
-    const vendorDoneCount = vendorOrdersList.filter(o => o.status === 'done').length;
-    const vendorWaitingCount = vendorOrdersList.filter(o => o.status === 'wait').length;
-    const vendorYarnSentKg = vendorOrdersList.reduce((sum, o) => sum + o.yarnIn.reduce((ys, y) => ys + y.kg, 0), 0);
-    const vendorTotalChallansCount = vendorOrdersList.reduce((sum, o) => sum + (o.challans?.length || 0), 0);
-    const vendorTotalBill = vendorOrdersList.reduce((sum, o) => sum + (o.qty * (o.rateTk || 22)), 0);
+    const vendorRunningCount = vendorOrders.filter(o => o.status === 'run').length;
+    const vendorDoneCount = vendorOrders.filter(o => o.status === 'done').length;
+    const vendorYarnSentKg = vendorOrders.reduce((sum, o) => sum + o.yarnIn.reduce((ys, y) => ys + y.kg, 0), 0);
+    const vendorTotalChallansCount = vendorOrders.reduce((sum, o) => sum + (o.challans?.length || 0), 0);
+    const vendorTotalBill = vendorOrders.reduce((sum, o) => sum + (o.qty * (o.rateTk || 22)), 0);
 
     const [vendorOrderFilter, setVendorOrderFilter] = useState<'all' | 'run' | 'done'>('all');
+    const [vendorFactoryFilter, setVendorFactoryFilter] = useState<string>('all');
     const [vendorOrderSearch, setVendorOrderSearch] = useState('');
+    const [vendorOrderSort, setVendorOrderSort] = useState<'date' | 'progress' | 'qty'>('date');
 
-    const filteredVendorOrders = vendorOrdersList.filter(o => {
-        if (vendorOrderFilter !== 'all' && o.status !== vendorOrderFilter) return false;
-        if (vendorOrderSearch.trim()) {
-            const q = vendorOrderSearch.toLowerCase();
-            const lotMatches = o.yarnIn.some(y => y.lot.toLowerCase().includes(q));
-            return (
-                o.id.toLowerCase().includes(q) ||
-                o.fabric.toLowerCase().includes(q) ||
-                o.color.toLowerCase().includes(q) ||
-                lotMatches
-            );
-        }
-        return true;
-    });
+    const filteredVendorOrders = vendorOrders
+        .filter(o => {
+            if (vendorOrderFilter !== 'all' && o.status !== vendorOrderFilter) return false;
+            if (vendorFactoryFilter !== 'all' && o.v !== vendorFactoryFilter) return false;
+            if (vendorOrderSearch.trim()) {
+                const q = vendorOrderSearch.toLowerCase();
+                const lotMatches = o.yarnIn.some(y => y.lot.toLowerCase().includes(q));
+                const facName = (o.vendorName || o.accepted_factory?.business_name || '').toLowerCase();
+                return (
+                    o.id.toLowerCase().includes(q) ||
+                    facName.includes(q) ||
+                    o.fabric.toLowerCase().includes(q) ||
+                    o.color.toLowerCase().includes(q) ||
+                    lotMatches
+                );
+            }
+            return true;
+        })
+        .sort((a, b) => {
+            if (vendorOrderSort === 'progress') {
+                return pct(b) - pct(a);
+            }
+            if (vendorOrderSort === 'qty') {
+                return b.qty - a.qty;
+            }
+            return b.id.localeCompare(a.id);
+        });
 
     const handleExportVendorCsv = () => {
-        const headers = ['Order ID', 'Date Posted', 'Factory', 'Fabric Specs', 'Yarn & Lot Sent', 'Order Qty (kg)', 'Produced (kg)', 'Delivered (kg)', 'Pending (kg)', 'Progress (%)', 'Assigned Machines', 'Rate (Tk/kg)', 'Total Bill (Tk)', 'Status'];
+        const headers = ['Order ID', 'Date Posted', 'Subcontractor Factory', 'Factory Phone', 'Location', 'Fabric Specs', 'Yarn & Lot Sent', 'Order Qty (kg)', 'Produced (kg)', 'Pending (kg)', 'Progress (%)', 'Assigned Machines', 'Rate (Tk/kg)', 'Total Bill (Tk)', 'Status'];
         const rows = filteredVendorOrders.map(o => {
             const rem = Math.max(0, o.qty - o.done);
             const bill = o.qty * (o.rateTk || 22);
-            const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা বাকি';
-            const st = o.status === 'run' ? 'ফ্যাক্টরিতে চলমান' : o.status === 'wait' ? 'সুতার অপেক্ষায়' : 'সম্পন্ন';
+            const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : (o.status === 'wait' ? 'সুতা পাঠানো বাকি' : 'সুতা রিসিভড');
+            const fac = o.accepted_factory?.business_name || (o.is_awarded ? o.vendorName : 'দরপত্র আহ্বান চলছে');
+            const phone = o.accepted_factory?.phone || o.vendorPhone || '';
+            const loc = o.factory_location || '';
+            const st = o.status === 'run' ? 'ফ্যাক্টরিতে চলমান' : o.status === 'wait' ? 'অপেক্ষায়' : 'সম্পন্ন';
             return [
                 o.id,
                 o.start,
-                '"রহমান নিটিং ইন্ডাস্ট্রিজ"',
+                `"${fac}"`,
+                `"${phone}"`,
+                `"${loc}"`,
                 `"${o.fabric} ${o.gsm} GSM"`,
                 `"${o.yarn} (লট: ${lot})"`,
                 o.qty,
-                o.done,
                 o.done,
                 rem,
                 `${pct(o)}%`,
@@ -429,11 +521,12 @@ export default function KnitkhataIndex({
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `abc_subcontract_orders_posted_${new Date().toISOString().slice(0, 10)}.csv`);
+        const orgSlug = (auth?.user?.name || 'vendor').replace(/\s+/g, '_').toLowerCase();
+        link.setAttribute('download', `subcontract_orders_posted_${orgSlug}_${new Date().toISOString().slice(0, 10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast('ABC Knit Composite এর অর্ডারের Excel/CSV ফাইল ডাউনলোড সম্পন্ন হয়েছে');
+        showToast('পোস্টকৃত সাব-কন্ট্রাক্ট অর্ডারের Excel/CSV ফাইল ডাউনলোড সম্পন্ন হয়েছে');
     };
 
     const formatDeadline = (d: string | null | undefined) => {
@@ -644,12 +737,15 @@ export default function KnitkhataIndex({
             return;
         }
         if (newRole === 'ven') {
-            if (!orders.find(o => o.id === curOrder && o.v === 'abc')) {
-                setCurOrder('SC-2610-014');
+            if (vendorOrders.length > 0 && !vendorOrders.find(o => o.id === curOrder)) {
+                setCurOrder(vendorOrders[0].id);
             }
             router.visit('/knitkhata/orders?role=ven', { preserveScroll: true });
             showToast('ভেন্ডর ভিউ: গিভ সাব-কন্ট্রাক্ট (Orders I Posted) চালু করা হয়েছে');
         } else {
+            if (orders.length > 0 && !orders.find(o => o.id === curOrder)) {
+                setCurOrder(orders[0].id);
+            }
             router.visit('/knitkhata/orders?role=fac', { preserveScroll: true });
             showToast('ফ্যাক্টরি ভিউ: টেক সাব-কন্ট্রাক্ট (Orders I Bid / Taken) চালু করা হয়েছে');
         }
@@ -663,7 +759,7 @@ export default function KnitkhataIndex({
 
     const handleSelectOrder = (orderId: string) => {
         setCurOrder(orderId);
-        const target = orders.find(o => o.id === orderId);
+        const target = orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId);
         if (target) {
             setEtaM(target.machines.length || 1);
             setEtaR(target.rate || 350);
@@ -737,17 +833,35 @@ export default function KnitkhataIndex({
         factory?.business_name ||
         auth?.user?.factory?.business_name ||
         'রহমান নিটিং ইন্ডাস্ট্রিজ (নমুনা ফ্যাক্টরি)';
-    const vName = (id: string) => vendors[id]?.name || id;
+    const vName = (id: string, fallbackName?: string) => fallbackName || vendors[id]?.name || id;
     const pct = (o: Order) => calcPct(o.done, o.qty);
     const etaOf = (o: Order, m = o.machines.length, r = o.rate) => calcEta(o, m, r);
-    const stPill = (o: Order) =>
-        o.status === 'run' ? (
-            <span className="pill p-acc">চলছে</span>
-        ) : o.status === 'wait' ? (
-            <span className="pill p-yarn">সুতার অপেক্ষায়</span>
-        ) : (
-            <span className="pill p-ok">ডেলিভারি সম্পন্ন</span>
-        );
+    const stPill = (o: Order) => (
+        <select
+            value={o.status}
+            onChange={(e) => {
+                e.stopPropagation();
+                handleUpdateOrderStatus(o.id, e.target.value as any);
+            }}
+            className={`pill ${o.status === 'run' ? 'p-acc' : o.status === 'wait' ? 'p-yarn' : 'p-ok'}`}
+            style={{
+                cursor: 'pointer',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '.75rem',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                outline: 'none',
+                background: 'inherit',
+                color: 'inherit'
+            }}
+            title="অবস্থা পরিবর্তন করতে ক্লিক করুন"
+        >
+            <option value="run" style={{ background: '#fff', color: '#000' }}>চলমান</option>
+            <option value="wait" style={{ background: '#fff', color: '#000' }}>সুতার অপেক্ষায়</option>
+            <option value="done" style={{ background: '#fff', color: '#000' }}>সম্পন্ন</option>
+        </select>
+    );
 
     // Order table component
     const renderOrderTable = (list: Order[]) => (
@@ -803,7 +917,18 @@ export default function KnitkhataIndex({
 
     // Screen: Order Detail
     const renderDetail = (readonly: boolean) => {
-        const o = orders.find(x => x.id === curOrder) || orders[0];
+        const o = (role === 'ven'
+            ? (vendorOrders.find(x => x.id === curOrder) || orders.find(x => x.id === curOrder))
+            : (orders.find(x => x.id === curOrder) || vendorOrders.find(x => x.id === curOrder))
+        ) || orders[0] || vendorOrders[0];
+        if (!o) {
+            return (
+                <div className="card" style={{ padding: '32px', textAlign: 'center' }}>
+                    <h3>কোনো অর্ডার পাওয়া যায়নি</h3>
+                    <Link href="/knitkhata/orders" className="btn sm">সব অর্ডারে ফিরে যান</Link>
+                </div>
+            );
+        }
         const e = etaOf(o, etaM, etaR);
         const yarnTotal = o.yarnIn.reduce((a, y) => a + y.kg, 0);
         const loss = 2;
@@ -1425,7 +1550,7 @@ export default function KnitkhataIndex({
                                 <span className="tab-sub">অর্ডার দেওয়া হয়েছে (ডেটাবেসে পোস্টকৃত সাব-কন্ট্রাক্ট অর্ডার ডিমান্ড)</span>
                             </div>
                             <div className="tab-stat">
-                                <b>{bn(userPosts.length || vendorOrdersList.length)}টি</b>
+                                <b>{bn(vendorOrders.length)}টি</b>
                                 <span>পোস্ট করা অর্ডার</span>
                             </div>
                         </button>
@@ -1437,10 +1562,7 @@ export default function KnitkhataIndex({
                             {/* PAGE HEADER & QUICK ACTIONS */}
                             <div className="head">
                                 <div>
-                                    <h2>সাব-কন্ট্রাক্ট অর্ডার (Take Subcontract · Orders I Bid / Taken)</h2>
-                                    <p>
-                                        বিভিন্ন বায়ার ও কম্পোজিট থেকে পাওয়া সাব-কন্ট্রাক্ট অর্ডার এবং কারখানার ফ্লোরে চলমান নিটিং অগ্রগতি
-                                    </p>
+                                    <h2>সাব-কন্ট্রাক্ট অর্ডার</h2>
                                 </div>
                                 <div className="row">
                                     <button
@@ -1450,17 +1572,7 @@ export default function KnitkhataIndex({
                                     >
                                         + নতুন অর্ডার তৈরি করুন
                                     </button>
-                                    <button
-                                        type="button"
-                                        className="btn"
-                                        onClick={() => {
-                                            if (orders.length > 0) {
-                                                handleOpenYarnModal(orders[0].id);
-                                            }
-                                        }}
-                                    >
-                                        + সুতা গ্রহণ এন্ট্রি
-                                    </button>
+
                                     <button
                                         type="button"
                                         className="btn"
@@ -1693,8 +1805,8 @@ export default function KnitkhataIndex({
                                                                 </div>
                                                             </td>
                                                             <td>
-                                                                <b>{vName(o.v)}</b>
-                                                                <div className="small muted">{vendors[o.v]?.phone}</div>
+                                                                <b>{o.vendorName || vName(o.v)}</b>
+                                                                <div className="small muted">{o.vendorPhone || vendors[o.v]?.phone}</div>
                                                             </td>
                                                             <td>
                                                                 <div>{o.fabric}</div>
@@ -1748,14 +1860,7 @@ export default function KnitkhataIndex({
                                                                     >
                                                                         বিস্তারিত
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn sm"
-                                                                        onClick={() => handleOpenYarnModal(o.id)}
-                                                                        title="এই অর্ডারে সুতা গ্রহণ যোগ করুন"
-                                                                    >
-                                                                        + সুতা
-                                                                    </button>
+
                                                                     {o.status === 'run' && (
                                                                         <button
                                                                             type="button"
@@ -1812,25 +1917,22 @@ export default function KnitkhataIndex({
                     {role === 'ven' && (
                         <>
                             {/* VENDOR BANNER */}
-                            <div className="vbanner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                            {/* <div className="vbanner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                                 <div>
-                                    আপনি <b>মো. কামরুল হাসান</b> হিসেবে লগইন আছেন — <b>ABC Knit Composite (বায়ার / সাব-কন্ট্রাক্ট দাতা)</b>।
+                                    আপনি <b>{auth?.user?.name || 'ব্যবহারকারী'}</b> হিসেবে লগইন আছেন — <b>{factory?.business_name || auth?.user?.name || 'সাব-কন্ট্রাক্ট দাতা'} (বায়ার / সাব-কন্ট্রাক্ট দাতা)</b>।
                                     <div style={{ fontSize: '.84rem', marginTop: '3px', opacity: 0.9 }}>
-                                        এখানে কেবল আপনার দেওয়া সাব-কন্ট্রাক্ট অর্ডারসমূহ, সুতা সরবরাহ হিসাব, কারখানার নিটিং অগ্রগতি ও ডেলিভারি চালানের লাইভ ট্র্যাকিং দেখা যাচ্ছে।
+                                        এখানে কেবল আপনার দেওয়া সাব-কন্ট্রাক্ট অর্ডারসমূহ, অনুমোদিত কারখানায় নিটিং অগ্রগতি, সুতা সরবরাহ হিসাব ও ফিনিশ ফেব্রিক ডেলিভারি চালানের লাইভ ট্র্যাকিং দেখা যাচ্ছে।
                                     </div>
                                 </div>
                                 <span className="pill p-acc" style={{ fontSize: '.76rem', background: '#ffffff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-                                    🔒 ভেন্ডর কনফিডেনশিয়াল ভিউ
+                                    🔒 ভেন্ডর কনফিডেনশিয়াল ভিউ
                                 </span>
-                            </div>
+                            </div> */}
 
                             {/* VENDOR PAGE HEADER & ACTIONS */}
-                            <div className="head" style={{ marginTop: '12px' }}>
+                            <div className="head">
                                 <div>
-                                    <h2>আমার দেওয়া সাব-কন্ট্রাক্ট অর্ডার (Give Subcontract · Orders I Posted)</h2>
-                                    <p>
-                                        ডেটাবেসে পোস্টকৃত আপনার সকল সাব-কন্ট্রাক্ট চাহিদা ও সরবরাহকৃত সুতা ও ফিনিশ রোল ডেলিভারি ট্র্যাকিং
-                                    </p>
+                                    <h2>আমার দেওয়া সাব-কন্ট্রাক্ট অর্ডার</h2>
                                 </div>
                                 <div className="row">
                                     <Link
@@ -1840,22 +1942,24 @@ export default function KnitkhataIndex({
                                     >
                                         + নতুন সাব-কন্ট্রাক্ট দিন
                                     </Link>
+
                                     <button
                                         type="button"
                                         className="btn"
                                         onClick={() => {
-                                            if (vendorOrdersList.length > 0) {
-                                                handleOpenYarnModal(vendorOrdersList[0].id);
+                                            const running = vendorOrders.find(o => o.status === 'run') || vendorOrders[0];
+                                            if (running) {
+                                                handleOpenDeliveryModal(running.id);
                                             }
                                         }}
                                     >
-                                        + সুতা প্রেরণের চালান
+                                        + ডেলিভারি চালান তৈরি
                                     </button>
                                     <button
                                         type="button"
                                         className="btn"
                                         onClick={handleExportVendorCsv}
-                                        title="ABC Knit Composite এর অর্ডার রিপোর্ট ডাউনলোড"
+                                        title="Excel / CSV রিপোর্ট ডাউনলোড"
                                     >
                                         এক্সপোর্ট Excel
                                     </button>
@@ -1866,28 +1970,24 @@ export default function KnitkhataIndex({
                             <div className="kpis">
                                 <div className="kpi">
                                     <span>আমার দেওয়া মোট অর্ডার</span>
-                                    <b>{bn(userPosts.length || vendorOrdersList.length)}টি</b>
-                                    <i>ডেটাবেসে পোস্টকৃত</i>
+                                    <b>{bn(vendorOrders.length)}টি</b>
+                                    <i>সর্বমোট {bn(vendorTotalQty)} kg</i>
                                 </div>
                                 <div className="kpi">
                                     <span>ফ্যাক্টরিতে চলমান</span>
                                     <b>{bn(vendorRunningCount)}টি</b>
-                                    <i>রহমান নিটিং এ নিটিং রানিং</i>
+                                    <i>অনুমোদিত মিলে নিটিং রানিং</i>
+                                </div>
+
+                                <div className="kpi">
+                                    <span>সম্পন্ন / ডেলিভার্ড</span>
+                                    <b>{bn(vendorDoneCount)}টি</b>
+                                    <i>উৎপাদন ও ডেলিভারি সম্পন্ন</i>
                                 </div>
                                 <div className="kpi">
-                                    <span>সুতা পাঠিয়েছি</span>
-                                    <b>{bn(vendorYarnSentKg)} kg</b>
-                                    <i>সরবরাহকৃত সুতা</i>
-                                </div>
-                                <div className="kpi">
-                                    <span>ডেলিভারি পেয়েছি</span>
+                                    <span>মোট ডেলিভারি পেয়েছি</span>
                                     <b>{bn(vendorDoneQty)} kg</b>
                                     <i>{bn(vendorProgressPct)}% ডেলিভার্ড</i>
-                                </div>
-                                <div className="kpi">
-                                    <span>বাকি ফেব্রিক</span>
-                                    <b>{bn(Math.max(0, vendorTotalQty - vendorDoneQty))} kg</b>
-                                    <i>উৎপাদন বাকি</i>
                                 </div>
                                 <div className="kpi">
                                     <span>মোট প্রদেয় নিটিং বিল</span>
@@ -1896,126 +1996,75 @@ export default function KnitkhataIndex({
                                 </div>
                             </div>
 
-                            {/* DATABASE POSTED ORDERS (GIVE SUBCONTRACT: ORDERS I POSTED) */}
-                            <div className="card" style={{ marginBottom: '20px' }}>
-                                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <div>
-                                        <h3 style={{ margin: 0 }}>
-                                            📦 ডেটাবেসে পোস্টকৃত সাব-কন্ট্রাক্ট ডিমান্ডসমূহ (Give Subcontract · Orders I Posted)
-                                        </h3>
-                                        <p className="small muted" style={{ margin: '2px 0 0' }}>
-                                            আপনার অ্যাকাউন্টের মাধ্যমে পোস্ট করা সকল সাব-কন্ট্রাক্ট কাজ ও প্রাপ্ত দরপত্র
-                                        </p>
-                                    </div>
-                                    <Link href="/dashboard" className="btn sm">
-                                        মূল ড্যাশবোর্ডে দেখুন →
-                                    </Link>
-                                </div>
 
-                                <div className="tw">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>অর্ডারের বিবরণ ও শিরোনাম</th>
-                                                <th>ক্যাটাগরি</th>
-                                                <th className="n">অর্ডার ভলিউম</th>
-                                                <th>ডেলিভারি ডেডলাইন</th>
-                                                <th>প্রাপ্ত দরপত্র (Bids)</th>
-                                                <th>অবস্থা</th>
-                                                <th>অ্যাকশন</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {userPosts.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
-                                                        এখনো কোনো সাব-কন্ট্রাক্ট অর্ডার পোস্ট করা হয়নি।
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                userPosts.map((post: any) => (
-                                                    <tr key={post.id}>
-                                                        <td>
-                                                            <Link
-                                                                href={`/feed/${post.id}`}
-                                                                style={{ fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}
-                                                            >
-                                                                {post.title}
-                                                            </Link>
-                                                            <div className="small muted">
-                                                                📍 {post.district || 'বাংলাদেশ'} · আইডি: #{post.id}
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <span className="pill p-acc" style={{ textTransform: 'capitalize' }}>
-                                                                {post.category?.replace('_', ' ') || 'সিঙ্গেল জার্সি'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="n">
-                                                            <b>{post.target_quantity?.toLocaleString()}</b> {post.unit || 'kg'}
-                                                        </td>
-                                                        <td className="mono small">
-                                                            {formatDeadline(post.deadline)}
-                                                        </td>
-                                                        <td>
-                                                            <span className={`pill ${(post.quotations_count || 0) > 0 ? 'p-ok' : 'p-idle'}`}>
-                                                                {post.quotations_count || 0}টি দরপত্র
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            {post.accepted_factory ? (
-                                                                <span className="pill p-ok" title={`অনুমোদিত ফ্যাক্টরি: ${post.accepted_factory?.business_name}`}>
-                                                                    ✓ {post.accepted_factory?.business_name || 'অনুমোদিত'}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="pill p-idle">
-                                                                    {post.status === 'open' ? 'উন্মুক্ত' : post.status}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td>
-                                                            <div className="row" style={{ gap: '4px' }}>
-                                                                {(post.quotations_count || 0) > 0 ? (
-                                                                    <Link
-                                                                        href={`/quotations/compare/${post.id}`}
-                                                                        className="btn sm pri"
-                                                                        style={{ textDecoration: 'none' }}
-                                                                    >
-                                                                        দরপত্র তুলনা ({post.quotations_count})
-                                                                    </Link>
-                                                                ) : (
-                                                                    <Link
-                                                                        href={`/feed/${post.id}`}
-                                                                        className="btn sm"
-                                                                        style={{ textDecoration: 'none' }}
-                                                                    >
-                                                                        দেখুন
-                                                                    </Link>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {/* VENDOR PRODUCTION MONITORING TABLE (ABC KNIT COMPOSITE FLOOR ORDERS) */}
+                            {/* MAIN ORDERS CARD */}
                             <div className="card">
                                 <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-                                    <div>
-                                        <h3 style={{ margin: 0 }}>ফ্যাক্টরি উৎপাদন অগ্রগতি ও সুতা চালান ট্র্যাকিং</h3>
-                                        <p className="small muted" style={{ margin: '2px 0 0' }}>
-                                            রহমান নিটিং এ চলমান আপনার ব্যাচসমূহের রিয়েল-টাইম নিটিং স্ট্যাটাস
-                                        </p>
+                                    {/* 3 FILTER TABS */}
+                                    <div className="roleswitch" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        <button
+                                            type="button"
+                                            className={vendorOrderFilter === 'all' ? 'on' : ''}
+                                            onClick={() => setVendorOrderFilter('all')}
+                                        >
+                                            সব অর্ডার ({bn(vendorOrders.length)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={vendorOrderFilter === 'run' ? 'on' : ''}
+                                            onClick={() => setVendorOrderFilter('run')}
+                                        >
+                                            চলমান ({bn(vendorRunningCount)})
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className={vendorOrderFilter === 'done' ? 'on' : ''}
+                                            onClick={() => setVendorOrderFilter('done')}
+                                        >
+                                            সম্পন্ন ({bn(vendorDoneCount)})
+                                        </button>
                                     </div>
 
-                                    <div className="row" style={{ gap: '8px' }}>
+                                    {/* Factory Selector & Sort & Search */}
+                                    <div className="row" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                                        <select
+                                            value={vendorFactoryFilter}
+                                            onChange={e => setVendorFactoryFilter(e.target.value)}
+                                            style={{
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        >
+                                            <option value="all">সব কারখানা</option>
+                                            {Object.entries(subcontractorFactories).map(([k, fac]: [string, any]) => (
+                                                <option key={k} value={k}>{fac.name}</option>
+                                            ))}
+
+                                        </select>
+
+                                        <select
+                                            value={vendorOrderSort}
+                                            onChange={e => setVendorOrderSort(e.target.value as any)}
+                                            style={{
+                                                padding: '7px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--line)',
+                                                background: 'var(--surface2)',
+                                                color: 'var(--ink)'
+                                            }}
+                                        >
+                                            <option value="date">অর্ডার আইডি অনুযায়ী</option>
+                                            <option value="progress">অগ্রগতির হার অনুযায়ী</option>
+                                            <option value="qty">অর্ডারের পরিমাণ (kg)</option>
+                                        </select>
+
                                         <input
                                             type="search"
-                                            placeholder="অর্ডার নং, ফেব্রিক, রঙ বা সুতা লট..."
+                                            placeholder="অর্ডার নং, মিলের নাম, ফেব্রিক, রঙ বা সুতা লট..."
                                             value={vendorOrderSearch}
                                             onChange={e => setVendorOrderSearch(e.target.value)}
                                             style={{
@@ -2030,12 +2079,12 @@ export default function KnitkhataIndex({
                                     </div>
                                 </div>
 
-                                {/* VENDOR ORDERS TABLE */}
+                                {/* ORDERS TABLE */}
                                 <div className="tw">
                                     <table className="orders-table">
                                         <thead>
                                             <tr>
-                                                <th>অর্ডার নং</th>
+                                                <th>অর্ডার নং ও তারিখ</th>
                                                 <th>সাব-কন্ট্রাক্টর ফ্যাক্টরি</th>
                                                 <th>ফেব্রিক ও স্পেক্স</th>
                                                 <th>সরবরাহকৃত সুতা ও লট</th>
@@ -2053,8 +2102,11 @@ export default function KnitkhataIndex({
                                         <tbody>
                                             {filteredVendorOrders.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={13} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
-                                                        কোনো উৎপাদন রেকর্ড পাওয়া যায়নি।
+                                                    <td colSpan={13} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
+                                                        <div style={{ fontSize: '1.2rem', marginBottom: '8px' }}>কোনো সাব-কন্ট্রাক্ট অর্ডার পাওয়া যায়নি</div>
+                                                        <Link href="/dashboard?create=1" className="btn pri sm" style={{ textDecoration: 'none' }}>
+                                                            + নতুন সাব-কন্ট্রাক্ট পোস্ট করুন
+                                                        </Link>
                                                     </td>
                                                 </tr>
                                             ) : (
@@ -2063,7 +2115,7 @@ export default function KnitkhataIndex({
                                                     const p = pct(o);
                                                     const remKg = Math.max(0, o.qty - o.done);
                                                     const bill = o.qty * (o.rateTk || 22);
-                                                    const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা পাঠানো বাকি';
+                                                    const lot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : (o.status === 'wait' ? 'সুতা পাঠানো বাকি' : 'সুতা রিসিভড');
 
                                                     return (
                                                         <tr key={o.id}>
@@ -2077,13 +2129,44 @@ export default function KnitkhataIndex({
                                                                 <div className="small muted" style={{ fontWeight: 'normal' }}>
                                                                     {o.start}
                                                                 </div>
+                                                                {o.category && (
+                                                                    <span className="pill p-acc" style={{ fontSize: '.68rem', padding: '1px 5px', textTransform: 'capitalize' }}>
+                                                                        {o.category.replace('_', ' ')}
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                             <td>
-                                                                <b>রহমান নিটিং ইন্ডাস্ট্রিজ</b>
-                                                                <div className="small muted">ফতুল্লা, নারায়ণগঞ্জ · +8801711000000</div>
+                                                                {o.accepted_factory ? (
+                                                                    <div>
+                                                                        <span className="pill p-ok" style={{ fontSize: '.76rem', fontWeight: 600, padding: '2px 8px', marginBottom: '3px', display: 'inline-block' }}>
+                                                                            ✓ {o.accepted_factory?.business_name || o.vendorName}
+                                                                        </span>
+                                                                        <div className="small muted">
+                                                                            📍 {o.factory_location || o.accepted_factory?.location || 'নারায়ণগঞ্জ'} · {o.accepted_factory?.phone || o.vendorPhone || ''}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div>
+                                                                        <span className="pill p-yarn" style={{ fontSize: '.76rem', fontWeight: 600, padding: '2px 8px', marginBottom: '3px', display: 'inline-block' }}>
+                                                                            দরপত্র আহ্বান চলছে
+                                                                        </span>
+                                                                        <div className="small muted">
+                                                                            {(o.quotations_count || 0) > 0 ? (
+                                                                                <Link
+                                                                                    href={`/quotations/compare/${o.db_id}`}
+                                                                                    style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}
+                                                                                >
+                                                                                    {bn(o.quotations_count || 0)}টি দরপত্র জমা পড়েছে →
+                                                                                </Link>
+                                                                            ) : (
+                                                                                'এখনো কোনো দরপত্র আসেনি'
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td>
-                                                                <div>{o.fabric}</div>
+                                                                <div style={{ fontWeight: 500 }}>{o.fabric}</div>
                                                                 <div className="small muted">{o.gsm} GSM · {o.dia} · {o.color}</div>
                                                             </td>
                                                             <td>
@@ -2121,7 +2204,7 @@ export default function KnitkhataIndex({
                                                                 <div className="small muted">মোট: ৳{bn(bill)}</div>
                                                             </td>
                                                             <td className="mono small">
-                                                                {o.status === 'done' ? 'ডেলিভারি সম্পন্ন' : e ? fmtD(e.date) : 'সুতা পৌঁছালে'}
+                                                                {o.status === 'done' ? 'ডেলিভারি সম্পন্ন' : (o.deadline ? formatDeadline(o.deadline) : (e ? fmtD(e.date) : 'সুতা পৌঁছালে'))}
                                                             </td>
                                                             <td>{stPill(o)}</td>
                                                             <td>
@@ -2134,14 +2217,17 @@ export default function KnitkhataIndex({
                                                                     >
                                                                         লাইভ ট্র্যাকিং
                                                                     </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn sm"
-                                                                        onClick={() => handleOpenYarnModal(o.id)}
-                                                                        title="এই অর্ডারের জন্য সুতা প্রেরণের এন্ট্রি"
-                                                                    >
-                                                                        + সুতা পাঠান
-                                                                    </button>
+
+                                                                    {(o.quotations_count || 0) > 0 && !o.is_awarded && (
+                                                                        <Link
+                                                                            href={`/quotations/compare/${o.db_id}`}
+                                                                            className="btn sm pri"
+                                                                            style={{ textDecoration: 'none' }}
+                                                                            title="দরপত্রসমূহ তুলনা ও অনুমোদন করুন"
+                                                                        >
+                                                                            দরপত্র ({o.quotations_count})
+                                                                        </Link>
+                                                                    )}
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -2154,10 +2240,10 @@ export default function KnitkhataIndex({
 
                                 <div className="row" style={{ justifyContent: 'space-between', marginTop: '14px', alignItems: 'center' }}>
                                     <span className="small muted">
-                                        মোট {bn(filteredVendorOrders.length)}টি সাব-কন্ট্রাক্ট ব্যাচ প্রদর্শিত হচ্ছে (ABC Knit Composite)
+                                        মোট {bn(filteredVendorOrders.length)}টি সাব-কন্ট্রাক্ট অর্ডার প্রদর্শিত হচ্ছে
                                     </span>
                                     <span className="small muted" style={{ color: 'var(--muted)' }}>
-                                        গোপনীয়তার স্বার্থে অন্য কোনো পার্টির অর্ডার বা ইন্টারনাল অপারেটর ডেটা এখানে প্রদর্শিত হয় না।
+                                        🔒 গোপনীয়তা ও সিকিউরিটি: কেবল আপনার অ্যাকাউন্টের মাধ্যমে পোস্টকৃত সাব-কন্ট্রাক্ট কাজ ও অনুমোদিত কারখানার ডেটাই প্রদর্শিত হচ্ছে।
                                     </span>
                                 </div>
                             </div>
@@ -2369,115 +2455,7 @@ export default function KnitkhataIndex({
                         </div>
                     )}
 
-                    {/* MODAL: QUICK YARN INTAKE */}
-                    {showYarnModal && (
-                        <div
-                            className="modal-backdrop"
-                            onClick={() => setShowYarnModal(false)}
-                        >
-                            <div
-                                className="modal-box"
-                                onClick={e => e.stopPropagation()}
-                            >
-                                <div className="row" style={{ justifyContent: 'space-between', marginBottom: '14px' }}>
-                                    <h3 style={{ margin: 0 }}>সুতা গ্রহণ চালান এন্ট্রি (Yarn Intake)</h3>
-                                    <button
-                                        type="button"
-                                        className="btn sm"
-                                        onClick={() => setShowYarnModal(false)}
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
 
-                                <form onSubmit={handleYarnIntakeSubmit} className="form">
-                                    <label className="f">
-                                        অর্ডার নির্বাচন *
-                                        <select
-                                            value={yarnTargetOrder}
-                                            onChange={e => setYarnTargetOrder(e.target.value)}
-                                        >
-                                            {orders.map(o => (
-                                                <option key={o.id} value={o.id}>
-                                                    {o.id} — {vName(o.v)} ({o.fabric})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <div className="grid g2" style={{ gap: '10px' }}>
-                                        <label className="f">
-                                            সুতার কাউন্ট *
-                                            <input
-                                                required
-                                                placeholder="যেমন: 30s Combed"
-                                                value={yarnCountInput}
-                                                onChange={e => setYarnCountInput(e.target.value)}
-                                            />
-                                        </label>
-
-                                        <label className="f">
-                                            স্পিনার মিল *
-                                            <input
-                                                required
-                                                placeholder="যেমন: Square Textiles"
-                                                value={yarnSpinnerInput}
-                                                onChange={e => setYarnSpinnerInput(e.target.value)}
-                                            />
-                                        </label>
-                                    </div>
-
-                                    <label className="f">
-                                        সুতার লট নম্বর *
-                                        <input
-                                            required
-                                            placeholder="যেমন: SQ-91040"
-                                            value={yarnLotInput}
-                                            onChange={e => setYarnLotInput(e.target.value)}
-                                        />
-                                    </label>
-
-                                    <div className="grid g2" style={{ gap: '10px' }}>
-                                        <label className="f">
-                                            ব্যাগ সংখ্যা *
-                                            <input
-                                                type="number"
-                                                required
-                                                value={yarnBagsInput}
-                                                onChange={e => setYarnBagsInput(e.target.value)}
-                                            />
-                                        </label>
-
-                                        <label className="f">
-                                            মোট পরিমাণ (kg) *
-                                            <input
-                                                type="number"
-                                                required
-                                                value={yarnKgInput}
-                                                onChange={e => setYarnKgInput(e.target.value)}
-                                            />
-                                        </label>
-                                    </div>
-
-                                    <div className="row" style={{ justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
-                                        <button
-                                            type="button"
-                                            className="btn"
-                                            onClick={() => setShowYarnModal(false)}
-                                        >
-                                            বাতিল
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="btn pri"
-                                        >
-                                            সুতা চালান সেভ করুন
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
 
                     {/* MODAL: CREATE DELIVERY CHALLAN */}
                     {showDeliveryModal && (
