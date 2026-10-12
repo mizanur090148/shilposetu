@@ -1515,7 +1515,7 @@ export default function KnitkhataIndex({
             {view === 'orders' && (
                 <>
                     {/* DUAL-ROLE SUBCONTRACT TABS (FACTORY VIEW: TAKE SUBCONTRACT vs VENDOR VIEW: GIVE SUBCONTRACT) */}
-                    <div className="subcontract-role-tabs">
+                    {/* <div className="subcontract-role-tabs">
                         <button
                             type="button"
                             className={`role-tab-btn ${role === 'fac' ? 'active-fac' : ''}`}
@@ -1553,7 +1553,7 @@ export default function KnitkhataIndex({
                                 <span>পোস্ট করা অর্ডার</span>
                             </div>
                         </button>
-                    </div>
+                    </div> */}
 
                     {/* ROLE 1: FACTORY VIEW (TAKE SUBCONTRACT: ORDERS I BID / TAKEN) */}
                     {role === 'fac' && (

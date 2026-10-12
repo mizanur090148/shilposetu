@@ -128,7 +128,6 @@ export default function KnitkhataLayout({
                     </div>
                 </Link>
 
-                <span className="proto">প্রোটোটাইপ · নমুনা ডেটা</span>
 
                 <div className="roleswitch" role="group" aria-label="কার চোখে দেখবেন">
                     <button
