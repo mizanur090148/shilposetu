@@ -133,7 +133,7 @@ export default function KnitkhataIndex({
     };
 
     // Subcontract Orders filter & search state
-    const [orderFilter, setOrderFilter] = useState<'all' | 'run' | 'wait' | 'done'>('all');
+    const [orderFilter, setOrderFilter] = useState<'run' | 'done' | 'all'>('run');
     const [orderVendorFilter, setOrderVendorFilter] = useState<string>('all');
     const [orderSearch, setOrderSearch] = useState('');
     const [orderSort, setOrderSort] = useState<'date' | 'progress' | 'qty'>('date');
@@ -415,7 +415,6 @@ export default function KnitkhataIndex({
     const totalOrderProgress = calcPct(totalDoneQty, totalOrderQty);
     const totalOrderRevenue = orders.reduce((sum, o) => sum + (o.qty * (o.rateTk || 22)), 0);
     const runningOrdersCount = orders.filter(o => o.status === 'run').length;
-    const waitingOrdersCount = orders.filter(o => o.status === 'wait').length;
     const doneOrdersCount = orders.filter(o => o.status === 'done').length;
 
     const filteredOrders = orders
@@ -1608,11 +1607,7 @@ export default function KnitkhataIndex({
                                     <b>{bn(runningOrdersCount)}টি</b>
                                     <i>ফ্লোরে নিটিং রানিং</i>
                                 </div>
-                                <div className="kpi">
-                                    <span>সুতার অপেক্ষায়</span>
-                                    <b>{bn(waitingOrdersCount)}টি</b>
-                                    <i>সুতা পেলেই কাজ শুরু</i>
-                                </div>
+
                                 <div className="kpi">
                                     <span>সম্পন্ন / ডেলিভারি</span>
                                     <b>{bn(doneOrdersCount)}টি</b>
@@ -1630,57 +1625,13 @@ export default function KnitkhataIndex({
                                 </div>
                             </div>
 
-                            {/* VENDOR SUMMARY CARDS (Interactive filtering) */}
-                            <div className="grid g3">
-                                {Object.entries(vendors).map(([k, v]) => {
-                                    const vOrders = orders.filter(o => o.v === k);
-                                    const vQty = vOrders.reduce((a, o) => a + o.qty, 0);
-                                    const vDone = vOrders.reduce((a, o) => a + o.done, 0);
-                                    const vPct = calcPct(vDone, vQty);
-                                    const isSelected = orderVendorFilter === k;
 
-                                    return (
-                                        <div
-                                            key={k}
-                                            className={`vendor-summary-card ${isSelected ? 'act' : ''}`}
-                                            onClick={() => setOrderVendorFilter(prev => prev === k ? 'all' : k)}
-                                            title="ক্লিক করে এই ভেন্ডরের অর্ডারে ফিল্টার করুন"
-                                        >
-                                            <div className="v-top">
-                                                <b>{v.name}</b>
-                                                <span className={`pill ${isSelected ? 'p-acc' : 'p-idle'}`}>
-                                                    {isSelected ? 'ফিল্টার সক্রিয়' : `${vOrders.length}টি অর্ডার`}
-                                                </span>
-                                            </div>
-                                            <div className="small muted">
-                                                ফোন: {v.phone} · {vOrders.filter(o => o.status === 'run').length}টি রানিং
-                                            </div>
-                                            <div style={{ marginTop: '4px' }}>
-                                                <div className="row" style={{ justifyContent: 'space-between', marginBottom: '2px' }}>
-                                                    <span className="small muted">উৎপাদন অগ্রগতি</span>
-                                                    <b className="mono small">{bn(vDone)} / {bn(vQty)} kg ({vPct}%)</b>
-                                                </div>
-                                                <div className="bar">
-                                                    <i style={{ width: `${vPct}%` }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
 
                             {/* MAIN ORDERS SECTION WITH FILTERS, SEARCH, SORT & TABLE */}
                             <div className="card">
                                 <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-                                    {/* Filter Tabs */}
+                                    {/* 3 Filter Tabs: চলমান, সম্পন্ন, সব অর্ডার */}
                                     <div className="roleswitch" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                        <button
-                                            type="button"
-                                            className={orderFilter === 'all' ? 'on' : ''}
-                                            onClick={() => setOrderFilter('all')}
-                                        >
-                                            সব অর্ডার ({bn(orders.length)})
-                                        </button>
                                         <button
                                             type="button"
                                             className={orderFilter === 'run' ? 'on' : ''}
@@ -1690,17 +1641,17 @@ export default function KnitkhataIndex({
                                         </button>
                                         <button
                                             type="button"
-                                            className={orderFilter === 'wait' ? 'on' : ''}
-                                            onClick={() => setOrderFilter('wait')}
-                                        >
-                                            সুতার অপেক্ষায় ({bn(waitingOrdersCount)})
-                                        </button>
-                                        <button
-                                            type="button"
                                             className={orderFilter === 'done' ? 'on' : ''}
                                             onClick={() => setOrderFilter('done')}
                                         >
                                             সম্পন্ন ({bn(doneOrdersCount)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={orderFilter === 'all' ? 'on' : ''}
+                                            onClick={() => setOrderFilter('all')}
+                                        >
+                                            সব অর্ডার ({bn(orders.length)})
                                         </button>
                                     </div>
 
