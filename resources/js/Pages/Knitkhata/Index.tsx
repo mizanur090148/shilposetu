@@ -455,7 +455,7 @@ export default function KnitkhataIndex({
     const vendorTotalChallansCount = vendorOrders.reduce((sum, o) => sum + (o.challans?.length || 0), 0);
     const vendorTotalBill = vendorOrders.reduce((sum, o) => sum + (o.qty * (o.rateTk || 22)), 0);
 
-    const [vendorOrderFilter, setVendorOrderFilter] = useState<'all' | 'run' | 'done'>('all');
+    const [vendorOrderFilter, setVendorOrderFilter] = useState<'run' | 'done' | 'all'>('run');
     const [vendorFactoryFilter, setVendorFactoryFilter] = useState<string>('all');
     const [vendorOrderSearch, setVendorOrderSearch] = useState('');
     const [vendorOrderSort, setVendorOrderSort] = useState<'date' | 'progress' | 'qty'>('date');
@@ -1951,15 +1951,8 @@ export default function KnitkhataIndex({
                             {/* MAIN ORDERS CARD */}
                             <div className="card">
                                 <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-                                    {/* 3 FILTER TABS */}
+                                    {/* 3 FILTER TABS: চলমান, সম্পন্ন, সব অর্ডার */}
                                     <div className="roleswitch" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                        <button
-                                            type="button"
-                                            className={vendorOrderFilter === 'all' ? 'on' : ''}
-                                            onClick={() => setVendorOrderFilter('all')}
-                                        >
-                                            সব অর্ডার ({bn(vendorOrders.length)})
-                                        </button>
                                         <button
                                             type="button"
                                             className={vendorOrderFilter === 'run' ? 'on' : ''}
@@ -1967,13 +1960,19 @@ export default function KnitkhataIndex({
                                         >
                                             চলমান ({bn(vendorRunningCount)})
                                         </button>
-
                                         <button
                                             type="button"
                                             className={vendorOrderFilter === 'done' ? 'on' : ''}
                                             onClick={() => setVendorOrderFilter('done')}
                                         >
                                             সম্পন্ন ({bn(vendorDoneCount)})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={vendorOrderFilter === 'all' ? 'on' : ''}
+                                            onClick={() => setVendorOrderFilter('all')}
+                                        >
+                                            সব অর্ডার ({bn(vendorOrders.length)})
                                         </button>
                                     </div>
 
