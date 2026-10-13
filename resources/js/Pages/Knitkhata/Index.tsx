@@ -1464,7 +1464,14 @@ export default function KnitkhataIndex({
                     </tr>
                 </thead>
                 <tbody>
-                    {list.map(o => {
+                    {list.length === 0 ? (
+                        <tr>
+                            <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                কোনো অর্ডার পাওয়া যায়নি। নতুন অর্ডার যুক্ত করতে "+ নতুন অর্ডার তৈরি করুন" বাটনে ক্লিক করুন।
+                            </td>
+                        </tr>
+                    ) : (
+                        list.map(o => {
                         const e = etaOf(o);
                         return (
                             <tr
@@ -1505,7 +1512,8 @@ export default function KnitkhataIndex({
                                 <td>{stPill(o)}</td>
                             </tr>
                         );
-                    })}
+                    })
+                )}
                 </tbody>
             </table>
         </div>
@@ -1856,9 +1864,19 @@ export default function KnitkhataIndex({
 
     // View data calculations
     const run = orders.filter(o => o.status === 'run');
-    const todayKg = prodLog.filter(p => p.d === '03 Oct').reduce((a, p) => a + p.kg, 0);
-    const mRun = Object.values(machineState).filter(s => s.startsWith('run')).length;
+    const todayKg = prodLog.filter(p => p.d === entryDate).reduce((a, p) => a + p.kg, 0);
+    const mRun = runningMyMachinesCount;
     const cls = (s: string) => (s.startsWith('run') ? 'run' : s);
+
+    // Dynamic Bangla Date and Active Shift for Dashboard
+    const todayBanglaDate = new Date().toLocaleDateString('bn-BD', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    const currentActiveShift = factoryShifts.find(s => s.code === entrySh) || factoryShifts.find(s => s.status === 'active') || factoryShifts[0];
+    const currentShiftDisplayName = currentActiveShift ? currentActiveShift.name : (entrySh ? `শিফট ${entrySh}` : 'শিফট A');
 
     // Attendance data
     const ppl: [string, string, string, number[]][] = [
@@ -1934,7 +1952,7 @@ export default function KnitkhataIndex({
                         .filter(o => o.v === 'abc')
                         .map(o => {
                             const todaySum = prodLog
-                                .filter(p => p.o === o.id && p.d === '03 Oct')
+                                .filter(p => p.o === o.id && p.d === entryDate)
                                 .reduce((a, p) => a + p.kg, 0);
                             const e = etaOf(o);
                             return (
@@ -1981,134 +1999,186 @@ export default function KnitkhataIndex({
             }
         >
             {/* SCREEN: DASHBOARD */}
-            {view === 'dash' && (
-                <>
-                    <div className="head">
-                        <div>
-                            <h2>আজকের অবস্থা</h2>
-                            <p>শনিবার, ৩ অক্টোবর ২০২৬ · শিফট A চলছে</p>
-                        </div>
-                        <div className="row">
-                            <Link
-                                href="/knitkhata/production-entry"
-                                className="btn"
-                                style={{ textDecoration: 'none' }}
-                            >
-                                + প্রোডাকশন এন্ট্রি
-                            </Link>
-                            <Link
-                                href="/knitkhata/orders"
-                                className="btn pri"
-                                style={{ textDecoration: 'none' }}
-                            >
-                                অর্ডার দেখুন
-                            </Link>
-                        </div>
-                    </div>
+            {view === 'dash' && (() => {
+                const waitingOrders = orders.filter(o => o.status === 'wait');
+                const nearDoneOrders = orders.filter(o => o.status === 'run' && (o.qty - o.done) <= 500);
+                const downMachines = allMyMachines.filter(m => m.status === 'down');
+                const qcIssues = orders.flatMap(o => (o.qc || []).filter(q => q.s !== 'ok').map(q => ({ o, q })));
+                const openQcList = qcIssues;
 
-                    <div className="kpis">
-                        <div className="kpi">
-                            <span>চলমান অর্ডার</span>
-                            <b>{run.length}</b>
-                            <i>১টি সুতার অপেক্ষায়</i>
+                return (
+                    <>
+                        <div className="head">
+                            <div>
+                                <h2>আজকের অবস্থা</h2>
+                                <p>{todayBanglaDate} · {currentShiftDisplayName} চলমান</p>
+                            </div>
+                            <div className="row">
+                                <Link
+                                    href="/knitkhata/production-entry"
+                                    className="btn"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    + প্রোডাকশন এন্ট্রি
+                                </Link>
+                                <Link
+                                    href="/knitkhata/orders"
+                                    className="btn pri"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    অর্ডার দেখুন
+                                </Link>
+                            </div>
                         </div>
-                        <div className="kpi">
-                            <span>আজকের প্রোডাকশন</span>
-                            <b>{bn(todayKg)} kg</b>
-                            <i>শিফট A পর্যন্ত</i>
-                        </div>
-                        <div className="kpi">
-                            <span>মেশিন চলছে</span>
-                            <b>{mRun} / 24</b>
-                            <i>২টি ব্রেকডাউন</i>
-                        </div>
-                        <div className="kpi">
-                            <span>QC সমস্যা (খোলা)</span>
-                            <b>3</b>
-                            <i>২টি ABC, ১টি XYZ</i>
-                        </div>
-                        <div className="kpi">
-                            <span>আজকের খরচ</span>
-                            <b>৳ 18,450</b>
-                            <i>৬টি ভাউচার</i>
-                        </div>
-                    </div>
 
-                    <div className="grid g2">
-                        <div className="card">
-                            <h3>মেশিন বোর্ড</h3>
-                            <div className="machines">
-                                {Object.entries(machineState).map(([m, s]) => (
-                                    <div
-                                        key={m}
-                                        className={`mc ${cls(s)}`}
-                                        title={s}
-                                        onClick={() => {
-                                            if (s.startsWith('run')) {
-                                                handleSelectOrder(s.split(':')[1]);
-                                            }
-                                        }}
-                                    >
-                                        <b>{m}</b>
-                                        {s.startsWith('run')
-                                            ? s.split(':')[1].slice(-3)
-                                            : s === 'down'
-                                            ? 'ব্রেকডাউন'
-                                            : s === 'wait'
-                                            ? 'রিজার্ভ'
-                                            : 'খালি'}
+                        <div className="kpis">
+                            <div className="kpi">
+                                <span>চলমান অর্ডার</span>
+                                <b>{bn(run.length)}</b>
+                                <i>{bn(waitingOrders.length)}টি সুতার অপেক্ষায়</i>
+                            </div>
+                            <div className="kpi">
+                                <span>আজকের প্রোডাকশন</span>
+                                <b>{bn(todayKg)} kg</b>
+                                <i>{currentShiftDisplayName} পর্যন্ত</i>
+                            </div>
+                            <div className="kpi">
+                                <span>মেশিন চলছে</span>
+                                <b>{bn(runningMyMachinesCount)} / {bn(totalMyMachinesCount)}</b>
+                                <i>{bn(downMyMachinesCount)}টি মেরামত, {bn(idleMyMachinesCount)}টি খালি</i>
+                            </div>
+                            <div className="kpi">
+                                <span>QC সমস্যা (খোলা)</span>
+                                <b>{bn(openQcList.length)}</b>
+                                <i>{openQcList.length > 0 ? `${bn(openQcList.length)}টি রোল পর্যালোচনায়` : 'সব রোল মানসম্মত (OK)'}</i>
+                            </div>
+                            <div className="kpi">
+                                <span>কারখানা সক্ষমতা</span>
+                                <b>{bn(totalDailyCapacityKg)} kg</b>
+                                <i>দৈনিক পূর্ণ সক্ষমতা ({bn(totalMyMachinesCount)}টি মেশিন)</i>
+                            </div>
+                        </div>
+
+                        <div className="grid g2">
+                            <div className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <h3 style={{ margin: 0 }}>মেশিন বোর্ড</h3>
+                                    <Link href="/knitkhata/my-machines" className="btn sm" style={{ textDecoration: 'none', fontSize: '.78rem', padding: '3px 10px' }}>
+                                        সব মেশিন ({bn(totalMyMachinesCount)}টি) →
+                                    </Link>
+                                </div>
+                                <div className="machines">
+                                    {allMyMachines.map(m => {
+                                        const st = m.status;
+                                        const targetOid = m.assignedOrder;
+                                        return (
+                                            <div
+                                                key={m.code}
+                                                className={`mc ${st === 'run' ? 'run' : st}`}
+                                                title={`${m.code} (${m.type}) - ${st === 'run' ? `চলমান: ${targetOid}` : st === 'down' ? 'ব্রেকডাউন' : st === 'wait' ? 'রিজার্ভ' : 'খালি'}`}
+                                                onClick={() => {
+                                                    if (st === 'run' && targetOid) {
+                                                        handleSelectOrder(targetOid);
+                                                    } else {
+                                                        router.visit('/knitkhata/my-machines');
+                                                    }
+                                                }}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <b>{m.code}</b>
+                                                {st === 'run' && targetOid
+                                                    ? (targetOid.startsWith('SC-') ? targetOid.slice(-3) : targetOid)
+                                                    : st === 'down'
+                                                    ? 'মেরামত'
+                                                    : st === 'wait'
+                                                    ? 'রিজার্ভ'
+                                                    : 'খালি'}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="legend">
+                                    <span style={{ '--c': 'var(--accent)' } as React.CSSProperties}>
+                                        অর্ডারে চলছে ({bn(runningMyMachinesCount)}টি)
+                                    </span>
+                                    <span style={{ '--c': 'var(--yarn)' } as React.CSSProperties}>
+                                        রিজার্ভ ({bn(waitMyMachinesCount)}টি)
+                                    </span>
+                                    <span style={{ '--c': 'var(--bad)' } as React.CSSProperties}>
+                                        মেরামত ({bn(downMyMachinesCount)}টি)
+                                    </span>
+                                    <span style={{ '--c': 'var(--idle)' } as React.CSSProperties}>
+                                        খালি ({bn(idleMyMachinesCount)}টি)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h3>নজর দেওয়া দরকার (Alerts)</h3>
+                                {qcIssues.length > 0 && qcIssues.slice(0, 2).map(({ o, q }, idx) => (
+                                    <div key={`qc-${idx}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
+                                        <i className="dot" style={{ background: 'var(--bad)' }} />
+                                        <div>
+                                            <b>{o.id}</b> — {q.d || 'ফল্ট চিহ্নিত'}: {q.issue || 'সমস্যা'} ({q.roll ? `রোল ${q.roll}` : '১টি রোল'} / {q.kg || 20} kg)। বায়ার: {vName(o.v)}।
+                                        </div>
                                     </div>
                                 ))}
-                            </div>
-                            <div className="legend">
-                                <span style={{ '--c': 'var(--accent)' } as React.CSSProperties}>
-                                    অর্ডারে চলছে (নিচে অর্ডার নং)
-                                </span>
-                                <span style={{ '--c': 'var(--yarn)' } as React.CSSProperties}>
-                                    পরের অর্ডারের জন্য রিজার্ভ
-                                </span>
-                                <span style={{ '--c': 'var(--bad)' } as React.CSSProperties}>
-                                    ব্রেকডাউন
-                                </span>
-                                <span style={{ '--c': 'var(--idle)' } as React.CSSProperties}>
-                                    খালি
-                                </span>
+
+                                {waitingOrders.length > 0 && waitingOrders.slice(0, 2).map(o => (
+                                    <div key={`wait-${o.id}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
+                                        <i className="dot" style={{ background: 'var(--warn)' }} />
+                                        <div>
+                                            <b>{o.id}</b> — {vName(o.v)} এর সুতা এখনো কারখানায় পৌঁছায়নি ({bn(o.qty)} kg {o.fabric})। সুতা রিসিভ এন্ট্রি করুন।
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {nearDoneOrders.length > 0 && nearDoneOrders.slice(0, 2).map(o => (
+                                    <div key={`near-${o.id}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
+                                        <i className="dot" style={{ background: 'var(--accent)' }} />
+                                        <div>
+                                            <b>{o.id}</b> — আর মাত্র {bn(Math.max(0, o.qty - o.done))} kg বাকি ({pct(o)}% সম্পন্ন)। ডেলিভারি চালান ও গাড়ি প্রস্তুত করুন।
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {downMachines.length > 0 && downMachines.slice(0, 1).map(m => (
+                                    <div key={`down-${m.code}`} className="alert click" onClick={() => router.visit('/knitkhata/my-machines')}>
+                                        <i className="dot" style={{ background: 'var(--bad)' }} />
+                                        <div>
+                                            <b>{m.code}</b> — কারিগরি মেরামত চলছে ({m.brand})। টেকনিশিয়ান দায়িত্বপ্রাপ্ত।
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {qcIssues.length === 0 && waitingOrders.length === 0 && nearDoneOrders.length === 0 && downMachines.length === 0 ? (
+                                    <div className="alert" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
+                                        <i className="dot" style={{ background: '#10b981' }} />
+                                        <div style={{ color: '#065f46' }}>
+                                            <b>সবকিছু স্বাভাবিক চলছে!</b> কোনো অর্ডার বা মেশিনে জরুরি ফল্ট নেই।
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="alert">
+                                        <i className="dot" style={{ background: 'var(--accent)' }} />
+                                        <div>কারখানার শিফট লক্ষ্যমাত্রা ও ফ্লোর প্রোডাকশন এন্ট্রি নিয়মিত আপডেট রাখুন।</div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="card">
-                            <h3>নজর দেওয়া দরকার</h3>
-                            <div className="alert">
-                                <i className="dot" style={{ background: 'var(--bad)' }} />
-                                <div>
-                                    <b>SC-2610-014</b> — M-07 এ needle mark, ১টি রোল (২২ kg) বাতিল। ABC কে জানানো হয়েছে।
-                                </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <h3 style={{ margin: 0 }}>চলমান অর্ডারের অগ্রগতি</h3>
+                                <Link href="/knitkhata/orders" className="btn sm" style={{ textDecoration: 'none', fontSize: '.78rem', padding: '3px 10px' }}>
+                                    সব সাব-কন্ট্রাক্ট অর্ডার দেখুন →
+                                </Link>
                             </div>
-                            <div className="alert">
-                                <i className="dot" style={{ background: 'var(--warn)' }} />
-                                <div>
-                                    <b>SC-2610-018</b> — Nobo Composite এর সুতা এখনো আসেনি। ৩টি মেশিন রিজার্ভ করে রাখা।
-                                </div>
-                            </div>
-                            <div className="alert">
-                                <i className="dot" style={{ background: 'var(--warn)' }} />
-                                <div>
-                                    <b>SC-2609-011</b> — মাত্র ১৯০ kg বাকি, কাল দুপুরে শেষ হবে। ডেলিভারি চালান রেডি করুন।
-                                </div>
-                            </div>
-                            <div className="alert">
-                                <i className="dot" style={{ background: 'var(--accent)' }} />
-                                <div>ডেসকো বিদ্যুৎ বিল (সেপ্টেম্বর) জমার শেষ তারিখ ১০ অক্টোবর।</div>
-                            </div>
+                            {renderOrderTable(orders.filter(o => o.status !== 'done'))}
                         </div>
-                    </div>
-
-                    <div className="card">
-                        <h3>চলমান অর্ডারের অগ্রগতি</h3>
-                        {renderOrderTable(orders.filter(o => o.status !== 'done'))}
-                    </div>
-                </>
-            )}
+                    </>
+                );
+            })()}
 
             {/* SCREEN: ORDERS (SUBCONTRACT ORDERS) */}
             {view === 'orders' && (
@@ -4087,7 +4157,7 @@ export default function KnitkhataIndex({
                                             <th>শিফট</th>
                                             <th>মেশিন</th>
                                             <th>অর্ডার ও বায়ার</th>
-                                            <th className="n">উৎপাদন (kg)</th>
+                                            <th className="n">প্রোডাকশন(kg)</th>
                                             <th className="n">রোল নাম্বার</th>
                                             <th>লট নং</th>
                                             <th>অপারেটর</th>

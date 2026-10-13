@@ -151,13 +151,38 @@ export default function KnitkhataLayout({
                     </button>
                 </div>
 
-                {/* Seamless Platform Back Links */}
+                {/* Seamless Platform Back Links & User Logout */}
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Link href={route('dashboard')} className="btn sm" style={{ textDecoration: 'none' }}>
                         ← মূল ড্যাশবোর্ড
                     </Link>
                     <Link href={route('home')} className="btn sm pri" style={{ textDecoration: 'none' }}>
                         হোম
+                    </Link>
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="btn sm"
+                        style={{
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            borderColor: '#fca5a5',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: 'pointer'
+                        }}
+                        title="নিটখাতা ও শিল্পসেতু থেকে লগআউট করুন"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>লগআউট</span>
                     </Link>
                 </div>
             </header>
@@ -199,6 +224,63 @@ export default function KnitkhataLayout({
                             </Link>
                         );
                     })}
+
+                    {/* Bottom User Info & Logout in Sidebar Rail */}
+                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--line, #e2e8f0)', padding: '14px 6px 8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', padding: '0 4px' }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, var(--accent, #0E6B66), #14b8a6)',
+                                color: '#ffffff',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 700,
+                                fontSize: '.85rem',
+                                flexShrink: 0
+                            }}>
+                                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                            </div>
+                            <div style={{ overflow: 'hidden', lineHeight: 1.25, minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                    {user?.name || 'ব্যবহারকারী'}
+                                </div>
+                                <div style={{ fontSize: '.72rem', color: 'var(--muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                    {user?.email || (user?.role === 'vendor' ? 'ভেন্ডর' : 'ফ্যাক্টরি অ্যাডমিন')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Link
+                            href={route('logout')}
+                            method="post"
+                            as="button"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '8px 10px',
+                                borderRadius: '8px',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                fontSize: '.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                            <span>লগআউট করুন</span>
+                        </Link>
+                    </div>
                 </nav>
 
                 <main id="main">
