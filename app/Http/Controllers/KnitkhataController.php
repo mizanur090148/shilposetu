@@ -845,6 +845,8 @@ class KnitkhataController extends Controller
                     ->where('code', $shiftCode)
                     ->first();
 
+                $notes = $item['notes'] ?? $item['remarks'] ?? null;
+
                 \App\Models\Production::create([
                     'factory_id' => $factory->id,
                     'subcontract_post_id' => $postId,
@@ -857,6 +859,7 @@ class KnitkhataController extends Controller
                     'operator_name' => $op,
                     'yarn_lot' => $lot,
                     'quality_issue' => $issue,
+                    'notes' => $notes,
                     'created_by_id' => $user->id,
                 ]);
 
@@ -890,6 +893,7 @@ class KnitkhataController extends Controller
                 'yarn_lot' => 'nullable|string',
                 'quality_issue' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'remarks' => 'nullable|string',
             ]);
 
             $prodDate = !empty($validated['production_date']) ? date('Y-m-d', strtotime($validated['production_date'])) : now()->toDateString();
@@ -925,7 +929,7 @@ class KnitkhataController extends Controller
                 'operator_name' => $validated['operator_name'] ?? 'অপারেটর',
                 'yarn_lot' => $validated['yarn_lot'] ?? null,
                 'quality_issue' => $validated['quality_issue'] ?? 'না',
-                'notes' => $validated['notes'] ?? null,
+                'notes' => $validated['notes'] ?? $validated['remarks'] ?? null,
                 'created_by_id' => $user->id,
             ]);
 

@@ -223,8 +223,9 @@ export default function KnitkhataIndex({
     const [entryOp, setEntryOp] = useState('জসিম');
     const [entryLot, setEntryLot] = useState('SQ-88412');
     const [entryIss, setEntryIss] = useState('না');
+    const [entryRemarks, setEntryRemarks] = useState('');
     const [historyShiftFilter, setHistoryShiftFilter] = useState<string>('all');
-    const [bulkEntries, setBulkEntries] = useState<Record<string, { kg: string; rolls: string; op: string; lot: string; issue: string; orderId?: string }>>({});
+    const [bulkEntries, setBulkEntries] = useState<Record<string, { kg: string; rolls: string; op: string; lot: string; issue: string; orderId?: string; remarks?: string }>>({});
 
     // Factory Shift Management state
     const [factoryShifts, setFactoryShifts] = useState<FactoryShift[]>(() => {
@@ -996,7 +997,9 @@ export default function KnitkhataIndex({
             rolls,
             op: entryOp,
             lot: entryLot,
-            issue: entryIss
+            issue: entryIss,
+            notes: entryRemarks,
+            remarks: entryRemarks
         };
 
         setProdLog(prev => [newLog, ...prev]);
@@ -1025,12 +1028,15 @@ export default function KnitkhataIndex({
             rolls_count: rolls,
             operator_name: entryOp,
             yarn_lot: entryLot,
-            quality_issue: entryIss
+            quality_issue: entryIss,
+            notes: entryRemarks,
+            remarks: entryRemarks
         }, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
                 showToast(`${m} এ ${bn(kg)} kg উৎপাদন ডাটাবেজে সংরক্ষিত হয়েছে · ${oid} এখন ${updatedPct}%`);
+                setEntryRemarks('');
             }
         });
     };
@@ -1214,7 +1220,7 @@ export default function KnitkhataIndex({
         });
     };
 
-    const handleBulkEntryChange = (mCode: string, field: 'kg' | 'rolls' | 'op' | 'lot' | 'issue' | 'orderId', val: string) => {
+    const handleBulkEntryChange = (mCode: string, field: 'kg' | 'rolls' | 'op' | 'lot' | 'issue' | 'orderId' | 'remarks', val: string) => {
         setBulkEntries(prev => ({
             ...prev,
             [mCode]: {
@@ -1224,6 +1230,7 @@ export default function KnitkhataIndex({
                 lot: prev[mCode]?.lot ?? '',
                 issue: prev[mCode]?.issue ?? 'না',
                 orderId: prev[mCode]?.orderId ?? '',
+                remarks: prev[mCode]?.remarks ?? '',
                 [field]: val
             }
         }));
@@ -1233,7 +1240,7 @@ export default function KnitkhataIndex({
         setBulkEntries(prev => {
             const updated = { ...prev };
             allMyMachines.forEach(m => {
-                const current = updated[m.code] || { kg: '', rolls: '', op: '', lot: '', issue: 'না' };
+                const current = updated[m.code] || { kg: '', rolls: '', op: '', lot: '', issue: 'না', remarks: '' };
                 updated[m.code] = {
                     ...current,
                     op: m.op !== '—' ? m.op : (current.op || 'অপারেটর')
@@ -1271,7 +1278,9 @@ export default function KnitkhataIndex({
                 rolls,
                 op: data.op || mObj?.op || 'অপারেটর',
                 lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
-                issue: data.issue || 'না'
+                issue: data.issue || 'না',
+                notes: data.remarks || '',
+                remarks: data.remarks || ''
             });
 
             entriesPayload.push({
@@ -1281,7 +1290,9 @@ export default function KnitkhataIndex({
                 rolls_count: rolls,
                 operator_name: data.op || mObj?.op || 'অপারেটর',
                 yarn_lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
-                quality_issue: data.issue || 'না'
+                quality_issue: data.issue || 'না',
+                notes: data.remarks || '',
+                remarks: data.remarks || ''
             });
 
             orderIncrement[oId] = (orderIncrement[oId] || 0) + kg;
@@ -3656,13 +3667,14 @@ export default function KnitkhataIndex({
                                                 <th style={{ minWidth: '160px' }}>ফেব্রিক ও লট</th>
                                                 <th style={{ width: '130px' }}>অপারেটর</th>
                                                 <th style={{ width: '130px' }}>উৎপাদন (kg) *</th>
-                                                <th style={{ width: '90px' }}>রোল সংখ্যা</th>
+                                                <th style={{ width: '95px' }}>রোল নাম্বার</th>
                                                 <th style={{ width: '135px' }}>কোয়ালিটি / ফল্ট</th>
+                                                <th style={{ minWidth: '120px' }}>মন্তব্য</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {displayFloorMachines.map(m => {
-                                                const mState = bulkEntries[m.code] || { kg: '', rolls: '', op: m.op !== '—' ? m.op : '', lot: '', issue: 'না', orderId: '' };
+                                                const mState = bulkEntries[m.code] || { kg: '', rolls: '', op: m.op !== '—' ? m.op : '', lot: '', issue: 'না', orderId: '', remarks: '' };
                                                 const defaultAssignedO = orders.find(o => o.machines?.includes(m.code)) || orders.find(o => o.status === 'run') || orders[0];
                                                 const activeO = (mState.orderId ? orders.find(o => o.id === mState.orderId) : null) || defaultAssignedO;
                                                 const isFilled = parseFloat(mState.kg) > 0;
@@ -3731,7 +3743,7 @@ export default function KnitkhataIndex({
                                                                 type="number"
                                                                 step="any"
                                                                 className="prod-input prod-input-num"
-                                                                placeholder="যেমন: ১৮০"
+                                                                placeholder=""
                                                                 value={mState.kg}
                                                                 onChange={e => handleBulkEntryChange(m.code, 'kg', e.target.value)}
                                                                 style={{
@@ -3748,7 +3760,7 @@ export default function KnitkhataIndex({
                                                             <input
                                                                 type="number"
                                                                 className="prod-input prod-input-num"
-                                                                placeholder="যেমন: ৮"
+                                                                placeholder=""
                                                                 value={mState.rolls}
                                                                 onChange={e => handleBulkEntryChange(m.code, 'rolls', e.target.value)}
                                                                 style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', fontSize: '.85rem' }}
@@ -3768,6 +3780,16 @@ export default function KnitkhataIndex({
                                                                 <option value="Oil spot">Oil spot (তেল দাগ)</option>
                                                                 <option value="Lycra out">Lycra out</option>
                                                             </select>
+                                                        </td>
+                                                        <td>
+                                                            <input
+                                                                type="text"
+                                                                className="prod-input"
+                                                                placeholder="মন্তব্য (ঐচ্ছিক)"
+                                                                value={mState.remarks || ''}
+                                                                onChange={e => handleBulkEntryChange(m.code, 'remarks', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', fontSize: '.82rem' }}
+                                                            />
                                                         </td>
                                                     </tr>
                                                 );
@@ -3868,7 +3890,7 @@ export default function KnitkhataIndex({
                                         />
                                     </label>
                                     <label className="f">
-                                        রোল সংখ্যা
+                                        রোল নাম্বার
                                         <input
                                             type="number"
                                             className="prod-input prod-input-num"
@@ -3885,7 +3907,7 @@ export default function KnitkhataIndex({
                                         />
                                     </label>
                                     <label className="f">
-                                        ব্যবহৃত সুতার লট
+                                        লট
                                         <select
                                             className="prod-input"
                                             value={entryLot}
@@ -3893,6 +3915,7 @@ export default function KnitkhataIndex({
                                         >
                                             <option>SQ-88412</option>
                                             <option>SQ-88419</option>
+                                            <option>SQ-88414</option>
                                             <option>AK-5521</option>
                                             <option>NS-2290</option>
                                         </select>
@@ -3911,6 +3934,16 @@ export default function KnitkhataIndex({
                                             <option value="Oil spot">Oil spot</option>
                                             <option value="Lycra out">Lycra out</option>
                                         </select>
+                                    </label>
+                                    <label className="f" style={{ gridColumn: 'span 2' }}>
+                                        মন্তব্য (Remarks)
+                                        <input
+                                            type="text"
+                                            className="prod-input"
+                                            placeholder="প্রোডাকশন সংক্রান্ত কোনো বিশেষ মন্তব্য বা নোট লিখুন (ঐচ্ছিক)"
+                                            value={entryRemarks}
+                                            onChange={e => setEntryRemarks(e.target.value)}
+                                        />
                                     </label>
                                 </div>
                                 <div className="row" style={{ marginTop: '16px' }}>
@@ -3933,7 +3966,7 @@ export default function KnitkhataIndex({
                                 </div>
                             </div>
                             <div className="card" style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
-                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>মোট রোল সংখ্যা</div>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>মোট রোল নাম্বার</div>
                                 <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#3b82f6', marginTop: '4px' }}>
                                     {bn(todayTotalRolls)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>টি রোল</span>
                                 </div>
@@ -4007,17 +4040,18 @@ export default function KnitkhataIndex({
                                             <th>মেশিন</th>
                                             <th>অর্ডার ও বায়ার</th>
                                             <th className="n">উৎপাদন (kg)</th>
-                                            <th className="n">রোল</th>
+                                            <th className="n">রোল নাম্বার</th>
                                             <th>লট নং</th>
                                             <th>অপারেটর</th>
                                             <th>সমস্যা / স্ট্যাটাস</th>
+                                            <th style={{ minWidth: '110px' }}>মন্তব্য</th>
                                             <th style={{ width: '60px' }}>অ্যাকশন</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredHistory.length === 0 ? (
                                             <tr>
-                                                <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
                                                     এই শিফটে এখনো কোনো এন্ট্রি করা হয়নি।
                                                 </td>
                                             </tr>
@@ -4057,6 +4091,9 @@ export default function KnitkhataIndex({
                                                                     ✓ ঠিক আছে
                                                                 </span>
                                                             )}
+                                                        </td>
+                                                        <td className="small muted" style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.notes || p.remarks || ''}>
+                                                            {p.notes || p.remarks || '—'}
                                                         </td>
                                                         <td>
                                                             <button

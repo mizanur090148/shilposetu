@@ -75,6 +75,7 @@ export interface ProductionLogItem {
     lot?: string;
     issue?: string;
     notes?: string;
+    remarks?: string;
 }
 
 export interface UserItem {
