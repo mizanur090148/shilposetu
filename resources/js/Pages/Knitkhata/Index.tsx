@@ -11,7 +11,8 @@ import {
     KnitkhataProps,
     Vendor,
     YarnIntake,
-    DeliveryChallan
+    DeliveryChallan,
+    FactoryShift
 } from './types';
 import {
     INITIAL_ORDERS,
@@ -24,6 +25,87 @@ import {
     fmtD,
     calcEta
 } from './mockData';
+
+export const PRESET_1_SHIFT: FactoryShift[] = [
+    {
+        id: 'shift_day',
+        code: 'Day',
+        name: 'ডে শিফট (Day)',
+        startTime: '08:00',
+        endTime: '17:00',
+        durationHours: 9,
+        inCharge: 'মো. রফিকুল ইসলাম',
+        targetOutputKg: 950,
+        status: 'active',
+        notes: 'সাধারণ জেনারেল শিফট (সকাল ৮:০০ থেকে বিকাল ৫:০০)'
+    }
+];
+
+export const PRESET_2_SHIFTS: FactoryShift[] = [
+    {
+        id: 'shift_a',
+        code: 'A',
+        name: 'শিফট A (ডে)',
+        startTime: '08:00',
+        endTime: '20:00',
+        durationHours: 12,
+        inCharge: 'মো. রফিকুল ইসলাম',
+        targetOutputKg: 1400,
+        status: 'active',
+        notes: 'সকাল ৮:০০ থেকে রাত ৮:০০ (১২ ঘণ্টা ডে শিফট)'
+    },
+    {
+        id: 'shift_b',
+        code: 'B',
+        name: 'শিফট B (নাইট)',
+        startTime: '20:00',
+        endTime: '08:00',
+        durationHours: 12,
+        inCharge: 'কামরুল হাসান',
+        targetOutputKg: 1350,
+        status: 'active',
+        notes: 'রাত ৮:০০ থেকে সকাল ৮:০০ (১২ ঘণ্টা নাইট শিফট)'
+    }
+];
+
+export const PRESET_3_SHIFTS: FactoryShift[] = [
+    {
+        id: 'shift_a_3',
+        code: 'A',
+        name: 'শিফট A (মর্নিং)',
+        startTime: '06:00',
+        endTime: '14:00',
+        durationHours: 8,
+        inCharge: 'মো. রফিকুল ইসলাম',
+        targetOutputKg: 900,
+        status: 'active',
+        notes: 'সকাল ৬:০০ থেকে দুপুর ২:০০ (৮ ঘণ্টা মর্নিং শিফট)'
+    },
+    {
+        id: 'shift_b_3',
+        code: 'B',
+        name: 'শিফট B (ইভনিং)',
+        startTime: '14:00',
+        endTime: '22:00',
+        durationHours: 8,
+        inCharge: 'কামরুল হাসান',
+        targetOutputKg: 900,
+        status: 'active',
+        notes: 'দুপুর ২:০০ থেকে রাত ১০:০০ (৮ ঘণ্টা ইভনিং শিফট)'
+    },
+    {
+        id: 'shift_c_3',
+        code: 'C',
+        name: 'শিফট C (নাইট)',
+        startTime: '22:00',
+        endTime: '06:00',
+        durationHours: 8,
+        inCharge: 'আব্দুল কাদের',
+        targetOutputKg: 850,
+        status: 'active',
+        notes: 'রাত ১০:০০ থেকে সকাল ৬:০০ (৮ ঘণ্টা নাইট শিফট)'
+    }
+];
 
 export default function KnitkhataIndex({
     factory,
@@ -130,6 +212,29 @@ export default function KnitkhataIndex({
     const [entryIss, setEntryIss] = useState('না');
     const [historyShiftFilter, setHistoryShiftFilter] = useState<string>('all');
     const [bulkEntries, setBulkEntries] = useState<Record<string, { kg: string; rolls: string; op: string; lot: string; issue: string; orderId?: string }>>({});
+
+    // Factory Shift Management state
+    const [factoryShifts, setFactoryShifts] = useState<FactoryShift[]>(() => {
+        try {
+            const saved = typeof window !== 'undefined' ? localStorage.getItem('kk_factory_shifts') : null;
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {}
+        return PRESET_2_SHIFTS;
+    });
+    const [showShiftModal, setShowShiftModal] = useState(false);
+    const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+    const [shiftFormName, setShiftFormName] = useState('শিফট A (ডে)');
+    const [shiftFormCode, setShiftFormCode] = useState('A');
+    const [shiftFormStart, setShiftFormStart] = useState('08:00');
+    const [shiftFormEnd, setShiftFormEnd] = useState('20:00');
+    const [shiftFormDuration, setShiftFormDuration] = useState('12');
+    const [shiftFormInCharge, setShiftFormInCharge] = useState('মো. রফিকুল ইসলাম');
+    const [shiftFormTargetKg, setShiftFormTargetKg] = useState('1400');
+    const [shiftFormStatus, setShiftFormStatus] = useState<'active' | 'inactive'>('active');
+    const [shiftFormNotes, setShiftFormNotes] = useState('');
 
     // Vendor user add form
     const [newVendorName, setNewVendorName] = useState('নতুন প্রতিনিধি');
@@ -892,20 +997,136 @@ export default function KnitkhataIndex({
     };
 
     // Shift & Bulk Entry Handlers
-    const handleShiftModeChange = (mode: 1 | 2 | 3) => {
-        setShiftMode(mode);
+    const saveFactoryShifts = (updated: FactoryShift[]) => {
+        setFactoryShifts(updated);
         try {
             if (typeof window !== 'undefined') {
-                localStorage.setItem('kk_shift_mode', mode.toString());
+                localStorage.setItem('kk_factory_shifts', JSON.stringify(updated));
             }
         } catch (e) {}
-        if (mode === 1) {
+    };
+
+    const handleApplyShiftPreset = (presetType: 1 | 2 | 3) => {
+        const preset = presetType === 1 ? PRESET_1_SHIFT : presetType === 2 ? PRESET_2_SHIFTS : PRESET_3_SHIFTS;
+        saveFactoryShifts(preset);
+        setShiftMode(presetType);
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('kk_shift_mode', presetType.toString());
+            }
+        } catch (e) {}
+        if (presetType === 1) {
             setEntrySh('Day');
-        } else if (mode === 2) {
+        } else if (presetType === 2) {
             if (entrySh !== 'A' && entrySh !== 'B') setEntrySh('A');
-        } else if (mode === 3) {
+        } else if (presetType === 3) {
             if (entrySh !== 'A' && entrySh !== 'B' && entrySh !== 'C') setEntrySh('A');
         }
+        showToast(`${presetType}টি শিফটের স্ট্যান্ডার্ড প্রিসেট সেট করা হয়েছে`);
+    };
+
+    const handleShiftModeChange = (mode: 1 | 2 | 3) => {
+        handleApplyShiftPreset(mode);
+    };
+
+    const handleOpenAddShift = () => {
+        setEditingShiftId(null);
+        const nextCode = String.fromCharCode(65 + factoryShifts.length);
+        setShiftFormName(`শিফট ${nextCode}`);
+        setShiftFormCode(nextCode);
+        setShiftFormStart('08:00');
+        setShiftFormEnd('16:00');
+        setShiftFormDuration('8');
+        setShiftFormInCharge('');
+        setShiftFormTargetKg('1000');
+        setShiftFormStatus('active');
+        setShiftFormNotes('');
+        setShowShiftModal(true);
+    };
+
+    const handleOpenEditShift = (s: FactoryShift) => {
+        setEditingShiftId(s.id);
+        setShiftFormName(s.name);
+        setShiftFormCode(s.code);
+        setShiftFormStart(s.startTime);
+        setShiftFormEnd(s.endTime);
+        setShiftFormDuration(s.durationHours.toString());
+        setShiftFormInCharge(s.inCharge || '');
+        setShiftFormTargetKg(s.targetOutputKg ? s.targetOutputKg.toString() : '1000');
+        setShiftFormStatus(s.status);
+        setShiftFormNotes(s.notes || '');
+        setShowShiftModal(true);
+    };
+
+    const handleSaveShiftModal = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!shiftFormName.trim() || !shiftFormCode.trim()) {
+            showToast('শিফটের নাম ও কোড আবশ্যক');
+            return;
+        }
+
+        const duration = parseFloat(shiftFormDuration) || 8;
+        const targetKg = parseFloat(shiftFormTargetKg) || 0;
+
+        if (editingShiftId) {
+            const updated = factoryShifts.map(s => {
+                if (s.id === editingShiftId) {
+                    return {
+                        ...s,
+                        name: shiftFormName.trim(),
+                        code: shiftFormCode.trim().toUpperCase(),
+                        startTime: shiftFormStart,
+                        endTime: shiftFormEnd,
+                        durationHours: duration,
+                        inCharge: shiftFormInCharge.trim(),
+                        targetOutputKg: targetKg,
+                        status: shiftFormStatus,
+                        notes: shiftFormNotes.trim()
+                    };
+                }
+                return s;
+            });
+            saveFactoryShifts(updated);
+            showToast(`শিফট "${shiftFormName}" সফলভাবে আপডেট করা হয়েছে`);
+        } else {
+            const newShift: FactoryShift = {
+                id: `shift_${Date.now()}`,
+                name: shiftFormName.trim(),
+                code: shiftFormCode.trim().toUpperCase(),
+                startTime: shiftFormStart,
+                endTime: shiftFormEnd,
+                durationHours: duration,
+                inCharge: shiftFormInCharge.trim(),
+                targetOutputKg: targetKg,
+                status: shiftFormStatus,
+                notes: shiftFormNotes.trim()
+            };
+            saveFactoryShifts([...factoryShifts, newShift]);
+            showToast(`নতুন শিফট "${shiftFormName}" তৈরি করা হয়েছে`);
+        }
+        setShowShiftModal(false);
+    };
+
+    const handleDeleteShift = (id: string, name: string) => {
+        if (factoryShifts.length <= 1) {
+            showToast('কারখানায় অন্তত একটি সক্রিয় শিফট থাকা প্রয়োজন');
+            return;
+        }
+        const updated = factoryShifts.filter(s => s.id !== id);
+        saveFactoryShifts(updated);
+        showToast(`শিফট "${name}" মুছে ফেলা হয়েছে`);
+    };
+
+    const handleToggleShiftStatus = (id: string) => {
+        const updated = factoryShifts.map(s => {
+            if (s.id === id) {
+                const nextStatus: 'active' | 'inactive' = s.status === 'active' ? 'inactive' : 'active';
+                return { ...s, status: nextStatus };
+            }
+            return s;
+        });
+        saveFactoryShifts(updated);
+        showToast('শিফটের অবস্থা পরিবর্তন করা হয়েছে');
     };
 
     const handleBulkEntryChange = (mCode: string, field: 'kg' | 'rolls' | 'op' | 'lot' | 'issue' | 'orderId', val: string) => {
@@ -1598,6 +1819,8 @@ export default function KnitkhataIndex({
                     ? `অর্ডার বিবরণ (${curOrder})`
                     : view === 'machines'
                     ? 'আমার মেশিনগুলো'
+                    : view === 'shifts'
+                    ? 'শিফট ব্যবস্থাপনা'
                     : 'নিটখাতা প্রোটোটাইপ'
             }
         >
@@ -3076,19 +3299,25 @@ export default function KnitkhataIndex({
 
             {/* SCREEN: SHIFT ENTRY */}
             {view === 'entry' && (() => {
-                // Determine current shift options based on shiftMode (1, 2, or 3)
-                const currentShiftList = shiftMode === 1
-                    ? [{ id: 'Day', name: 'ডে শিফট (Day)', time: 'সকাল ৮:০০ - বিকাল ৫:০০ (৯ ঘণ্টা)' }]
-                    : shiftMode === 2
-                    ? [
-                        { id: 'A', name: 'শিফট A (ডে)', time: 'সকাল ৮:০০ - রাত ৮:০০ (১২ ঘণ্টা)' },
-                        { id: 'B', name: 'শিফট B (নাইট)', time: 'রাত ৮:০০ - সকাল ৮:০০ (১২ ঘণ্টা)' }
-                    ]
-                    : [
-                        { id: 'A', name: 'শিফট A (মর্নিং)', time: 'সকাল ৬:০০ - দুপুর ২:০০ (৮ ঘণ্টা)' },
-                        { id: 'B', name: 'শিফট B (ইভনিং)', time: 'দুপুর ২:০০ - রাত ১০:০০ (৮ ঘণ্টা)' },
-                        { id: 'C', name: 'শিফট C (নাইট)', time: 'রাত ১০:০০ - সকাল ৬:০০ (৮ ঘণ্টা)' }
-                    ];
+                // Determine current shift options dynamically from factoryShifts or fallback to presets
+                const currentShiftList = factoryShifts.filter(s => s.status === 'active').length > 0
+                    ? factoryShifts.filter(s => s.status === 'active').map(s => ({
+                        id: s.code,
+                        name: s.name,
+                        time: `${s.startTime} - ${s.endTime} (${bn(s.durationHours)} ঘণ্টা)`
+                    }))
+                    : (shiftMode === 1
+                        ? [{ id: 'Day', name: 'ডে শিফট (Day)', time: 'সকাল ৮:০০ - বিকাল ৫:০০ (৯ ঘণ্টা)' }]
+                        : shiftMode === 2
+                        ? [
+                            { id: 'A', name: 'শিফট A (ডে)', time: 'সকাল ৮:০০ - রাত ৮:০০ (১২ ঘণ্টা)' },
+                            { id: 'B', name: 'শিফট B (নাইট)', time: 'রাত ৮:০০ - সকাল ৮:০০ (১২ ঘণ্টা)' }
+                        ]
+                        : [
+                            { id: 'A', name: 'শিফট A (মর্নিং)', time: 'সকাল ৬:০০ - দুপুর ২:০০ (৮ ঘণ্টা)' },
+                            { id: 'B', name: 'শিফট B (ইভনিং)', time: 'দুপুর ২:০০ - রাত ১০:০০ (৮ ঘণ্টা)' },
+                            { id: 'C', name: 'শিফট C (নাইট)', time: 'রাত ১০:০০ - সকাল ৬:০০ (৮ ঘণ্টা)' }
+                        ]);
 
                 // Active floor machines based on scope
                 const activeFloorMachines = allMyMachines.filter(m => m.status === 'run');
@@ -4481,6 +4710,388 @@ export default function KnitkhataIndex({
                     )}
                 </>
             )}
+
+            {/* SCREEN: SHIFTS (Factory Shift Management) */}
+            {view === 'shifts' && (() => {
+                const activeShiftsCount = factoryShifts.filter(s => s.status === 'active').length;
+                const totalHoursCoverage = factoryShifts.filter(s => s.status === 'active').reduce((acc, s) => acc + (s.durationHours || 0), 0);
+                const totalTargetOutputKg = factoryShifts.filter(s => s.status === 'active').reduce((acc, s) => acc + (s.targetOutputKg || 0), 0);
+
+                return (
+                    <>
+                        <div className="head">
+                            <div>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>⏱️</span> কারখানার শিফট ব্যবস্থাপনা (Factory Shifts)
+                                </h2>
+                                <p>
+                                    কারখানা: <b>{factoryDisplayName}</b> · আপনার ফ্যাক্টরির শিফট শিডিউল, কার্যঘণ্টা ও ফ্লোর ইনচার্জ পরিচালনা করুন
+                                </p>
+                            </div>
+                            <div className="row" style={{ gap: '8px' }}>
+                                <button
+                                    type="button"
+                                    className="btn pri"
+                                    onClick={handleOpenAddShift}
+                                >
+                                    + নতুন শিফট যোগ করুন
+                                </button>
+                                <Link
+                                    href="/knitkhata/production-entry"
+                                    className="btn"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    দৈনিক প্রোডাকশন এন্ট্রি
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* STANDARD PRESET TEMPLATES BAR */}
+                        <div className="card" style={{ padding: '16px', marginBottom: '20px', background: 'var(--surface2, #f8fafc)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                <div>
+                                    <b style={{ fontSize: '.9rem' }}>কারখানা অনুযায়ী স্ট্যান্ডার্ড শিফট প্রিসেট:</b>
+                                    <p className="small muted" style={{ margin: '2px 0 0 0' }}>
+                                        এক ক্লিকে আপনার কারখানার শিফট কাঠামো প্রস্তুত করুন (পরে প্রয়োজনমতো এডিট বা ডিলিট করতে পারবেন)
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className={`btn sm ${factoryShifts.length === 1 ? 'pri' : ''}`}
+                                        onClick={() => handleApplyShiftPreset(1)}
+                                    >
+                                        ⚡ ১টি শিফট প্রিসেট (Day 9h)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn sm ${factoryShifts.length === 2 ? 'pri' : ''}`}
+                                        onClick={() => handleApplyShiftPreset(2)}
+                                    >
+                                        ⚡ ২টি শিফট প্রিসেট (Day/Night 12h)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn sm ${factoryShifts.length === 3 ? 'pri' : ''}`}
+                                        onClick={() => handleApplyShiftPreset(3)}
+                                    >
+                                        ⚡ ৩টি শিফট প্রিসেট (8h Rotation)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* KPIS SUMMARY */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--accent, #0E6B66)' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>মোট শিফট সংখ্যা</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
+                                    {bn(factoryShifts.length)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>টি</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    নিবন্ধিত শিফট কাঠামো
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>সক্রিয় শিফট</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
+                                    {bn(activeShiftsCount)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>টি</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    বর্তমানে উৎপাদনে কার্যকর
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>দৈনিক ফ্লোর কভারেজ</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#3b82f6', marginTop: '4px' }}>
+                                    {bn(totalHoursCoverage)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>ঘণ্টা</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    ২৪ ঘণ্টার মধ্যে কভার
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>শিফট দৈনিক লক্ষ্যমাত্রা</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
+                                    {bn(totalTargetOutputKg)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>kg</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    সকল সক্রিয় শিফট মিলিয়ে
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SHIFTS TABLE CARD */}
+                        <div className="card" style={{ padding: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>কারখানার কার্যকর শিফট তালিকা</h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                        এখানে নির্ধারিত শিফটগুলো সরাসরি দৈনিক প্রোডাকশন এন্ট্রি এবং ফ্লোর বাল্ক শিটে ব্যবহৃত হবে
+                                    </p>
+                                </div>
+                                <span className="pill p-ok">
+                                    মোট সক্রিয়: {bn(activeShiftsCount)}টি শিফট
+                                </span>
+                            </div>
+
+                            <div className="tw" style={{ border: '1px solid var(--border, #e2e8f0)', borderRadius: '8px', overflow: 'hidden' }}>
+                                <table>
+                                    <thead>
+                                        <tr style={{ background: 'var(--surface2, #f8fafc)' }}>
+                                            <th style={{ width: '100px' }}>শিফট কোড</th>
+                                            <th style={{ minWidth: '180px' }}>শিফটের নাম</th>
+                                            <th style={{ minWidth: '160px' }}>সময়সূচী (শুরু — শেষ)</th>
+                                            <th style={{ width: '110px' }} className="n">সময়কাল</th>
+                                            <th style={{ minWidth: '160px' }}>ফ্লোর ইনচার্জ / সুপারভাইজার</th>
+                                            <th style={{ width: '130px' }} className="n">টার্গেট আউটপুট</th>
+                                            <th style={{ width: '100px' }}>অবস্থা</th>
+                                            <th style={{ width: '130px' }}>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {factoryShifts.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={8} style={{ textAlign: 'center', padding: '28px', color: 'var(--muted)' }}>
+                                                    এখনো কোনো শিফট কনফিগার করা হয়নি। উপরের প্রিসেট থেকে অথবা "+ নতুন শিফট যোগ করুন" বাটনে ক্লিক করুন।
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            factoryShifts.map(s => {
+                                                const isActive = s.status === 'active';
+                                                return (
+                                                    <tr key={s.id} style={{ opacity: isActive ? 1 : 0.65 }}>
+                                                        <td>
+                                                            <span className="pill p-acc" style={{ fontWeight: 700, fontSize: '.85rem', padding: '3px 10px' }}>
+                                                                শিফট {s.code}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <b style={{ color: 'var(--accent)', fontSize: '.92rem' }}>{s.name}</b>
+                                                            {s.notes && (
+                                                                <div style={{ fontSize: '.76rem', color: 'var(--muted)', marginTop: '2px' }}>
+                                                                    {s.notes}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '.88rem' }}>
+                                                                <span>⏰ {s.startTime}</span>
+                                                                <span style={{ color: 'var(--muted)' }}>—</span>
+                                                                <span>{s.endTime}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="n" style={{ fontWeight: 700 }}>
+                                                            {bn(s.durationHours)} ঘণ্টা
+                                                        </td>
+                                                        <td>
+                                                            {s.inCharge ? (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <span>👤</span>
+                                                                    <span style={{ fontWeight: 600, fontSize: '.85rem' }}>{s.inCharge}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="small muted">অ্যাসাইন করা নেই</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="n" style={{ fontWeight: 700, color: 'var(--ok)' }}>
+                                                            {s.targetOutputKg ? `${bn(s.targetOutputKg)} kg` : '—'}
+                                                        </td>
+                                                        <td>
+                                                            <button
+                                                                type="button"
+                                                                className={`switch ${isActive ? 'on' : ''}`}
+                                                                onClick={() => handleToggleShiftStatus(s.id)}
+                                                                aria-label={`${s.name} সক্রিয়/নিষ্ক্রিয়`}
+                                                                title={isActive ? 'সক্রিয় (ক্লিক করে বন্ধ করুন)' : 'নিষ্ক্রিয় (ক্লিক করে চালু করুন)'}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn sm"
+                                                                    onClick={() => handleOpenEditShift(s)}
+                                                                    style={{ padding: '3px 8px', fontSize: '.78rem' }}
+                                                                    title="শিফট সম্পাদন করুন"
+                                                                >
+                                                                    ✏️ এডিট
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn sm"
+                                                                    onClick={() => handleDeleteShift(s.id, s.name)}
+                                                                    style={{ padding: '3px 8px', fontSize: '.78rem', color: '#dc2626' }}
+                                                                    title="শিফট মুছে ফেলুন"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* MODAL: ADD / EDIT SHIFT */}
+                        {showShiftModal && (
+                            <div
+                                className="modal-backdrop"
+                                onClick={() => setShowShiftModal(false)}
+                            >
+                                <div
+                                    className="modal-box"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ maxWidth: '520px' }}
+                                >
+                                    <div className="row" style={{ justifyContent: 'space-between', marginBottom: '14px' }}>
+                                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span>⏱️</span> {editingShiftId ? 'শিফট সম্পাদনা করুন' : 'নতুন শিফট যোগ করুন'}
+                                        </h3>
+                                        <button
+                                            type="button"
+                                            className="btn sm"
+                                            onClick={() => setShowShiftModal(false)}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    <form onSubmit={handleSaveShiftModal}>
+                                        <div className="grid g2" style={{ gap: '12px' }}>
+                                            <label className="f">
+                                                শিফটের নাম *
+                                                <input
+                                                    className="prod-input"
+                                                    required
+                                                    placeholder="যেমন: শিফট A (ডে)"
+                                                    value={shiftFormName}
+                                                    onChange={e => setShiftFormName(e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="f">
+                                                শিফট কোড / ট্যাগ *
+                                                <input
+                                                    className="prod-input"
+                                                    required
+                                                    placeholder="যেমন: A, B, C বা Day"
+                                                    value={shiftFormCode}
+                                                    onChange={e => setShiftFormCode(e.target.value)}
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div className="grid g3" style={{ gap: '10px', marginTop: '10px' }}>
+                                            <label className="f">
+                                                শুরুর সময় *
+                                                <input
+                                                    type="time"
+                                                    className="prod-input"
+                                                    required
+                                                    value={shiftFormStart}
+                                                    onChange={e => setShiftFormStart(e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="f">
+                                                শেষের সময় *
+                                                <input
+                                                    type="time"
+                                                    className="prod-input"
+                                                    required
+                                                    value={shiftFormEnd}
+                                                    onChange={e => setShiftFormEnd(e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="f">
+                                                মোট সময় (ঘণ্টা) *
+                                                <input
+                                                    type="number"
+                                                    step="0.5"
+                                                    className="prod-input prod-input-num"
+                                                    required
+                                                    value={shiftFormDuration}
+                                                    onChange={e => setShiftFormDuration(e.target.value)}
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div className="grid g2" style={{ gap: '12px', marginTop: '10px' }}>
+                                            <label className="f">
+                                                ফ্লোর ইনচার্জ / সুপারভাইজার
+                                                <input
+                                                    className="prod-input"
+                                                    placeholder="যেমন: মো. রফিকুল ইসলাম"
+                                                    value={shiftFormInCharge}
+                                                    onChange={e => setShiftFormInCharge(e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="f">
+                                                শিফট আউটপুট টার্গেট (kg)
+                                                <input
+                                                    type="number"
+                                                    className="prod-input prod-input-num"
+                                                    placeholder="যেমন: ১৪০০"
+                                                    value={shiftFormTargetKg}
+                                                    onChange={e => setShiftFormTargetKg(e.target.value)}
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div className="grid g2" style={{ gap: '12px', marginTop: '10px' }}>
+                                            <label className="f">
+                                                শিফটের অবস্থা
+                                                <select
+                                                    className="prod-input"
+                                                    value={shiftFormStatus}
+                                                    onChange={e => setShiftFormStatus(e.target.value as any)}
+                                                >
+                                                    <option value="active">সক্রিয় (Active)</option>
+                                                    <option value="inactive">নিষ্ক্রিয় (Inactive)</option>
+                                                </select>
+                                            </label>
+
+                                            <label className="f">
+                                                বিবরণ বা কাজের নোট
+                                                <input
+                                                    className="prod-input"
+                                                    placeholder="যেমন: ১২ ঘণ্টা মূল উৎপাদন শিফট"
+                                                    value={shiftFormNotes}
+                                                    onChange={e => setShiftFormNotes(e.target.value)}
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div className="row" style={{ justifyContent: 'flex-end', marginTop: '18px', gap: '8px' }}>
+                                            <button
+                                                type="button"
+                                                className="btn"
+                                                onClick={() => setShowShiftModal(false)}
+                                            >
+                                                বাতিল
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn pri"
+                                                style={{ padding: '8px 22px' }}
+                                            >
+                                                {editingShiftId ? '✓ শিফট আপডেট করুন' : '✓ শিফট সেভ করুন'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
 
             {/* SCREEN: USERS */}
             {view === 'users' && (

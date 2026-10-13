@@ -83,6 +83,19 @@ export interface UserItem {
     vendor: boolean;
 }
 
+export interface FactoryShift {
+    id: string;
+    name: string;
+    code: string;
+    startTime: string;
+    endTime: string;
+    durationHours: number;
+    inCharge?: string;
+    targetOutputKg?: number;
+    status: 'active' | 'inactive';
+    notes?: string;
+}
+
 export type RoleMode = 'fac' | 'ven';
 
 export type KnitkhataViewTab = 
@@ -94,6 +107,7 @@ export type KnitkhataViewTab =
     | 'acc' 
     | 'att' 
     | 'machines'
+    | 'shifts'
     | 'users' 
     | 'wa' 
     | 'plan' 

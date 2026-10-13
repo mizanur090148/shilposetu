@@ -39,6 +39,7 @@ export const TAB_HREFS: Record<string, string> = {
     acc: '/knitkhata/accounts',
     att: '/knitkhata/attendance',
     machines: '/knitkhata/my-machines',
+    shifts: '/knitkhata/shifts',
     users: '/knitkhata/users',
     wa: '/knitkhata/whatsapp',
     plan: '/knitkhata/planning',
@@ -55,6 +56,7 @@ const renderIcon = (type: string) => {
         case 'acc': return <svg viewBox="0 0 24 24"><path d="M3 7h18v12H3z" /><path d="M3 11h18M7 15h3" /></svg>;
         case 'att': return <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3 3-5 6-5s6 2 6 5" /><path d="M16 11l2 2 3-4" /></svg>;
         case 'mc': return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+        case 'shift': return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /><path d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" /></svg>;
         case 'usr': return <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>;
         case 'wa': return <svg viewBox="0 0 24 24"><path d="M4 20l1.5-4A8 8 0 1 1 9 19z" /><path d="M9 9c0 3 3 6 6 6" /></svg>;
         case 'plan': return <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M9 4v16" /><path d="M12 9h4M12 13h4" /></svg>;
@@ -73,6 +75,7 @@ const navFac: [string, string, string?][] = [
     ['att', 'হাজিরা ও বেতন', 'att'],
     ['grp', 'সেটিংস'],
     ['machines', 'আমার মেশিনগুলো', 'mc'],
+    ['shifts', 'শিফট', 'shift'],
     ['users', 'ইউজার ও পারমিশন', 'usr'],
     ['wa', 'WhatsApp রিপোর্ট', 'wa'],
     ['grp', 'প্রজেক্ট'],

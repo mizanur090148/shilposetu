@@ -368,6 +368,11 @@ class KnitkhataController extends Controller
         ]);
     }
 
+    public function shifts(Request $request): Response
+    {
+        return $this->renderKnitkhata($request, 'shifts');
+    }
+
     public function storeMachine(Request $request)
     {
         $user = $request->user();
