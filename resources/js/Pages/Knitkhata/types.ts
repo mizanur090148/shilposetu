@@ -63,15 +63,18 @@ export interface Order {
 }
 
 export interface ProductionLogItem {
+    id?: number;
     d: string;
     sh: string; // 'A' | 'B' | 'C' | 'Day'
     m: string;
     o: string;
+    order_title?: string;
     kg: number;
     rolls: number;
     op: string;
     lot?: string;
     issue?: string;
+    notes?: string;
 }
 
 export interface UserItem {
@@ -158,4 +161,6 @@ export interface KnitkhataProps {
     initialVendors?: Record<string, Vendor>;
     initialVendorOrders?: Order[];
     subcontractorFactories?: Record<string, any>;
+    dbShifts?: FactoryShift[];
+    dbProductionLogs?: ProductionLogItem[];
 }

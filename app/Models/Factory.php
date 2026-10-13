@@ -95,4 +95,20 @@ class Factory extends Model
     {
         return $this->hasMany(FactoryMachine::class)->orderBy('category')->orderBy('sort_order');
     }
+
+    /**
+     * Work shifts configured for this factory.
+     */
+    public function factoryShifts(): HasMany
+    {
+        return $this->hasMany(FactoryShift::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Production records for this factory.
+     */
+    public function productions(): HasMany
+    {
+        return $this->hasMany(Production::class)->latest('production_date');
+    }
 }

@@ -89,4 +89,12 @@ class SubcontractPost extends Model
     {
         return $this->hasMany(Quotation::class);
     }
+
+    /**
+     * Daily production logs for this order.
+     */
+    public function productions(): HasMany
+    {
+        return $this->hasMany(Production::class)->latest('production_date');
+    }
 }

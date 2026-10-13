@@ -71,12 +71,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/assign-machines', [KnitkhataController::class, 'assignMachines'])->name('orders.assignMachines');
         Route::get('/orders/{id}', [KnitkhataController::class, 'orderDetail'])->name('orders.show');
         Route::get('/production-entry', [KnitkhataController::class, 'entry'])->name('entry');
+        Route::post('/production-entry', [KnitkhataController::class, 'storeProduction'])->name('entry.store');
+        Route::delete('/production-entry/{id}', [KnitkhataController::class, 'destroyProduction'])->name('entry.destroy');
         Route::get('/qc', [KnitkhataController::class, 'qc'])->name('qc');
         Route::get('/accounts', [KnitkhataController::class, 'accounts'])->name('accounts');
         Route::get('/attendance', [KnitkhataController::class, 'attendance'])->name('attendance');
         Route::get('/my-machines', [KnitkhataController::class, 'machines'])->name('machines');
         Route::post('/my-machines', [KnitkhataController::class, 'storeMachine'])->name('machines.store');
         Route::get('/shifts', [KnitkhataController::class, 'shifts'])->name('shifts');
+        Route::post('/shifts', [KnitkhataController::class, 'storeShift'])->name('shifts.store');
+        Route::delete('/shifts/{id}', [KnitkhataController::class, 'destroyShift'])->name('shifts.destroy');
         Route::get('/users', [KnitkhataController::class, 'users'])->name('users');
         Route::get('/whatsapp', [KnitkhataController::class, 'whatsapp'])->name('whatsapp');
         Route::get('/planning', [KnitkhataController::class, 'planning'])->name('planning');

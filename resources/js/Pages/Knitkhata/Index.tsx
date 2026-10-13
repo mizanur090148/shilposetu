@@ -121,7 +121,9 @@ export default function KnitkhataIndex({
     initialOrders = [],
     initialVendors = {},
     initialVendorOrders = [],
-    subcontractorFactories = {}
+    subcontractorFactories = {},
+    dbShifts = [],
+    dbProductionLogs = []
 }: KnitkhataProps) {
     const [role, setRole] = useState<RoleMode>(initialRole);
     const [view, setView] = useState<KnitkhataViewTab>(initialTab);
@@ -139,7 +141,12 @@ export default function KnitkhataIndex({
         return [];
     });
     const [machineState, setMachineState] = useState<Record<string, string>>(INITIAL_MACHINE_STATE);
-    const [prodLog, setProdLog] = useState<ProductionLogItem[]>(INITIAL_PROD_LOG);
+    const [prodLog, setProdLog] = useState<ProductionLogItem[]>(() => {
+        if (dbProductionLogs && dbProductionLogs.length > 0) {
+            return dbProductionLogs;
+        }
+        return INITIAL_PROD_LOG;
+    });
     const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
     const [vendors, setVendors] = useState<Record<string, Vendor>>(() => {
         if (initialVendors && Object.keys(initialVendors).length > 0) {
@@ -147,6 +154,12 @@ export default function KnitkhataIndex({
         }
         return INITIAL_VENDORS;
     });
+
+    useEffect(() => {
+        if (dbProductionLogs && dbProductionLogs.length > 0) {
+            setProdLog(dbProductionLogs);
+        }
+    }, [dbProductionLogs]);
 
     useEffect(() => {
         if (initialOrders && initialOrders.length > 0) {
@@ -215,6 +228,9 @@ export default function KnitkhataIndex({
 
     // Factory Shift Management state
     const [factoryShifts, setFactoryShifts] = useState<FactoryShift[]>(() => {
+        if (dbShifts && dbShifts.length > 0) {
+            return dbShifts;
+        }
         try {
             const saved = typeof window !== 'undefined' ? localStorage.getItem('kk_factory_shifts') : null;
             if (saved) {
@@ -222,8 +238,14 @@ export default function KnitkhataIndex({
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
         } catch (e) {}
-        return PRESET_2_SHIFTS;
+        return PRESET_3_SHIFTS;
     });
+
+    useEffect(() => {
+        if (dbShifts && dbShifts.length > 0) {
+            setFactoryShifts(dbShifts);
+        }
+    }, [dbShifts]);
     const [showShiftModal, setShowShiftModal] = useState(false);
     const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
     const [shiftFormName, setShiftFormName] = useState('শিফট A (ডে)');
@@ -993,7 +1015,24 @@ export default function KnitkhataIndex({
         const updatedDone = target ? Math.min(target.qty, target.done + kg) : kg;
         const updatedPct = target ? Math.round((updatedDone / target.qty) * 100) : 100;
 
-        showToast(`${m} এ ${kg} kg সেভ হয়েছে · ${oid} এখন ${updatedPct}%`);
+        router.post('/knitkhata/production-entry', {
+            mode: 'single',
+            production_date: entryDate,
+            shift_code: entrySh,
+            machine_code: m,
+            order_id: oid,
+            quantity_kg: kg,
+            rolls_count: rolls,
+            operator_name: entryOp,
+            yarn_lot: entryLot,
+            quality_issue: entryIss
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast(`${m} এ ${bn(kg)} kg উৎপাদন ডাটাবেজে সংরক্ষিত হয়েছে · ${oid} এখন ${updatedPct}%`);
+            }
+        });
     };
 
     // Shift & Bulk Entry Handlers
@@ -1087,7 +1126,6 @@ export default function KnitkhataIndex({
                 return s;
             });
             saveFactoryShifts(updated);
-            showToast(`শিফট "${shiftFormName}" সফলভাবে আপডেট করা হয়েছে`);
         } else {
             const newShift: FactoryShift = {
                 id: `shift_${Date.now()}`,
@@ -1102,9 +1140,28 @@ export default function KnitkhataIndex({
                 notes: shiftFormNotes.trim()
             };
             saveFactoryShifts([...factoryShifts, newShift]);
-            showToast(`নতুন শিফট "${shiftFormName}" তৈরি করা হয়েছে`);
         }
+
         setShowShiftModal(false);
+
+        router.post('/knitkhata/shifts', {
+            id: editingShiftId,
+            name: shiftFormName.trim(),
+            code: shiftFormCode.trim().toUpperCase(),
+            start_time: shiftFormStart,
+            end_time: shiftFormEnd,
+            duration_hours: duration,
+            in_charge: shiftFormInCharge.trim(),
+            target_output_kg: targetKg,
+            status: shiftFormStatus,
+            notes: shiftFormNotes.trim()
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast(editingShiftId ? `শিফট "${shiftFormName}" সফলভাবে আপডেট করা হয়েছে` : `নতুন শিফট "${shiftFormName}" সফলভাবে ডাটাবেজে তৈরি হয়েছে`);
+            }
+        });
     };
 
     const handleDeleteShift = (id: string, name: string) => {
@@ -1114,19 +1171,47 @@ export default function KnitkhataIndex({
         }
         const updated = factoryShifts.filter(s => s.id !== id);
         saveFactoryShifts(updated);
-        showToast(`শিফট "${name}" মুছে ফেলা হয়েছে`);
+
+        router.delete(`/knitkhata/shifts/${id}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast(`শিফট "${name}" মুছে ফেলা হয়েছে`);
+            }
+        });
     };
 
     const handleToggleShiftStatus = (id: string) => {
+        const shiftObj = factoryShifts.find(s => s.id === id);
+        if (!shiftObj) return;
+        const nextStatus: 'active' | 'inactive' = shiftObj.status === 'active' ? 'inactive' : 'active';
+
         const updated = factoryShifts.map(s => {
             if (s.id === id) {
-                const nextStatus: 'active' | 'inactive' = s.status === 'active' ? 'inactive' : 'active';
                 return { ...s, status: nextStatus };
             }
             return s;
         });
         saveFactoryShifts(updated);
-        showToast('শিফটের অবস্থা পরিবর্তন করা হয়েছে');
+
+        router.post('/knitkhata/shifts', {
+            id: id,
+            name: shiftObj.name,
+            code: shiftObj.code,
+            start_time: shiftObj.startTime,
+            end_time: shiftObj.endTime,
+            duration_hours: shiftObj.durationHours,
+            in_charge: shiftObj.inCharge,
+            target_output_kg: shiftObj.targetOutputKg,
+            status: nextStatus,
+            notes: shiftObj.notes
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast(`শিফট ${shiftObj.name} এর অবস্থা পরিবর্তন করা হয়েছে`);
+            }
+        });
     };
 
     const handleBulkEntryChange = (mCode: string, field: 'kg' | 'rolls' | 'op' | 'lot' | 'issue' | 'orderId', val: string) => {
@@ -1162,6 +1247,7 @@ export default function KnitkhataIndex({
     const handleSaveBulkEntry = (e: React.FormEvent) => {
         e.preventDefault();
         const newLogs: ProductionLogItem[] = [];
+        const entriesPayload: any[] = [];
         const orderIncrement: Record<string, number> = {};
 
         Object.entries(bulkEntries).forEach(([mCode, data]) => {
@@ -1188,10 +1274,20 @@ export default function KnitkhataIndex({
                 issue: data.issue || 'না'
             });
 
+            entriesPayload.push({
+                machine_code: mCode,
+                order_id: oId,
+                quantity_kg: kg,
+                rolls_count: rolls,
+                operator_name: data.op || mObj?.op || 'অপারেটর',
+                yarn_lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
+                quality_issue: data.issue || 'না'
+            });
+
             orderIncrement[oId] = (orderIncrement[oId] || 0) + kg;
         });
 
-        if (newLogs.length === 0) {
+        if (entriesPayload.length === 0) {
             showToast('অনুগ্রহ করে অন্তত একটি মেশিনের উৎপাদন (kg) লিখুন');
             return;
         }
@@ -1208,16 +1304,28 @@ export default function KnitkhataIndex({
             })
         );
 
-        const totalSavedKg = newLogs.reduce((sum, l) => sum + l.kg, 0);
-        const totalSavedRolls = newLogs.reduce((sum, l) => sum + l.rolls, 0);
-        showToast(`শিফট ${entrySh}-এ ${bn(newLogs.length)}টি মেশিনে মোট ${bn(totalSavedKg)} kg (${bn(totalSavedRolls)} রোল) সংরক্ষিত হয়েছে!`);
-
         setBulkEntries({});
+
+        router.post('/knitkhata/production-entry', {
+            mode: 'bulk',
+            production_date: entryDate,
+            shift_code: entrySh,
+            entries: entriesPayload
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                const totalSavedKg = newLogs.reduce((sum, l) => sum + l.kg, 0);
+                const totalSavedRolls = newLogs.reduce((sum, l) => sum + l.rolls, 0);
+                showToast(`শিফট ${entrySh}-এ মোট ${bn(newLogs.length)}টি মেশিনে ${bn(totalSavedKg)} kg (${bn(totalSavedRolls)} রোল) ডাটাবেজে সংরক্ষিত হয়েছে!`);
+            }
+        });
     };
 
     const handleDeleteProdLog = (idx: number) => {
         const item = prodLog[idx];
         if (!item) return;
+
         setProdLog(prev => prev.filter((_, i) => i !== idx));
         setOrders(prev =>
             prev.map(o => {
@@ -1227,7 +1335,18 @@ export default function KnitkhataIndex({
                 return o;
             })
         );
-        showToast(`${item.m} এর ${bn(item.kg)} kg এন্ট্রি মুছে ফেলা হয়েছে`);
+
+        if (item.id) {
+            router.delete(`/knitkhata/production-entry/${item.id}`, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    showToast(`${item.m} এর ${bn(item.kg)} kg এন্ট্রি মুছে ফেলা হয়েছে`);
+                }
+            });
+        } else {
+            showToast(`${item.m} এর ${bn(item.kg)} kg এন্ট্রি মুছে ফেলা হয়েছে`);
+        }
     };
 
     // Toggle user switch
@@ -1820,7 +1939,7 @@ export default function KnitkhataIndex({
                     : view === 'machines'
                     ? 'আমার মেশিনগুলো'
                     : view === 'shifts'
-                    ? 'শিফট ব্যবস্থাপনা'
+                    ? 'আমার শিফট'
                     : 'নিটখাতা প্রোটোটাইপ'
             }
         >
@@ -4722,7 +4841,7 @@ export default function KnitkhataIndex({
                         <div className="head">
                             <div>
                                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span>⏱️</span> কারখানার শিফট ব্যবস্থাপনা (Factory Shifts)
+                                    <span>⏱️</span> আমার শিফট ব্যবস্থাপনা (Factory Shifts)
                                 </h2>
                                 <p>
                                     কারখানা: <b>{factoryDisplayName}</b> · আপনার ফ্যাক্টরির শিফট শিডিউল, কার্যঘণ্টা ও ফ্লোর ইনচার্জ পরিচালনা করুন

@@ -261,6 +261,76 @@ class KnitkhataController extends Controller
         $orderData = $this->getKnitkhataOrdersAndVendors($user, $factory);
         $vendorData = $this->getKnitkhataVendorOrdersAndFactories($user);
 
+        // Factory Shifts loading & Auto-initialization from Master Shifts (শিফট A, B, C)
+        $dbShifts = [];
+        if ($factory) {
+            $fShifts = \App\Models\FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
+            if ($fShifts->isEmpty()) {
+                $masterShifts = \App\Models\Shift::where('is_active', true)->orderBy('sort_order')->get();
+                foreach ($masterShifts as $ms) {
+                    \App\Models\FactoryShift::create([
+                        'factory_id' => $factory->id,
+                        'shift_id' => $ms->id,
+                        'name' => $ms->name,
+                        'code' => $ms->code,
+                        'start_time' => $ms->start_time,
+                        'end_time' => $ms->end_time,
+                        'duration_hours' => $ms->duration_hours,
+                        'in_charge' => 'মো. রফিকুল ইসলাম',
+                        'target_output_kg' => 900,
+                        'is_active' => true,
+                        'sort_order' => $ms->sort_order,
+                        'notes' => $ms->description,
+                    ]);
+                }
+                $fShifts = \App\Models\FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
+            }
+
+            $dbShifts = $fShifts->map(function ($s) {
+                return [
+                    'id' => (string) $s->id,
+                    'db_id' => $s->id,
+                    'name' => $s->name,
+                    'code' => $s->code,
+                    'startTime' => substr((string) $s->start_time, 0, 5),
+                    'endTime' => substr((string) $s->end_time, 0, 5),
+                    'durationHours' => (float) $s->duration_hours,
+                    'inCharge' => $s->in_charge ?: 'মো. রফিকুল ইসলাম',
+                    'targetOutputKg' => (float) ($s->target_output_kg ?: 900),
+                    'status' => $s->is_active ? 'active' : 'inactive',
+                    'notes' => $s->notes ?: '',
+                ];
+            })->all();
+        }
+
+        // Production Records loading for floor view
+        $dbProductionLogs = [];
+        if ($factory) {
+            $productions = \App\Models\Production::where('factory_id', $factory->id)
+                ->with('subcontractPost')
+                ->latest('production_date')
+                ->latest('id')
+                ->take(100)
+                ->get();
+
+            $dbProductionLogs = $productions->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'd' => $p->production_date ? $p->production_date->format('d M Y') : now()->format('d M Y'),
+                    'sh' => $p->shift_code ?: 'A',
+                    'm' => $p->machine_code ?: 'M-01',
+                    'o' => $p->subcontract_post_id ? ('SC-POST-' . str_pad($p->subcontract_post_id, 3, '0', STR_PAD_LEFT)) : 'SC-POST-001',
+                    'order_title' => $p->subcontractPost?->title,
+                    'kg' => (float) $p->quantity_kg,
+                    'rolls' => (int) $p->rolls_count,
+                    'op' => $p->operator_name ?: 'অপারেটর',
+                    'lot' => $p->yarn_lot ?: '—',
+                    'issue' => $p->quality_issue ?: 'না',
+                    'notes' => $p->notes,
+                ];
+            })->all();
+        }
+
         return Inertia::render('Knitkhata/Index', array_merge([
             'factory' => $factory,
             'auth' => [
@@ -275,6 +345,8 @@ class KnitkhataController extends Controller
             'initialVendors' => $orderData['vendors'],
             'initialVendorOrders' => $vendorData['vendorOrders'],
             'subcontractorFactories' => $vendorData['subcontractorFactories'],
+            'dbShifts' => $dbShifts,
+            'dbProductionLogs' => $dbProductionLogs,
         ], $extra));
     }
 
@@ -628,5 +700,273 @@ class KnitkhataController extends Controller
         }
 
         return redirect()->back()->with('success', 'মেশিন সফলভাবে বরাদ্দ / অ্যাসাইন করা হয়েছে!');
+    }
+
+    /**
+     * Store or update a factory shift.
+     */
+    public function storeShift(Request $request)
+    {
+        $user = $request->user();
+        $factory = $user?->factory;
+        if (!$factory) {
+            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        }
+        if (!$factory) {
+            return redirect()->back()->with('error', 'ফ্যাক্টরি পাওয়া যায়নি!');
+        }
+
+        $validated = $request->validate([
+            'id' => 'nullable',
+            'name' => 'required|string|max:100',
+            'code' => 'required|string|max:20',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'duration_hours' => 'nullable|numeric|min:1|max:24',
+            'in_charge' => 'nullable|string|max:100',
+            'target_output_kg' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean',
+            'status' => 'nullable|string',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $isActive = isset($validated['is_active']) ? (bool) $validated['is_active'] : (($validated['status'] ?? 'active') === 'active');
+        $duration = $validated['duration_hours'] ?? 8.0;
+
+        if (!empty($validated['id']) && is_numeric($validated['id'])) {
+            $shift = \App\Models\FactoryShift::where('factory_id', $factory->id)->find($validated['id']);
+            if ($shift) {
+                $shift->update([
+                    'name' => $validated['name'],
+                    'code' => $validated['code'],
+                    'start_time' => $validated['start_time'],
+                    'end_time' => $validated['end_time'],
+                    'duration_hours' => $duration,
+                    'in_charge' => $validated['in_charge'] ?? null,
+                    'target_output_kg' => $validated['target_output_kg'] ?? null,
+                    'is_active' => $isActive,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+                return redirect()->back()->with('success', 'শিফট তথ্য সফলভাবে আপডেট হয়েছে!');
+            }
+        }
+
+        \App\Models\FactoryShift::create([
+            'factory_id' => $factory->id,
+            'name' => $validated['name'],
+            'code' => $validated['code'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'duration_hours' => $duration,
+            'in_charge' => $validated['in_charge'] ?? null,
+            'target_output_kg' => $validated['target_output_kg'] ?? null,
+            'is_active' => $isActive,
+            'sort_order' => \App\Models\FactoryShift::where('factory_id', $factory->id)->count() + 1,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'নতুন শিফট সফলভাবে তৈরি হয়েছে!');
+    }
+
+    /**
+     * Delete a factory shift.
+     */
+    public function destroyShift(Request $request, $id)
+    {
+        $user = $request->user();
+        $factory = $user?->factory;
+        if (!$factory) {
+            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        }
+
+        $shift = \App\Models\FactoryShift::where('factory_id', $factory?->id)->find($id);
+        if ($shift) {
+            $shift->delete();
+            return redirect()->back()->with('success', 'শিফট মুছে ফেলা হয়েছে!');
+        }
+
+        return redirect()->back()->with('error', 'শিফট পাওয়া যায়নি!');
+    }
+
+    /**
+     * Store single or bulk floor production logs.
+     */
+    public function storeProduction(Request $request)
+    {
+        $user = $request->user();
+        $factory = $user?->factory;
+        if (!$factory) {
+            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        }
+        if (!$factory) {
+            return redirect()->back()->with('error', 'ফ্যাক্টরি পাওয়া যায়নি!');
+        }
+
+        $isBulk = $request->input('mode') === 'bulk' || $request->has('entries');
+
+        if ($isBulk) {
+            $entries = $request->input('entries', []);
+            $prodDate = $request->input('production_date') ? date('Y-m-d', strtotime($request->input('production_date'))) : now()->toDateString();
+            $shiftCode = $request->input('shift_code', 'A');
+
+            $savedCount = 0;
+            $totalKg = 0;
+
+            foreach ($entries as $item) {
+                $kg = (float) ($item['quantity_kg'] ?? $item['kg'] ?? 0);
+                if ($kg <= 0) continue;
+
+                $rolls = (int) ($item['rolls_count'] ?? $item['rolls'] ?? 0);
+                $mCode = $item['machine_code'] ?? $item['m'] ?? 'M-01';
+                $orderRawId = $item['order_id'] ?? $item['o'] ?? null;
+                $op = $item['operator_name'] ?? $item['op'] ?? 'অপারেটর';
+                $lot = $item['yarn_lot'] ?? $item['lot'] ?? null;
+                $issue = $item['quality_issue'] ?? $item['issue'] ?? 'না';
+
+                // Resolve subcontract post id
+                $postId = null;
+                if ($orderRawId) {
+                    $cleanId = (int) preg_replace('/\D/', '', (string) $orderRawId);
+                    $post = \App\Models\SubcontractPost::find($cleanId);
+                    if ($post) {
+                        $postId = $post->id;
+                    }
+                }
+
+                if (!$postId) {
+                    $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)
+                        ->whereIn('status', ['in_progress', 'open'])
+                        ->first();
+                    $postId = $post?->id;
+                }
+
+                // Resolve factory shift id
+                $factoryShift = \App\Models\FactoryShift::where('factory_id', $factory->id)
+                    ->where('code', $shiftCode)
+                    ->first();
+
+                \App\Models\Production::create([
+                    'factory_id' => $factory->id,
+                    'subcontract_post_id' => $postId,
+                    'machine_code' => $mCode,
+                    'factory_shift_id' => $factoryShift?->id,
+                    'shift_code' => $shiftCode,
+                    'production_date' => $prodDate,
+                    'quantity_kg' => $kg,
+                    'rolls_count' => $rolls,
+                    'operator_name' => $op,
+                    'yarn_lot' => $lot,
+                    'quality_issue' => $issue,
+                    'created_by_id' => $user->id,
+                ]);
+
+                // Sync with subcontract_post progress
+                if ($postId && $post = \App\Models\SubcontractPost::find($postId)) {
+                    $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+                    $currDone = (float) ($specs['done'] ?? 0);
+                    $specs['done'] = $currDone + $kg;
+                    $updateData = ['specs' => $specs];
+                    if ($specs['done'] >= $post->target_quantity && $post->status === 'in_progress') {
+                        $updateData['status'] = 'completed';
+                    }
+                    $post->update($updateData);
+                }
+
+                $savedCount++;
+                $totalKg += $kg;
+            }
+
+            return redirect()->back()->with('success', "শিফট {$shiftCode}-এ মোট {$savedCount}টি মেশিনে {$totalKg} kg প্রোডাকশন সফলভাবে এন্ট্রি হয়েছে!");
+        } else {
+            // Single Entry
+            $validated = $request->validate([
+                'production_date' => 'nullable|string',
+                'shift_code' => 'required|string',
+                'machine_code' => 'required|string',
+                'order_id' => 'nullable|string',
+                'quantity_kg' => 'required|numeric|min:0.1',
+                'rolls_count' => 'nullable|numeric',
+                'operator_name' => 'nullable|string',
+                'yarn_lot' => 'nullable|string',
+                'quality_issue' => 'nullable|string',
+                'notes' => 'nullable|string',
+            ]);
+
+            $prodDate = !empty($validated['production_date']) ? date('Y-m-d', strtotime($validated['production_date'])) : now()->toDateString();
+            $kg = (float) $validated['quantity_kg'];
+            $rolls = (int) ($validated['rolls_count'] ?? 0);
+
+            $postId = null;
+            if (!empty($validated['order_id'])) {
+                $cleanId = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
+                $post = \App\Models\SubcontractPost::find($cleanId);
+                if ($post) {
+                    $postId = $post->id;
+                }
+            }
+            if (!$postId) {
+                $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)->first();
+                $postId = $post?->id;
+            }
+
+            $factoryShift = \App\Models\FactoryShift::where('factory_id', $factory->id)
+                ->where('code', $validated['shift_code'])
+                ->first();
+
+            \App\Models\Production::create([
+                'factory_id' => $factory->id,
+                'subcontract_post_id' => $postId,
+                'machine_code' => $validated['machine_code'],
+                'factory_shift_id' => $factoryShift?->id,
+                'shift_code' => $validated['shift_code'],
+                'production_date' => $prodDate,
+                'quantity_kg' => $kg,
+                'rolls_count' => $rolls,
+                'operator_name' => $validated['operator_name'] ?? 'অপারেটর',
+                'yarn_lot' => $validated['yarn_lot'] ?? null,
+                'quality_issue' => $validated['quality_issue'] ?? 'না',
+                'notes' => $validated['notes'] ?? null,
+                'created_by_id' => $user->id,
+            ]);
+
+            if ($postId && $post = \App\Models\SubcontractPost::find($postId)) {
+                $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+                $currDone = (float) ($specs['done'] ?? 0);
+                $specs['done'] = $currDone + $kg;
+                $updateData = ['specs' => $specs];
+                if ($specs['done'] >= $post->target_quantity && $post->status === 'in_progress') {
+                    $updateData['status'] = 'completed';
+                }
+                $post->update($updateData);
+            }
+
+            return redirect()->back()->with('success', "মেশিন {$validated['machine_code']}-এর {$kg} kg প্রোডাকশন সফলভাবে এন্ট্রি হয়েছে!");
+        }
+    }
+
+    /**
+     * Delete a production log and revert order completed quantity.
+     */
+    public function destroyProduction(Request $request, $id)
+    {
+        $user = $request->user();
+        $factory = $user?->factory;
+        if (!$factory) {
+            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        }
+
+        $prod = \App\Models\Production::where('factory_id', $factory?->id)->find($id);
+        if ($prod) {
+            if ($prod->subcontract_post_id && $post = \App\Models\SubcontractPost::find($prod->subcontract_post_id)) {
+                $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+                $currDone = (float) ($specs['done'] ?? 0);
+                $specs['done'] = max(0, $currDone - (float) $prod->quantity_kg);
+                $post->update(['specs' => $specs]);
+            }
+            $prod->delete();
+            return redirect()->back()->with('success', 'প্রোডাকশন এন্ট্রি মুছে ফেলা হয়েছে!');
+        }
+
+        return redirect()->back()->with('error', 'এন্ট্রি পাওয়া যায়নি!');
     }
 }

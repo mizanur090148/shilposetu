@@ -75,7 +75,7 @@ const navFac: [string, string, string?][] = [
     ['att', 'হাজিরা ও বেতন', 'att'],
     ['grp', 'সেটিংস'],
     ['machines', 'আমার মেশিনগুলো', 'mc'],
-    ['shifts', 'শিফট', 'shift'],
+    ['shifts', 'আমার শিফট', 'shift'],
     ['users', 'ইউজার ও পারমিশন', 'usr'],
     ['wa', 'WhatsApp রিপোর্ট', 'wa'],
     ['grp', 'প্রজেক্ট'],
