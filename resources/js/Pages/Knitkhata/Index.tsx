@@ -109,7 +109,17 @@ export default function KnitkhataIndex({
     const [etaM, setEtaM] = useState<number>(3);
     const [etaR, setEtaR] = useState<number>(380);
 
-    // Shift entry form
+    // Shift system & Production Entry state (supports 1, 2, or 3 shifts with localStorage persistence)
+    const [shiftMode, setShiftMode] = useState<1 | 2 | 3>(() => {
+        try {
+            const saved = typeof window !== 'undefined' ? localStorage.getItem('kk_shift_mode') : null;
+            if (saved === '1') return 1;
+            if (saved === '3') return 3;
+        } catch (e) {}
+        return 2;
+    });
+    const [entryMode, setEntryMode] = useState<'bulk' | 'single'>('bulk');
+    const [bulkMachineScope, setBulkMachineScope] = useState<'run' | 'all'>('run');
     const [entryDate, setEntryDate] = useState('03 Oct 2026');
     const [entrySh, setEntrySh] = useState('A');
     const [entryM, setEntryM] = useState('M-04|SC-2610-014');
@@ -118,6 +128,8 @@ export default function KnitkhataIndex({
     const [entryOp, setEntryOp] = useState('জসিম');
     const [entryLot, setEntryLot] = useState('SQ-88412');
     const [entryIss, setEntryIss] = useState('না');
+    const [historyShiftFilter, setHistoryShiftFilter] = useState<string>('all');
+    const [bulkEntries, setBulkEntries] = useState<Record<string, { kg: string; rolls: string; op: string; lot: string; issue: string; orderId?: string }>>({});
 
     // Vendor user add form
     const [newVendorName, setNewVendorName] = useState('নতুন প্রতিনিধি');
@@ -841,7 +853,7 @@ export default function KnitkhataIndex({
         router.visit(`/knitkhata/orders/${orderId}`, { preserveScroll: true });
     };
 
-    // Save shift entry
+    // Save shift entry (Single Mode)
     const handleSaveEntry = (e: React.FormEvent) => {
         e.preventDefault();
         const [m, oid] = entryM.split('|');
@@ -849,13 +861,15 @@ export default function KnitkhataIndex({
         const rolls = parseInt(entryR) || 0;
 
         const newLog: ProductionLogItem = {
-            d: '03 Oct',
-            sh: entrySh as 'A' | 'B',
+            d: entryDate,
+            sh: entrySh,
             m,
             o: oid,
             kg,
             rolls,
-            op: entryOp
+            op: entryOp,
+            lot: entryLot,
+            issue: entryIss
         };
 
         setProdLog(prev => [newLog, ...prev]);
@@ -875,6 +889,124 @@ export default function KnitkhataIndex({
         const updatedPct = target ? Math.round((updatedDone / target.qty) * 100) : 100;
 
         showToast(`${m} এ ${kg} kg সেভ হয়েছে · ${oid} এখন ${updatedPct}%`);
+    };
+
+    // Shift & Bulk Entry Handlers
+    const handleShiftModeChange = (mode: 1 | 2 | 3) => {
+        setShiftMode(mode);
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('kk_shift_mode', mode.toString());
+            }
+        } catch (e) {}
+        if (mode === 1) {
+            setEntrySh('Day');
+        } else if (mode === 2) {
+            if (entrySh !== 'A' && entrySh !== 'B') setEntrySh('A');
+        } else if (mode === 3) {
+            if (entrySh !== 'A' && entrySh !== 'B' && entrySh !== 'C') setEntrySh('A');
+        }
+    };
+
+    const handleBulkEntryChange = (mCode: string, field: 'kg' | 'rolls' | 'op' | 'lot' | 'issue' | 'orderId', val: string) => {
+        setBulkEntries(prev => ({
+            ...prev,
+            [mCode]: {
+                kg: prev[mCode]?.kg ?? '',
+                rolls: prev[mCode]?.rolls ?? '',
+                op: prev[mCode]?.op ?? '',
+                lot: prev[mCode]?.lot ?? '',
+                issue: prev[mCode]?.issue ?? 'না',
+                orderId: prev[mCode]?.orderId ?? '',
+                [field]: val
+            }
+        }));
+    };
+
+    const handleAutofillBulkOperators = () => {
+        setBulkEntries(prev => {
+            const updated = { ...prev };
+            allMyMachines.forEach(m => {
+                const current = updated[m.code] || { kg: '', rolls: '', op: '', lot: '', issue: 'না' };
+                updated[m.code] = {
+                    ...current,
+                    op: m.op !== '—' ? m.op : (current.op || 'অপারেটর')
+                };
+            });
+            return updated;
+        });
+        showToast('সব মেশিনে নির্ধারিত অপারেটরদের নাম বসানো হয়েছে');
+    };
+
+    const handleSaveBulkEntry = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newLogs: ProductionLogItem[] = [];
+        const orderIncrement: Record<string, number> = {};
+
+        Object.entries(bulkEntries).forEach(([mCode, data]) => {
+            const kg = parseFloat(data.kg) || 0;
+            const rolls = parseInt(data.rolls) || 0;
+            if (kg <= 0) return;
+
+            const assignedO = (data.orderId ? orders.find(o => o.id === data.orderId) : null)
+                || orders.find(o => o.machines?.includes(mCode))
+                || orders.find(o => o.status === 'run')
+                || orders[0];
+            const oId = assignedO?.id || 'SC-POST-004';
+            const mObj = allMyMachines.find(m => m.code === mCode);
+
+            newLogs.push({
+                d: entryDate,
+                sh: entrySh,
+                m: mCode,
+                o: oId,
+                kg,
+                rolls,
+                op: data.op || mObj?.op || 'অপারেটর',
+                lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
+                issue: data.issue || 'না'
+            });
+
+            orderIncrement[oId] = (orderIncrement[oId] || 0) + kg;
+        });
+
+        if (newLogs.length === 0) {
+            showToast('অনুগ্রহ করে অন্তত একটি মেশিনের উৎপাদন (kg) লিখুন');
+            return;
+        }
+
+        setProdLog(prev => [...newLogs, ...prev]);
+
+        setOrders(prev =>
+            prev.map(o => {
+                if (orderIncrement[o.id]) {
+                    const newDone = Math.min(o.qty, o.done + orderIncrement[o.id]);
+                    return { ...o, done: newDone };
+                }
+                return o;
+            })
+        );
+
+        const totalSavedKg = newLogs.reduce((sum, l) => sum + l.kg, 0);
+        const totalSavedRolls = newLogs.reduce((sum, l) => sum + l.rolls, 0);
+        showToast(`শিফট ${entrySh}-এ ${bn(newLogs.length)}টি মেশিনে মোট ${bn(totalSavedKg)} kg (${bn(totalSavedRolls)} রোল) সংরক্ষিত হয়েছে!`);
+
+        setBulkEntries({});
+    };
+
+    const handleDeleteProdLog = (idx: number) => {
+        const item = prodLog[idx];
+        if (!item) return;
+        setProdLog(prev => prev.filter((_, i) => i !== idx));
+        setOrders(prev =>
+            prev.map(o => {
+                if (o.id === item.o) {
+                    return { ...o, done: Math.max(0, o.done - item.kg) };
+                }
+                return o;
+            })
+        );
+        showToast(`${item.m} এর ${bn(item.kg)} kg এন্ট্রি মুছে ফেলা হয়েছে`);
     };
 
     // Toggle user switch
@@ -2943,144 +3075,663 @@ export default function KnitkhataIndex({
             {view === 'detail' && renderDetail(role === 'ven')}
 
             {/* SCREEN: SHIFT ENTRY */}
-            {view === 'entry' && (
-                <>
-                    <div className="head">
-                        <div>
-                            <h2>প্রোডাকশন এন্ট্রি</h2>
-                            <p>ফ্লোর সুপারভাইজার মোবাইল থেকে প্রতি শিফটে এটুকু পূরণ করবেন</p>
-                        </div>
-                    </div>
+            {view === 'entry' && (() => {
+                // Determine current shift options based on shiftMode (1, 2, or 3)
+                const currentShiftList = shiftMode === 1
+                    ? [{ id: 'Day', name: 'ডে শিফট (Day)', time: 'সকাল ৮:০০ - বিকাল ৫:০০ (৯ ঘণ্টা)' }]
+                    : shiftMode === 2
+                    ? [
+                        { id: 'A', name: 'শিফট A (ডে)', time: 'সকাল ৮:০০ - রাত ৮:০০ (১২ ঘণ্টা)' },
+                        { id: 'B', name: 'শিফট B (নাইট)', time: 'রাত ৮:০০ - সকাল ৮:০০ (১২ ঘণ্টা)' }
+                    ]
+                    : [
+                        { id: 'A', name: 'শিফট A (মর্নিং)', time: 'সকাল ৬:০০ - দুপুর ২:০০ (৮ ঘণ্টা)' },
+                        { id: 'B', name: 'শিফট B (ইভনিং)', time: 'দুপুর ২:০০ - রাত ১০:০০ (৮ ঘণ্টা)' },
+                        { id: 'C', name: 'শিফট C (নাইট)', time: 'রাত ১০:০০ - সকাল ৬:০০ (৮ ঘণ্টা)' }
+                    ];
 
-                    <form className="card" onSubmit={handleSaveEntry}>
-                        <div className="form">
-                            <label className="f">
-                                তারিখ
-                                <input
-                                    value={entryDate}
-                                    onChange={e => setEntryDate(e.target.value)}
-                                />
-                            </label>
-                            <label className="f">
-                                শিফট
-                                <select
-                                    value={entrySh}
-                                    onChange={e => setEntrySh(e.target.value)}
-                                >
-                                    <option>A</option>
-                                    <option>B</option>
-                                </select>
-                            </label>
-                            <label className="f">
-                                মেশিন
-                                <select
-                                    value={entryM}
-                                    onChange={e => setEntryM(e.target.value)}
-                                >
-                                    {orders
-                                        .filter(o => o.status === 'run')
-                                        .flatMap(o =>
-                                            o.machines.map(m => (
-                                                <option key={`${m}|${o.id}`} value={`${m}|${o.id}`}>
-                                                    {m} — {o.id}
-                                                </option>
-                                            ))
-                                        )}
-                                </select>
-                            </label>
-                            <label className="f">
-                                প্রোডাকশন (kg)
-                                <input
-                                    type="number"
-                                    value={entryKg}
-                                    onChange={e => setEntryKg(e.target.value)}
-                                />
-                            </label>
-                            <label className="f">
-                                রোল সংখ্যা
-                                <input
-                                    type="number"
-                                    value={entryR}
-                                    onChange={e => setEntryR(e.target.value)}
-                                />
-                            </label>
-                            <label className="f">
-                                অপারেটর
-                                <input
-                                    value={entryOp}
-                                    onChange={e => setEntryOp(e.target.value)}
-                                />
-                            </label>
-                            <label className="f">
-                                ব্যবহৃত সুতার লট
-                                <select
-                                    value={entryLot}
-                                    onChange={e => setEntryLot(e.target.value)}
-                                >
-                                    <option>SQ-88412</option>
-                                    <option>SQ-88419</option>
-                                    <option>AK-5521</option>
-                                    <option>NS-2290</option>
-                                </select>
-                            </label>
-                            <label className="f">
-                                কোনো সমস্যা?
-                                <select
-                                    value={entryIss}
-                                    onChange={e => setEntryIss(e.target.value)}
-                                >
-                                    <option>না</option>
-                                    <option>Hole</option>
-                                    <option>Needle mark</option>
-                                    <option>Barre</option>
-                                    <option>Oil spot</option>
-                                    <option>Lycra out</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div className="row" style={{ marginTop: '14px' }}>
-                            <button className="btn pri" type="submit">
-                                সেভ করুন
-                            </button>
-                            <span className="small muted">
-                                সেভ করলেই অর্ডারের অগ্রগতি, শেষের তারিখ আর ভেন্ডরের রিপোর্ট আপডেট হবে।
-                            </span>
-                        </div>
-                    </form>
+                // Active floor machines based on scope
+                const activeFloorMachines = allMyMachines.filter(m => m.status === 'run');
+                const displayFloorMachines = bulkMachineScope === 'run'
+                    ? (activeFloorMachines.length > 0 ? activeFloorMachines : allMyMachines)
+                    : allMyMachines;
 
-                    <div className="card">
-                        <h3>আজকের এন্ট্রি</h3>
-                        <div className="tw">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>শিফট</th>
-                                        <th>মেশিন</th>
-                                        <th>অর্ডার</th>
-                                        <th className="n">kg</th>
-                                        <th className="n">রোল</th>
-                                        <th>অপারেটর</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {prodLog
-                                        .filter(p => p.d === '03 Oct')
-                                        .map((p, idx) => (
-                                            <tr key={idx}>
-                                                <td>{p.sh}</td>
-                                                <td className="mono">{p.m}</td>
-                                                <td className="mono">{p.o}</td>
-                                                <td className="n">{p.kg}</td>
-                                                <td className="n">{p.rolls}</td>
-                                                <td>{p.op}</td>
+                // Active running orders available for assignment
+                const runningOrders = orders.filter(o => o.status === 'run');
+
+                // Calculate bulk totals currently typed
+                let currentBulkKgTotal = 0;
+                let currentBulkRollsTotal = 0;
+                let filledMachinesCount = 0;
+                Object.values(bulkEntries).forEach(e => {
+                    const k = parseFloat(e.kg) || 0;
+                    const r = parseInt(e.rolls) || 0;
+                    if (k > 0) {
+                        currentBulkKgTotal += k;
+                        currentBulkRollsTotal += r;
+                        filledMachinesCount++;
+                    }
+                });
+
+                // Today's total logged production
+                const todayTotalKg = prodLog.filter(p => p.d === entryDate || p.d === '03 Oct').reduce((a, b) => a + b.kg, 0);
+                const todayTotalRolls = prodLog.filter(p => p.d === entryDate || p.d === '03 Oct').reduce((a, b) => a + b.rolls, 0);
+                const activeMachinesCount = activeFloorMachines.length > 0 ? activeFloorMachines.length : 1;
+                const avgKgPerMachine = Math.round(todayTotalKg / activeMachinesCount);
+
+                // Filtered history list
+                const filteredHistory = prodLog.filter(p => {
+                    if (historyShiftFilter !== 'all' && p.sh !== historyShiftFilter) return false;
+                    return true;
+                });
+
+                return (
+                    <>
+                        {/* Header with Shift System Selector */}
+                        <div className="head" style={{ marginBottom: '16px' }}>
+                            <div>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>🧵</span> দৈনিক প্রোডাকশন এন্ট্রি (Daily Shift Production)
+                                </h2>
+                                <p>কারখানার শিফট ব্যবস্থা নির্ধারণ, ফ্লোর বাল্ক শিট ও সিঙ্গেল মেশিন উৎপাদন হিসাব</p>
+                            </div>
+
+                            {/* Shift Mode Selector (1, 2, or 3 Shifts) */}
+                            <div style={{ background: 'var(--surface, #fff)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)' }}>
+                                    কারখানার শিফট ব্যবস্থা:
+                                </span>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                        type="button"
+                                        className={`shift-mode-chip ${shiftMode === 1 ? 'active' : ''}`}
+                                        onClick={() => handleShiftModeChange(1)}
+                                    >
+                                        ১টি শিফট (Day)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`shift-mode-chip ${shiftMode === 2 ? 'active' : ''}`}
+                                        onClick={() => handleShiftModeChange(2)}
+                                    >
+                                        ২টি শিফট (Day/Night)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`shift-mode-chip ${shiftMode === 3 ? 'active' : ''}`}
+                                        onClick={() => handleShiftModeChange(3)}
+                                    >
+                                        ৩টি শিফট (8-Hours)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Top Control Bar: Date, Shift Selection, & Entry Mode Toggle */}
+                        <div className="card" style={{ padding: '16px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                                {/* Left: Date & Active Shift Picker */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>📅 তারিখ:</span>
+                                        <input
+                                            type="text"
+                                            className="prod-input"
+                                            value={entryDate}
+                                            onChange={e => setEntryDate(e.target.value)}
+                                            style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '6px',
+                                                fontSize: '.88rem',
+                                                fontWeight: 600
+                                            }}
+                                        />
+                                    </label>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--muted)' }}>
+                                            চলমান শিফট:
+                                        </span>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {currentShiftList.map(sh => (
+                                                <button
+                                                    key={sh.id}
+                                                    type="button"
+                                                    onClick={() => setEntrySh(sh.id)}
+                                                    className={`btn sm ${entrySh === sh.id ? 'pri' : ''}`}
+                                                    style={{
+                                                        padding: '6px 14px',
+                                                        fontWeight: 700,
+                                                        borderRadius: '8px',
+                                                        fontSize: '.85rem'
+                                                    }}
+                                                >
+                                                    {sh.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right: Mode Switcher (Bulk vs Single) */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--muted)' }}>এন্ট্রি মোড:</span>
+                                    <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '3px', borderRadius: '8px', display: 'flex', gap: '3px' }}>
+                                        <button
+                                            type="button"
+                                            className={`btn sm ${entryMode === 'bulk' ? 'pri' : ''}`}
+                                            onClick={() => setEntryMode('bulk')}
+                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
+                                        >
+                                            📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`btn sm ${entryMode === 'single' ? 'pri' : ''}`}
+                                            onClick={() => setEntryMode('single')}
+                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
+                                        >
+                                            ⚡ সিঙ্গেল মেশিন এন্ট্রি
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MODE 1: BULK FLOOR SHEET ENTRY */}
+                        {entryMode === 'bulk' && (
+                            <form className="card" onSubmit={handleSaveBulkEntry} style={{ padding: '20px', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span>📋</span> ফ্লোর বাল্ক শিট — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
+                                        </h3>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                            শিফট শেষে ফ্লোরের মেশিনগুলোর উৎপাদিত ওজন ও রোল এক টেবিলে দ্রুত ইনপুট করুন
+                                        </p>
+                                    </div>
+
+                                    {/* Action toolbar */}
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {/* Scope toggle: Running vs All */}
+                                        <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '2px', borderRadius: '6px', display: 'flex', gap: '2px' }}>
+                                            <button
+                                                type="button"
+                                                className={`btn sm ${bulkMachineScope === 'run' ? 'pri' : ''}`}
+                                                onClick={() => setBulkMachineScope('run')}
+                                                style={{ fontSize: '.76rem', padding: '3px 8px' }}
+                                            >
+                                                চলমান ({bn(activeFloorMachines.length)})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`btn sm ${bulkMachineScope === 'all' ? 'pri' : ''}`}
+                                                onClick={() => setBulkMachineScope('all')}
+                                                style={{ fontSize: '.76rem', padding: '3px 8px' }}
+                                            >
+                                                সব মেশিন ({bn(allMyMachines.length)})
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="btn sm"
+                                            onClick={handleAutofillBulkOperators}
+                                            style={{ fontSize: '.78rem', padding: '4px 10px' }}
+                                            title="মেশিন অনুযায়ী ডিফল্ট অপারেটর নাম স্বয়ংক্রিয় পূরণ করুন"
+                                        >
+                                            👤 অপারেটর অটো-ফিল
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="btn sm"
+                                            onClick={() => setBulkEntries({})}
+                                            style={{ fontSize: '.78rem', padding: '4px 10px', color: 'var(--muted)' }}
+                                            title="সব ইনপুট ক্লিয়ার করুন"
+                                        >
+                                            ✕ ক্লিয়ার
+                                        </button>
+
+                                        <span className="pill p-acc" style={{ fontSize: '.82rem', fontWeight: 700, padding: '4px 10px' }}>
+                                            ইনপুট: {bn(filledMachinesCount)}টি মেশিন | {bn(currentBulkKgTotal)} kg ({bn(currentBulkRollsTotal)} রোল)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="tw" style={{ border: '1px solid var(--border, #e2e8f0)', borderRadius: '8px', overflow: 'hidden' }}>
+                                    <table>
+                                        <thead>
+                                            <tr style={{ background: 'var(--surface2, #f8fafc)' }}>
+                                                <th style={{ width: '95px' }}>মেশিন নং</th>
+                                                <th style={{ minWidth: '180px' }}>অর্ডার ও বায়ার</th>
+                                                <th style={{ minWidth: '160px' }}>ফেব্রিক ও লট</th>
+                                                <th style={{ width: '130px' }}>অপারেটর</th>
+                                                <th style={{ width: '130px' }}>উৎপাদন (kg) *</th>
+                                                <th style={{ width: '90px' }}>রোল সংখ্যা</th>
+                                                <th style={{ width: '135px' }}>কোয়ালিটি / ফল্ট</th>
                                             </tr>
-                                        ))}
-                                </tbody>
-                            </table>
+                                        </thead>
+                                        <tbody>
+                                            {displayFloorMachines.map(m => {
+                                                const mState = bulkEntries[m.code] || { kg: '', rolls: '', op: m.op !== '—' ? m.op : '', lot: '', issue: 'না', orderId: '' };
+                                                const defaultAssignedO = orders.find(o => o.machines?.includes(m.code)) || orders.find(o => o.status === 'run') || orders[0];
+                                                const activeO = (mState.orderId ? orders.find(o => o.id === mState.orderId) : null) || defaultAssignedO;
+                                                const isFilled = parseFloat(mState.kg) > 0;
+
+                                                return (
+                                                    <tr key={m.code} style={{ background: isFilled ? '#f0fdf4' : 'inherit', transition: 'background 0.15s ease' }}>
+                                                        <td>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <span className="pill p-acc" style={{ fontWeight: 700, fontSize: '.8rem', padding: '2px 8px' }}>
+                                                                    ⚙ {m.code}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ fontSize: '.72rem', color: 'var(--muted)', marginTop: '2px' }}>
+                                                                {m.type}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            {runningOrders.length > 0 ? (
+                                                                <select
+                                                                    className="prod-input"
+                                                                    value={activeO?.id || ''}
+                                                                    onChange={e => handleBulkEntryChange(m.code, 'orderId', e.target.value)}
+                                                                    style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', fontSize: '.82rem', fontWeight: 600 }}
+                                                                >
+                                                                    {runningOrders.map(ro => (
+                                                                        <option key={ro.id} value={ro.id}>
+                                                                            {ro.id} ({ro.vendorName || vName(ro.v)})
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : activeO ? (
+                                                                <>
+                                                                    <b style={{ color: 'var(--accent)', fontSize: '.88rem' }}>{activeO.id}</b>
+                                                                    <div style={{ fontSize: '.78rem', color: 'var(--ink)' }}>
+                                                                        {activeO.vendorName || vName(activeO.v)}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <span className="small muted">অর্ডার বরাদ্দ নেই</span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {activeO ? (
+                                                                <>
+                                                                    <div style={{ fontSize: '.82rem', fontWeight: 500 }}>{activeO.fabric}</div>
+                                                                    <div style={{ fontSize: '.75rem', color: 'var(--muted)' }}>
+                                                                        লট: {activeO.yarnIn[0]?.lot || 'SQ-88414'}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <span className="small muted">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <input
+                                                                type="text"
+                                                                className="prod-input"
+                                                                placeholder={m.op !== '—' ? m.op : 'অপারেটর'}
+                                                                value={mState.op}
+                                                                onChange={e => handleBulkEntryChange(m.code, 'op', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', fontSize: '.82rem' }}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <input
+                                                                type="number"
+                                                                step="any"
+                                                                className="prod-input prod-input-num"
+                                                                placeholder="যেমন: ১৮০"
+                                                                value={mState.kg}
+                                                                onChange={e => handleBulkEntryChange(m.code, 'kg', e.target.value)}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '7px 10px',
+                                                                    borderRadius: '6px',
+                                                                    border: isFilled ? '2px solid var(--accent, #0E6B66)' : undefined,
+                                                                    fontSize: '.92rem',
+                                                                    background: isFilled ? '#ffffff' : undefined
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <input
+                                                                type="number"
+                                                                className="prod-input prod-input-num"
+                                                                placeholder="যেমন: ৮"
+                                                                value={mState.rolls}
+                                                                onChange={e => handleBulkEntryChange(m.code, 'rolls', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', fontSize: '.85rem' }}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <select
+                                                                className="prod-input"
+                                                                value={mState.issue}
+                                                                onChange={e => handleBulkEntryChange(m.code, 'issue', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 6px', borderRadius: '6px', fontSize: '.8rem' }}
+                                                            >
+                                                                <option value="না">ঠিক আছে (OK)</option>
+                                                                <option value="Hole">Hole (ছিদ্র)</option>
+                                                                <option value="Needle mark">Needle mark (দাগ)</option>
+                                                                <option value="Barre">Barre (ব্যারে)</option>
+                                                                <option value="Oil spot">Oil spot (তেল দাগ)</option>
+                                                                <option value="Lycra out">Lycra out</option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Save Strip */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border, #e2e8f0)', flexWrap: 'wrap', gap: '12px' }}>
+                                    <div style={{ fontSize: '.9rem' }}>
+                                        এই শিফটে মোট এন্ট্রি: <b style={{ color: 'var(--accent)', fontSize: '1.15rem' }}>{bn(currentBulkKgTotal)} kg</b>
+                                        <span style={{ color: 'var(--muted)', marginLeft: '8px' }}>
+                                            ({bn(currentBulkRollsTotal)} রোল · {bn(filledMachinesCount)}টি মেশিন)
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button
+                                            type="button"
+                                            className="btn"
+                                            onClick={() => setBulkEntries({})}
+                                        >
+                                            রিসেট
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn pri"
+                                            style={{ padding: '8px 22px', fontSize: '.95rem', fontWeight: 700 }}
+                                        >
+                                            ✓ {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} এর সমস্ত এন্ট্রি সেভ করুন
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* MODE 2: SINGLE MACHINE ENTRY */}
+                        {entryMode === 'single' && (
+                            <form className="card" onSubmit={handleSaveEntry} style={{ padding: '20px', marginBottom: '24px' }}>
+                                <div style={{ marginBottom: '14px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
+                                        ⚡ সিঙ্গেল মেশিন প্রোডাকশন এন্ট্রি ({currentShiftList.find(s => s.id === entrySh)?.name})
+                                    </h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                        একটি নির্দিষ্ট মেশিনের উৎপাদিত কাপড়ের সঠিক ওজন ও বিস্তারিত ইনপুট করুন
+                                    </p>
+                                </div>
+                                <div className="form">
+                                    <label className="f">
+                                        তারিখ
+                                        <input
+                                            className="prod-input"
+                                            value={entryDate}
+                                            onChange={e => setEntryDate(e.target.value)}
+                                        />
+                                    </label>
+                                    <label className="f">
+                                        শিফট
+                                        <select
+                                            className="prod-input"
+                                            value={entrySh}
+                                            onChange={e => setEntrySh(e.target.value)}
+                                        >
+                                            {currentShiftList.map(sh => (
+                                                <option key={sh.id} value={sh.id}>
+                                                    {sh.name} ({sh.time})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="f">
+                                        মেশিন ও রানিং অর্ডার
+                                        <select
+                                            className="prod-input"
+                                            value={entryM}
+                                            onChange={e => setEntryM(e.target.value)}
+                                        >
+                                            {orders
+                                                .filter(o => o.status === 'run')
+                                                .flatMap(o =>
+                                                    o.machines.map(m => (
+                                                        <option key={`${m}|${o.id}`} value={`${m}|${o.id}`}>
+                                                            {m} — {o.id} ({o.fabric})
+                                                        </option>
+                                                    ))
+                                                )}
+                                        </select>
+                                    </label>
+                                    <label className="f">
+                                        প্রোডাকশন (kg) *
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            required
+                                            className="prod-input prod-input-num"
+                                            value={entryKg}
+                                            onChange={e => setEntryKg(e.target.value)}
+                                        />
+                                    </label>
+                                    <label className="f">
+                                        রোল সংখ্যা
+                                        <input
+                                            type="number"
+                                            className="prod-input prod-input-num"
+                                            value={entryR}
+                                            onChange={e => setEntryR(e.target.value)}
+                                        />
+                                    </label>
+                                    <label className="f">
+                                        অপারেটর
+                                        <input
+                                            className="prod-input"
+                                            value={entryOp}
+                                            onChange={e => setEntryOp(e.target.value)}
+                                        />
+                                    </label>
+                                    <label className="f">
+                                        ব্যবহৃত সুতার লট
+                                        <select
+                                            className="prod-input"
+                                            value={entryLot}
+                                            onChange={e => setEntryLot(e.target.value)}
+                                        >
+                                            <option>SQ-88412</option>
+                                            <option>SQ-88419</option>
+                                            <option>AK-5521</option>
+                                            <option>NS-2290</option>
+                                        </select>
+                                    </label>
+                                    <label className="f">
+                                        কোনো সমস্যা / ফল্ট?
+                                        <select
+                                            className="prod-input"
+                                            value={entryIss}
+                                            onChange={e => setEntryIss(e.target.value)}
+                                        >
+                                            <option value="না">না (সব ঠিক আছে)</option>
+                                            <option value="Hole">Hole</option>
+                                            <option value="Needle mark">Needle mark</option>
+                                            <option value="Barre">Barre</option>
+                                            <option value="Oil spot">Oil spot</option>
+                                            <option value="Lycra out">Lycra out</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div className="row" style={{ marginTop: '16px' }}>
+                                    <button className="btn pri" type="submit" style={{ padding: '8px 22px', fontSize: '.95rem' }}>
+                                        ✓ এন্ট্রি সেভ করুন
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* KPI METRIC CARDS */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--accent, #0E6B66)' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>আজকের মোট উৎপাদন</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
+                                    {bn(todayTotalKg)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>kg</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    শিফটভিত্তিক মোট হিসাব
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #3b82f6' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>মোট রোল সংখ্যা</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#3b82f6', marginTop: '4px' }}>
+                                    {bn(todayTotalRolls)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>টি রোল</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    ফ্লোর থেকে প্রাপ্ত রোল
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>চলমান মেশিন</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
+                                    {bn(activeFloorMachines.length)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>টি</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    ফ্লোরে সক্রিয়ভাবে রানিং
+                                </div>
+                            </div>
+                            <div className="card" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
+                                <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>গড় আউটপুট / মেশিন</div>
+                                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
+                                    {bn(avgKgPerMachine)} <span style={{ fontSize: '1rem', fontWeight: 500 }}>kg</span>
+                                </div>
+                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: '4px' }}>
+                                    মেশিনপ্রতি গড় উৎপাদন
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </>
-            )}
+
+                        {/* SHIFT SUMMARY & TODAY'S LOGS */}
+                        <div className="card" style={{ padding: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>আজকের এন্ট্রি ও শিফটভিত্তিক হিসাব</h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                        লগ থেকে যেকোনো ভুলের ক্ষেত্রে সরাসরি মুছে দিলে অর্ডারের প্রগ্রেস স্বয়ংক্রিয় অ্যাডজাস্ট হবে
+                                    </p>
+                                </div>
+
+                                {/* Shift filter pills for table */}
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className={`btn sm ${historyShiftFilter === 'all' ? 'pri' : ''}`}
+                                        onClick={() => setHistoryShiftFilter('all')}
+                                        style={{ fontSize: '.78rem', padding: '3px 10px' }}
+                                    >
+                                        সব শিফট ({bn(prodLog.length)})
+                                    </button>
+                                    {currentShiftList.map(sh => {
+                                        const count = prodLog.filter(p => p.sh === sh.id).length;
+                                        return (
+                                            <button
+                                                key={sh.id}
+                                                type="button"
+                                                className={`btn sm ${historyShiftFilter === sh.id ? 'pri' : ''}`}
+                                                onClick={() => setHistoryShiftFilter(sh.id)}
+                                                style={{ fontSize: '.78rem', padding: '3px 10px' }}
+                                            >
+                                                {sh.name} ({bn(count)})
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="tw">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>তারিখ</th>
+                                            <th>শিফট</th>
+                                            <th>মেশিন</th>
+                                            <th>অর্ডার ও বায়ার</th>
+                                            <th className="n">উৎপাদন (kg)</th>
+                                            <th className="n">রোল</th>
+                                            <th>লট নং</th>
+                                            <th>অপারেটর</th>
+                                            <th>সমস্যা / স্ট্যাটাস</th>
+                                            <th style={{ width: '60px' }}>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredHistory.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                    এই শিফটে এখনো কোনো এন্ট্রি করা হয়নি।
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            filteredHistory.map((p, idx) => {
+                                                const relatedO = orders.find(o => o.id === p.o);
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td className="small">{p.d}</td>
+                                                        <td>
+                                                            <span className="pill p-acc" style={{ fontSize: '.75rem', padding: '2px 8px' }}>
+                                                                শিফট {p.sh}
+                                                            </span>
+                                                        </td>
+                                                        <td className="mono" style={{ fontWeight: 700 }}>{p.m}</td>
+                                                        <td>
+                                                            <b style={{ color: 'var(--accent)' }}>{p.o}</b>
+                                                            {relatedO && (
+                                                                <div className="small muted">
+                                                                    {relatedO.vendorName || vName(relatedO.v)}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="n" style={{ fontWeight: 700, color: 'var(--ok)' }}>
+                                                            {bn(p.kg)}
+                                                        </td>
+                                                        <td className="n">{bn(p.rolls)}</td>
+                                                        <td className="mono small">{p.lot || '—'}</td>
+                                                        <td>{p.op}</td>
+                                                        <td>
+                                                            {p.issue && p.issue !== 'না' ? (
+                                                                <span className="pill" style={{ background: '#fee2e2', color: '#b91c1c', fontSize: '.72rem', padding: '1px 6px' }}>
+                                                                    ⚠️ {p.issue}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="pill p-ok" style={{ fontSize: '.72rem', padding: '1px 6px' }}>
+                                                                    ✓ ঠিক আছে
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <button
+                                                                type="button"
+                                                                className="btn sm"
+                                                                onClick={() => handleDeleteProdLog(idx)}
+                                                                title="মুছে ফেলুন"
+                                                                style={{ padding: '2px 6px', color: '#dc2626' }}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                );
+            })()}
 
             {/* SCREEN: QC */}
             {view === 'qc' && (

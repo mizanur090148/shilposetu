@@ -64,12 +64,14 @@ export interface Order {
 
 export interface ProductionLogItem {
     d: string;
-    sh: 'A' | 'B';
+    sh: string; // 'A' | 'B' | 'C' | 'Day'
     m: string;
     o: string;
     kg: number;
     rolls: number;
     op: string;
+    lot?: string;
+    issue?: string;
 }
 
 export interface UserItem {

@@ -1054,3 +1054,47 @@
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
 }
 
+/* Production Entry Bespoke Inputs & Controls */
+.kk-app .prod-input {
+  border: 1px solid var(--line, #cbd5e1);
+  background: var(--surface, #ffffff);
+  color: var(--ink);
+  outline: none !important;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.kk-app .prod-input:focus,
+.kk-app .prod-input:focus-visible {
+  outline: none !important;
+  border-color: var(--accent, #0E6B66) !important;
+  box-shadow: 0 0 0 3px rgba(14, 107, 102, 0.15) !important;
+}
+
+.kk-app .prod-input-num {
+  font-family: var(--f-mono);
+  font-weight: 700;
+  text-align: right;
+}
+
+.kk-app .shift-mode-chip {
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--line, #cbd5e1);
+  background: var(--surface2, #f1f5f9);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.kk-app .shift-mode-chip.active {
+  background: var(--accent, #0E6B66);
+  color: #ffffff;
+  border-color: var(--accent, #0E6B66);
+  box-shadow: 0 2px 6px rgba(14, 107, 102, 0.25);
+}
+
+
