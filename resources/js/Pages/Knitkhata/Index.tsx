@@ -215,13 +215,28 @@ export default function KnitkhataIndex({
     });
     const [entryMode, setEntryMode] = useState<'bulk' | 'single'>('bulk');
     const [bulkMachineScope, setBulkMachineScope] = useState<'run' | 'all'>('run');
-    const [entryDate, setEntryDate] = useState('03 Oct 2026');
-    const [entrySh, setEntrySh] = useState('A');
-    const [entryM, setEntryM] = useState('M-04|SC-2610-014');
-    const [entryKg, setEntryKg] = useState('180');
-    const [entryR, setEntryR] = useState('8');
-    const [entryOp, setEntryOp] = useState('জসিম');
-    const [entryLot, setEntryLot] = useState('SQ-88412');
+    const [entryDate, setEntryDate] = useState<string>(() => {
+        const today = new Date();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${String(today.getDate()).padStart(2, '0')} ${months[today.getMonth()]} ${today.getFullYear()}`;
+    });
+    const [entrySh, setEntrySh] = useState<string>(() => {
+        if (dbShifts && dbShifts.length > 0) {
+            return dbShifts[0].code;
+        }
+        return 'A';
+    });
+    const [entryM, setEntryM] = useState<string>(() => {
+        const runOrder = (initialOrders && initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS).find(o => o.status === 'run');
+        if (runOrder && runOrder.machines && runOrder.machines.length > 0) {
+            return `${runOrder.machines[0]}|${runOrder.id}`;
+        }
+        return '';
+    });
+    const [entryKg, setEntryKg] = useState('');
+    const [entryR, setEntryR] = useState('');
+    const [entryOp, setEntryOp] = useState('');
+    const [entryLot, setEntryLot] = useState('');
     const [entryIss, setEntryIss] = useState('না');
     const [entryRemarks, setEntryRemarks] = useState('');
     const [historyShiftFilter, setHistoryShiftFilter] = useState<string>('all');
@@ -984,9 +999,18 @@ export default function KnitkhataIndex({
     // Save shift entry (Single Mode)
     const handleSaveEntry = (e: React.FormEvent) => {
         e.preventDefault();
-        const [m, oid] = entryM.split('|');
+        const [m, oid] = entryM ? entryM.split('|') : ['', ''];
+        if (!m || !oid) {
+            showToast('অনুগ্রহ করে একটি মেশিন ও রানিং অর্ডার নির্বাচন করুন');
+            return;
+        }
+
         const kg = parseFloat(entryKg) || 0;
         const rolls = parseInt(entryR) || 0;
+        if (kg <= 0) {
+            showToast('অনুগ্রহ করে উৎপাদনের সঠিক পরিমাণ (kg) লিখুন');
+            return;
+        }
 
         const newLog: ProductionLogItem = {
             d: entryDate,
@@ -995,8 +1019,8 @@ export default function KnitkhataIndex({
             o: oid,
             kg,
             rolls,
-            op: entryOp,
-            lot: entryLot,
+            op: entryOp || 'অপারেটর',
+            lot: entryLot || '—',
             issue: entryIss,
             notes: entryRemarks,
             remarks: entryRemarks
@@ -1026,8 +1050,8 @@ export default function KnitkhataIndex({
             order_id: oid,
             quantity_kg: kg,
             rolls_count: rolls,
-            operator_name: entryOp,
-            yarn_lot: entryLot,
+            operator_name: entryOp || 'অপারেটর',
+            yarn_lot: entryLot || null,
             quality_issue: entryIss,
             notes: entryRemarks,
             remarks: entryRemarks
@@ -1036,6 +1060,8 @@ export default function KnitkhataIndex({
             preserveState: true,
             onSuccess: () => {
                 showToast(`${m} এ ${bn(kg)} kg উৎপাদন ডাটাবেজে সংরক্ষিত হয়েছে · ${oid} এখন ${updatedPct}%`);
+                setEntryKg('');
+                setEntryR('');
                 setEntryRemarks('');
             }
         });
@@ -1277,7 +1303,7 @@ export default function KnitkhataIndex({
                 kg,
                 rolls,
                 op: data.op || mObj?.op || 'অপারেটর',
-                lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
+                lot: data.lot || (assignedO?.yarnIn?.[0]?.lot || '—'),
                 issue: data.issue || 'না',
                 notes: data.remarks || '',
                 remarks: data.remarks || ''
@@ -1289,7 +1315,7 @@ export default function KnitkhataIndex({
                 quantity_kg: kg,
                 rolls_count: rolls,
                 operator_name: data.op || mObj?.op || 'অপারেটর',
-                yarn_lot: data.lot || (assignedO?.yarnIn[0]?.lot || 'লট-১'),
+                yarn_lot: data.lot || (assignedO?.yarnIn?.[0]?.lot || null),
                 quality_issue: data.issue || 'না',
                 notes: data.remarks || '',
                 remarks: data.remarks || ''
@@ -3473,8 +3499,8 @@ export default function KnitkhataIndex({
                 });
 
                 // Today's total logged production
-                const todayTotalKg = prodLog.filter(p => p.d === entryDate || p.d === '03 Oct').reduce((a, b) => a + b.kg, 0);
-                const todayTotalRolls = prodLog.filter(p => p.d === entryDate || p.d === '03 Oct').reduce((a, b) => a + b.rolls, 0);
+                const todayTotalKg = prodLog.filter(p => p.d === entryDate).reduce((a, b) => a + b.kg, 0);
+                const todayTotalRolls = prodLog.filter(p => p.d === entryDate).reduce((a, b) => a + b.rolls, 0);
                 const activeMachinesCount = activeFloorMachines.length > 0 ? activeFloorMachines.length : 1;
                 const avgKgPerMachine = Math.round(todayTotalKg / activeMachinesCount);
 
@@ -3721,7 +3747,7 @@ export default function KnitkhataIndex({
                                                                 <>
                                                                     <div style={{ fontSize: '.82rem', fontWeight: 500 }}>{activeO.fabric}</div>
                                                                     <div style={{ fontSize: '.75rem', color: 'var(--muted)' }}>
-                                                                        লট: {activeO.yarnIn[0]?.lot || 'SQ-88414'}
+                                                                        লট: {activeO.yarnIn?.[0]?.lot || '—'}
                                                                     </div>
                                                                 </>
                                                             ) : (
@@ -3865,12 +3891,25 @@ export default function KnitkhataIndex({
                                         <select
                                             className="prod-input"
                                             value={entryM}
-                                            onChange={e => setEntryM(e.target.value)}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setEntryM(val);
+                                                const [mCode, oid] = val ? val.split('|') : ['', ''];
+                                                const targetOrder = orders.find(o => o.id === oid);
+                                                const mObj = allMyMachines.find(m => m.code === mCode);
+                                                if (mObj && mObj.op && mObj.op !== '—') {
+                                                    setEntryOp(mObj.op);
+                                                }
+                                                if (targetOrder && targetOrder.yarnIn && targetOrder.yarnIn.length > 0) {
+                                                    setEntryLot(targetOrder.yarnIn[0].lot);
+                                                }
+                                            }}
                                         >
+                                            <option value="">-- মেশিন ও রানিং অর্ডার নির্বাচন করুন --</option>
                                             {orders
                                                 .filter(o => o.status === 'run')
                                                 .flatMap(o =>
-                                                    o.machines.map(m => (
+                                                    (o.machines || []).map(m => (
                                                         <option key={`${m}|${o.id}`} value={`${m}|${o.id}`}>
                                                             {m} — {o.id} ({o.fabric})
                                                         </option>
@@ -3885,6 +3924,7 @@ export default function KnitkhataIndex({
                                             step="any"
                                             required
                                             className="prod-input prod-input-num"
+                                            placeholder="যেমন: ১৮০"
                                             value={entryKg}
                                             onChange={e => setEntryKg(e.target.value)}
                                         />
@@ -3894,6 +3934,7 @@ export default function KnitkhataIndex({
                                         <input
                                             type="number"
                                             className="prod-input prod-input-num"
+                                            placeholder="যেমন: ৮"
                                             value={entryR}
                                             onChange={e => setEntryR(e.target.value)}
                                         />
@@ -3901,24 +3942,31 @@ export default function KnitkhataIndex({
                                     <label className="f">
                                         অপারেটর
                                         <input
+                                            type="text"
                                             className="prod-input"
+                                            placeholder="অপারেটরের নাম"
                                             value={entryOp}
                                             onChange={e => setEntryOp(e.target.value)}
                                         />
                                     </label>
                                     <label className="f">
                                         লট
-                                        <select
+                                        <input
+                                            type="text"
                                             className="prod-input"
+                                            placeholder="যেমন: SQ-88412"
+                                            list="available-yarn-lots"
                                             value={entryLot}
                                             onChange={e => setEntryLot(e.target.value)}
-                                        >
-                                            <option>SQ-88412</option>
-                                            <option>SQ-88419</option>
-                                            <option>SQ-88414</option>
-                                            <option>AK-5521</option>
-                                            <option>NS-2290</option>
-                                        </select>
+                                        />
+                                        <datalist id="available-yarn-lots">
+                                            {orders
+                                                .flatMap(o => o.yarnIn?.map(y => y.lot) || [])
+                                                .filter((lot, idx, arr) => lot && arr.indexOf(lot) === idx)
+                                                .map((lot, idx) => (
+                                                    <option key={idx} value={lot} />
+                                                ))}
+                                        </datalist>
                                     </label>
                                     <label className="f">
                                         কোনো সমস্যা / ফল্ট?
