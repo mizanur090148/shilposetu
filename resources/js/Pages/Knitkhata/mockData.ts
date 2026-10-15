@@ -11,6 +11,7 @@ export const INITIAL_VENDORS: Record<string, Vendor> = {
 export const INITIAL_ORDERS: Order[] = [
     {
         id: 'SC-2610-014',
+        title: 'Single Jersey 100% Cotton (Export Quality)',
         v: 'abc',
         fabric: 'Single Jersey 100% Cotton',
         gsm: 160,
@@ -41,6 +42,7 @@ export const INITIAL_ORDERS: Order[] = [
     },
     {
         id: 'SC-2610-018',
+        title: '1×1 Rib with Lycra 220 GSM',
         v: 'nobo',
         fabric: '1×1 Rib with Lycra',
         gsm: 220,
@@ -60,6 +62,7 @@ export const INITIAL_ORDERS: Order[] = [
     },
     {
         id: 'SC-2609-011',
+        title: 'Fleece 3-End (Brushed) 280 GSM',
         v: 'xyz',
         fabric: 'Fleece 3-End (Brushed)',
         gsm: 280,
@@ -86,6 +89,7 @@ export const INITIAL_ORDERS: Order[] = [
     },
     {
         id: 'SC-2609-002',
+        title: 'Interlock 100% Cotton 200 GSM',
         v: 'abc',
         fabric: 'Interlock 100% Cotton',
         gsm: 200,
@@ -109,6 +113,7 @@ export const INITIAL_ORDERS: Order[] = [
     },
     {
         id: 'SC-2609-001',
+        title: 'Single Jersey 60/40 CVC 150 GSM',
         v: 'xyz',
         fabric: 'Single Jersey 60/40 CVC',
         gsm: 150,

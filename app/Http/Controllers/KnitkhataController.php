@@ -64,11 +64,12 @@ class KnitkhataController extends Controller
             $orders[] = [
                 'id' => 'SC-POST-' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
                 'db_id' => $p->id,
+                'title' => $p->title,
                 'v' => $vendorKey,
                 'vendorName' => $vendorName,
                 'vendorPhone' => $vendorPhone,
                 'vendorEmail' => $vendorEmail,
-                'fabric' => $p->title,
+                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (!empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
                 'category' => $p->category,
                 'gsm' => (int) ($specs['gsm'] ?? 160),
                 'dia' => $specs['dia'] ?? '30" × 24G',
@@ -170,6 +171,7 @@ class KnitkhataController extends Controller
             $orders[] = [
                 'id' => 'SC-POST-' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
                 'db_id' => $p->id,
+                'title' => $p->title,
                 'v' => $factoryKey,
                 'vendorName' => $factoryName,
                 'vendorPhone' => $factoryPhone,
@@ -183,7 +185,7 @@ class KnitkhataController extends Controller
                     'location' => $factoryLocation,
                 ] : null,
                 'quotations_count' => (int) $p->quotations_count,
-                'fabric' => $p->title,
+                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (!empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
                 'category' => $p->category,
                 'gsm' => (int) ($specs['gsm'] ?? 160),
                 'dia' => $specs['dia'] ?? '30" × 24G',
@@ -909,7 +911,9 @@ class KnitkhataController extends Controller
                 }
             }
             if (!$postId) {
-                $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)->first();
+                $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)
+                    ->whereIn('status', ['in_progress', 'open'])
+                    ->first();
                 $postId = $post?->id;
             }
 

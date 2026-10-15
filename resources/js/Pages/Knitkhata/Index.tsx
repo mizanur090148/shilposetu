@@ -112,7 +112,7 @@ export default function KnitkhataIndex({
     auth,
     initialTab = 'dash',
     initialRole = 'fac',
-    initialOrderId = 'SC-2610-014',
+    initialOrderId = 'SC-POST-001',
     factoryMachines = [],
     customMachines = [],
     machineTypes = [],
@@ -214,7 +214,7 @@ export default function KnitkhataIndex({
         return 2;
     });
     const [entryMode, setEntryMode] = useState<'bulk' | 'single'>('bulk');
-    const [bulkMachineScope, setBulkMachineScope] = useState<'run' | 'all'>('run');
+    const [bulkMachineScope, setBulkMachineScope] = useState<'assigned' | 'run' | 'all'>('assigned');
     const [entryDate, setEntryDate] = useState<string>(() => {
         const today = new Date();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -229,10 +229,11 @@ export default function KnitkhataIndex({
     const [entryM, setEntryM] = useState<string>(() => {
         const runOrder = (initialOrders && initialOrders.length > 0 ? initialOrders : INITIAL_ORDERS).find(o => o.status === 'run');
         if (runOrder && runOrder.machines && runOrder.machines.length > 0) {
-            return `${runOrder.machines[0]}|${runOrder.id}`;
+            return runOrder.machines[0];
         }
-        return '';
+        return 'M-01';
     });
+    const [entryOrderId, setEntryOrderId] = useState<string>('');
     const [entryKg, setEntryKg] = useState('');
     const [entryR, setEntryR] = useState('');
     const [entryOp, setEntryOp] = useState('');
@@ -434,7 +435,7 @@ export default function KnitkhataIndex({
 
     // Delivery Challan Modal state & handlers
     const [showDeliveryModal, setShowDeliveryModal] = useState(false);
-    const [deliveryTargetOrder, setDeliveryTargetOrder] = useState<string>('SC-2610-014');
+    const [deliveryTargetOrder, setDeliveryTargetOrder] = useState<string>(initialOrderId || orders[0]?.id || 'SC-POST-001');
     const [deliveryDateInput, setDeliveryDateInput] = useState('03 Oct 2026');
     const [deliveryChallanNo, setDeliveryChallanNo] = useState('CH-2610-062');
     const [deliveryRollsInput, setDeliveryRollsInput] = useState('25');
@@ -996,12 +997,49 @@ export default function KnitkhataIndex({
         router.visit(`/knitkhata/orders/${orderId}`, { preserveScroll: true });
     };
 
+    // Single Entry helper handlers
+    const handleSingleMachineChange = (mCode: string) => {
+        setEntryM(mCode);
+        const mObj = allMyMachines.find(m => m.code === mCode);
+        if (mObj && mObj.op && mObj.op !== '—') {
+            setEntryOp(mObj.op);
+        }
+        const assignedO = orders.find(o => o.machines?.includes(mCode))
+            || orders.find(o => o.status === 'run')
+            || orders[0];
+        if (assignedO) {
+            setEntryOrderId(assignedO.id);
+            if (assignedO.yarnIn && assignedO.yarnIn.length > 0 && assignedO.yarnIn[0].lot) {
+                setEntryLot(assignedO.yarnIn[0].lot);
+            }
+        }
+    };
+
+    const handleTopOrderChange = (oid: string) => {
+        setEntryOrderId(oid);
+        if (oid) {
+            const targetO = orders.find(o => o.id === oid) || vendorOrders.find(o => o.id === oid);
+            if (targetO && targetO.yarnIn && targetO.yarnIn.length > 0 && targetO.yarnIn[0].lot) {
+                setEntryLot(targetO.yarnIn[0].lot);
+            }
+            if (targetO?.machines && targetO.machines.length > 0) {
+                setBulkMachineScope('assigned');
+            } else {
+                setBulkMachineScope('run');
+            }
+        }
+    };
+
+    const handleSingleOrderChange = (oid: string) => {
+        handleTopOrderChange(oid);
+    };
+
     // Save shift entry (Single Mode)
     const handleSaveEntry = (e: React.FormEvent) => {
         e.preventDefault();
-        const [m, oid] = entryM ? entryM.split('|') : ['', ''];
-        if (!m || !oid) {
-            showToast('অনুগ্রহ করে একটি মেশিন ও রানিং অর্ডার নির্বাচন করুন');
+        const m = entryM;
+        if (!m) {
+            showToast('অনুগ্রহ করে একটি মেশিন নির্বাচন করুন');
             return;
         }
 
@@ -1012,6 +1050,17 @@ export default function KnitkhataIndex({
             return;
         }
 
+        const mObj = allMyMachines.find(item => item.code === m);
+        const assignedO = (entryOrderId ? orders.find(o => o.id === entryOrderId) : null)
+            || orders.find(o => o.machines?.includes(m))
+            || orders.find(o => o.status === 'run')
+            || orders[0];
+        const oid = assignedO?.id || 'SC-POST-004';
+
+        const finalOp = entryOp || (mObj?.op !== '—' ? mObj?.op : '') || 'অপারেটর';
+        const finalLot = entryLot || assignedO?.yarnIn?.[0]?.lot || '—';
+        const finalIssue = entryIss || 'না';
+
         const newLog: ProductionLogItem = {
             d: entryDate,
             sh: entrySh,
@@ -1019,9 +1068,9 @@ export default function KnitkhataIndex({
             o: oid,
             kg,
             rolls,
-            op: entryOp || 'অপারেটর',
-            lot: entryLot || '—',
-            issue: entryIss,
+            op: finalOp,
+            lot: finalLot,
+            issue: finalIssue,
             notes: entryRemarks,
             remarks: entryRemarks
         };
@@ -1038,9 +1087,8 @@ export default function KnitkhataIndex({
             })
         );
 
-        const target = orders.find(o => o.id === oid);
-        const updatedDone = target ? Math.min(target.qty, target.done + kg) : kg;
-        const updatedPct = target ? Math.round((updatedDone / target.qty) * 100) : 100;
+        const updatedDone = assignedO ? Math.min(assignedO.qty, assignedO.done + kg) : kg;
+        const updatedPct = assignedO ? Math.round((updatedDone / assignedO.qty) * 100) : 100;
 
         router.post('/knitkhata/production-entry', {
             mode: 'single',
@@ -1050,9 +1098,9 @@ export default function KnitkhataIndex({
             order_id: oid,
             quantity_kg: kg,
             rolls_count: rolls,
-            operator_name: entryOp || 'অপারেটর',
-            yarn_lot: entryLot || null,
-            quality_issue: entryIss,
+            operator_name: finalOp,
+            yarn_lot: finalLot !== '—' ? finalLot : null,
+            quality_issue: finalIssue,
             notes: entryRemarks,
             remarks: entryRemarks
         }, {
@@ -1479,8 +1527,11 @@ export default function KnitkhataIndex({
                                 className="click"
                                 onClick={() => handleSelectOrder(o.id)}
                             >
-                                <td className="mono">{o.id}</td>
-                                <td>{vName(o.v)}</td>
+                                <td className="mono">
+                                    <b style={{ color: 'var(--accent)' }}>{o.title || o.fabric}</b>
+                                    <div className="small muted">{o.id}</div>
+                                </td>
+                                <td>{o.vendorName || vName(o.v)}</td>
                                 <td>{o.fabric} {o.gsm} GSM</td>
                                 <td className="n">{bn(o.qty)}</td>
                                 <td className="n">{bn(o.done)}</td>
@@ -1551,9 +1602,9 @@ export default function KnitkhataIndex({
                             ← সব অর্ডার
                         </Link>
                         <h2 style={{ marginTop: '8px' }}>
-                            {o.id} · {o.fabric} {o.gsm} GSM
+                            {o.title || o.fabric} <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>({o.id})</span>
                         </h2>
-                        <p>{vName(o.v)} · শুরু {o.start}</p>
+                        <p>{o.vendorName || vName(o.v)} · শুরু {o.start}</p>
                     </div>
                     {stPill(o)}
                 </div>
@@ -1905,11 +1956,11 @@ export default function KnitkhataIndex({
                     <div className="bub">
                         আসসালামু আলাইকুম কামরুল সাহেব,<br />
                         ৩ অক্টোবর ২০২৬ এর নিটিং আপডেট:<br /><br />
-                        <b>{o.id}</b> · {o.fabric} {o.gsm}<br />
+                        <b>{o.title || o.fabric}</b> ({o.id}) · {o.gsm ? `${o.gsm} GSM` : ''}<br />
                         আজ: 1,100 kg · মোট {pct(o)}%<br />
                         মেশিন: {o.machines.length}টি · শেষ হবে ~{etaOf(o) ? fmtD(etaOf(o)!.date) : '০৮ Oct'}<br />
                         QC: ১টি রোল বাতিল (needle mark)<br /><br />
-                        <b>{o2.id}</b> · {o2.fabric}<br />
+                        <b>{o2.title || o2.fabric}</b> ({o2.id})<br />
                         মোট {pct(o2)}% · কাল শেষ হবে
                         <time>রাত ৮:০০</time>
                     </div>
@@ -1957,7 +2008,7 @@ export default function KnitkhataIndex({
                             const e = etaOf(o);
                             return (
                                 <tr key={o.id}>
-                                    <td>{o.id}</td>
+                                    <td><b>{o.title || o.fabric}</b> <span className="small muted">({o.id})</span></td>
                                     <td>{o.fabric} {o.gsm}</td>
                                     <td>{o.qty}</td>
                                     <td>{todaySum}</td>
@@ -2119,7 +2170,7 @@ export default function KnitkhataIndex({
                                     <div key={`qc-${idx}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
                                         <i className="dot" style={{ background: 'var(--bad)' }} />
                                         <div>
-                                            <b>{o.id}</b> — {q.d || 'ফল্ট চিহ্নিত'}: {q.issue || 'সমস্যা'} ({q.roll ? `রোল ${q.roll}` : '১টি রোল'} / {q.kg || 20} kg)। বায়ার: {vName(o.v)}।
+                                            <b>{o.title || o.fabric}</b> — {q.d || 'ফল্ট চিহ্নিত'}: {q.issue || 'সমস্যা'} ({q.roll ? `রোল ${q.roll}` : '১টি রোল'} / {q.kg || 20} kg)। বায়ার: {o.vendorName || vName(o.v)} ({o.id})।
                                         </div>
                                     </div>
                                 ))}
@@ -2128,7 +2179,7 @@ export default function KnitkhataIndex({
                                     <div key={`wait-${o.id}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
                                         <i className="dot" style={{ background: 'var(--warn)' }} />
                                         <div>
-                                            <b>{o.id}</b> — {vName(o.v)} এর সুতা এখনো কারখানায় পৌঁছায়নি ({bn(o.qty)} kg {o.fabric})। সুতা রিসিভ এন্ট্রি করুন।
+                                            <b>{o.title || o.fabric}</b> — {o.vendorName || vName(o.v)} এর সুতা এখনো কারখানায় পৌঁছায়নি ({bn(o.qty)} kg)। সুতা রিসিভ এন্ট্রি করুন।
                                         </div>
                                     </div>
                                 ))}
@@ -2137,7 +2188,7 @@ export default function KnitkhataIndex({
                                     <div key={`near-${o.id}`} className="alert click" onClick={() => handleSelectOrder(o.id)}>
                                         <i className="dot" style={{ background: 'var(--accent)' }} />
                                         <div>
-                                            <b>{o.id}</b> — আর মাত্র {bn(Math.max(0, o.qty - o.done))} kg বাকি ({pct(o)}% সম্পন্ন)। ডেলিভারি চালান ও গাড়ি প্রস্তুত করুন।
+                                            <b>{o.title || o.fabric}</b> — আর মাত্র {bn(Math.max(0, o.qty - o.done))} kg বাকি ({pct(o)}% সম্পন্ন · {o.vendorName || vName(o.v)})। ডেলিভারি চালান ও গাড়ি প্রস্তুত করুন।
                                         </div>
                                     </div>
                                 ))}
@@ -2419,9 +2470,9 @@ export default function KnitkhataIndex({
                                                                 style={{ fontWeight: 600, color: 'var(--accent)' }}
                                                                 title="বিস্তারিত দেখতে ক্লিক করুন"
                                                             >
-                                                                {o.id}
+                                                                <div style={{ fontWeight: 600 }}>{o.title || o.fabric}</div>
                                                                 <div className="small muted" style={{ fontWeight: 'normal' }}>
-                                                                    {o.start}
+                                                                    {o.id} · {o.start}
                                                                 </div>
                                                             </td>
                                                             <td>
@@ -2784,9 +2835,9 @@ export default function KnitkhataIndex({
                                                                 style={{ fontWeight: 600, color: 'var(--accent)' }}
                                                                 title="অর্ডারের লাইভ অগ্রগতি দেখতে ক্লিক করুন"
                                                             >
-                                                                {o.id}
+                                                                <div style={{ fontWeight: 600 }}>{o.title || o.fabric}</div>
                                                                 <div className="small muted" style={{ fontWeight: 'normal' }}>
-                                                                    {o.start}
+                                                                    {o.id} · {o.start}
                                                                 </div>
                                                                 {o.category && (
                                                                     <span className="pill p-acc" style={{ fontSize: '.68rem', padding: '1px 5px', textTransform: 'capitalize' }}>
@@ -3144,9 +3195,9 @@ export default function KnitkhataIndex({
                                             value={deliveryTargetOrder}
                                             onChange={e => setDeliveryTargetOrder(e.target.value)}
                                         >
-                                            {orders.map(o => (
+                                            {(orders.length > 0 ? orders : vendorOrders).map(o => (
                                                 <option key={o.id} value={o.id}>
-                                                    {o.id} · {vendors[o.v]?.name} · {o.fabric} ({bn(o.done)}/{bn(o.qty)} kg)
+                                                    {o.title || o.fabric} — {o.vendorName || vendors[o.v]?.name} ({bn(o.done)}/{bn(o.qty)} kg) · {o.id}
                                                 </option>
                                             ))}
                                         </select>
@@ -3252,10 +3303,16 @@ export default function KnitkhataIndex({
                                             <h3 style={{ margin: 0, fontSize: '1.25rem' }}>অর্ডারে মেশিন বরাদ্দ (Assign Machines)</h3>
                                         </div>
                                         <p style={{ margin: '6px 0 0 0', fontSize: '.88rem', color: 'var(--muted)' }}>
-                                            অর্ডার নং: <b style={{ color: 'var(--accent)' }}>{assignOrderId}</b>
                                             {(() => {
                                                 const target = orders.find(o => o.id === assignOrderId) || vendorOrders.find(o => o.id === assignOrderId);
-                                                return target ? ` · বায়ার: ${target.vendorName || vName(target.v)} · ${target.fabric} (${bn(target.qty)} kg)` : '';
+                                                return (
+                                                    <>
+                                                        অর্ডার: <b style={{ color: 'var(--accent)' }}>{target?.title || target?.fabric || assignOrderId}</b>
+                                                        {target && (
+                                                            <span> · বায়ার: {target.vendorName || vName(target.v)} · {bn(target.qty)} kg ({assignOrderId})</span>
+                                                        )}
+                                                    </>
+                                                );
                                             })()}
                                         </p>
                                     </div>
@@ -3408,6 +3465,7 @@ export default function KnitkhataIndex({
                                                     const isSelected = selectedMachines.includes(m.code);
                                                     const isCurrentOrder = m.assignedOrder === assignOrderId;
                                                     const isBusyOther = m.status === 'run' && !isCurrentOrder;
+                                                    const busyO = isBusyOther ? (orders.find(o => o.id === m.assignedOrder) || vendorOrders.find(o => o.id === m.assignedOrder)) : null;
 
                                                     return (
                                                         <div
@@ -3468,7 +3526,7 @@ export default function KnitkhataIndex({
                                                                     </span>
                                                                 ) : isBusyOther ? (
                                                                     <span className="pill" style={{ fontSize: '.7rem', padding: '1px 6px', background: '#fef3c7', color: '#92400e' }}>
-                                                                        • অন্য অর্ডারে ব্যস্ত ({m.assignedOrder || 'রানিং'})
+                                                                        • অন্য অর্ডারে ব্যস্ত ({busyO?.title || busyO?.fabric || m.assignedOrder || 'রানিং'})
                                                                     </span>
                                                                 ) : m.status === 'down' ? (
                                                                     <span className="pill" style={{ fontSize: '.7rem', padding: '1px 6px', background: '#fee2e2', color: '#b91c1c' }}>
@@ -3545,9 +3603,17 @@ export default function KnitkhataIndex({
                             { id: 'C', name: 'শিফট C (নাইট)', time: 'রাত ১০:০০ - সকাল ৬:০০ (৮ ঘণ্টা)' }
                         ]);
 
+                // Selected order for bulk entry
+                const selectedBulkOrder = entryOrderId ? orders.find(o => o.id === entryOrderId) : null;
+                const orderAssignedMachines = selectedBulkOrder?.machines && selectedBulkOrder.machines.length > 0
+                    ? allMyMachines.filter(m => selectedBulkOrder.machines?.includes(m.code))
+                    : [];
+
                 // Active floor machines based on scope
                 const activeFloorMachines = allMyMachines.filter(m => m.status === 'run');
-                const displayFloorMachines = bulkMachineScope === 'run'
+                const displayFloorMachines = bulkMachineScope === 'assigned' && orderAssignedMachines.length > 0
+                    ? orderAssignedMachines
+                    : bulkMachineScope === 'run'
                     ? (activeFloorMachines.length > 0 ? activeFloorMachines : allMyMachines)
                     : allMyMachines;
 
@@ -3627,7 +3693,7 @@ export default function KnitkhataIndex({
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                                 {/* Left: Date & Active Shift Picker */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                                         <span>📅 তারিখ:</span>
                                         <input
                                             type="text"
@@ -3641,6 +3707,34 @@ export default function KnitkhataIndex({
                                                 fontWeight: 600
                                             }}
                                         />
+                                    </label>
+
+                                    {/* 2. Subcontract Order Picker (Only my orders taken by login factory) */}
+                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                                        <span>📦 সাব-কন্ট্রাক্ট অর্ডার:</span>
+                                        <select
+                                            className="prod-input"
+                                            value={entryOrderId}
+                                            onChange={e => handleTopOrderChange(e.target.value)}
+                                            style={{
+                                                padding: '6px 12px',
+                                                borderRadius: '6px',
+                                                fontSize: '.88rem',
+                                                fontWeight: 600,
+                                                minWidth: '230px',
+                                                maxWidth: '380px',
+                                                borderColor: entryOrderId ? 'var(--accent, #059669)' : undefined,
+                                                background: entryOrderId ? '#f0fdf4' : undefined,
+                                                color: entryOrderId ? '#166534' : undefined
+                                            }}
+                                        >
+                                            <option value="">-- সাব-কন্ট্রাক্ট অর্ডার নির্বাচন করুন --</option>
+                                            {orders.map(o => (
+                                                <option key={o.id} value={o.id}>
+                                                    {o.title || o.fabric} — {o.vendorName || vName(o.v)} ({o.id})
+                                                </option>
+                                            ))}
+                                        </select>
                                     </label>
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -3696,37 +3790,48 @@ export default function KnitkhataIndex({
                         {/* MODE 1: BULK FLOOR SHEET ENTRY */}
                         {entryMode === 'bulk' && (
                             <form className="card" onSubmit={handleSaveBulkEntry} style={{ padding: '20px', marginBottom: '24px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-                                    <div>
-                                        <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span>📋</span> ফ্লোর বাল্ক শিট — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
-                                        </h3>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
-                                            শিফট শেষে ফ্লোরের মেশিনগুলোর উৎপাদিত ওজন ও রোল এক টেবিলে দ্রুত ইনপুট করুন
-                                        </p>
-                                    </div>
-
-                                    {/* Action toolbar */}
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        {/* Scope toggle: Running vs All */}
-                                        <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '2px', borderRadius: '6px', display: 'flex', gap: '2px' }}>
-                                            <button
-                                                type="button"
-                                                className={`btn sm ${bulkMachineScope === 'run' ? 'pri' : ''}`}
-                                                onClick={() => setBulkMachineScope('run')}
-                                                style={{ fontSize: '.76rem', padding: '3px 8px' }}
-                                            >
-                                                চলমান ({bn(activeFloorMachines.length)})
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`btn sm ${bulkMachineScope === 'all' ? 'pri' : ''}`}
-                                                onClick={() => setBulkMachineScope('all')}
-                                                style={{ fontSize: '.76rem', padding: '3px 8px' }}
-                                            >
-                                                সব মেশিন ({bn(allMyMachines.length)})
-                                            </button>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>📋</span> ফ্লোর বাল্ক শিট — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
+                                            </h3>
+                                            <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                                শিফট শেষে ফ্লোরের মেশিনগুলোর উৎপাদিত ওজন ও রোল এক টেবিলে দ্রুত ইনপুট করুন
+                                            </p>
                                         </div>
+
+                                        {/* Action toolbar */}
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {/* Scope toggle: Assigned vs Running vs All */}
+                                            <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '2px', borderRadius: '6px', display: 'flex', gap: '2px' }}>
+                                                {orderAssignedMachines.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        className={`btn sm ${bulkMachineScope === 'assigned' ? 'pri' : ''}`}
+                                                        onClick={() => setBulkMachineScope('assigned')}
+                                                        style={{ fontSize: '.76rem', padding: '3px 8px' }}
+                                                        title="শুধুমাত্র এই অর্ডারে বরাদ্দকৃত মেশিনসমূহ দেখান"
+                                                    >
+                                                        🎯 অর্ডারের মেশিন ({bn(orderAssignedMachines.length)})
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className={`btn sm ${bulkMachineScope === 'run' ? 'pri' : ''}`}
+                                                    onClick={() => setBulkMachineScope('run')}
+                                                    style={{ fontSize: '.76rem', padding: '3px 8px' }}
+                                                >
+                                                    চলমান ({bn(activeFloorMachines.length)})
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`btn sm ${bulkMachineScope === 'all' ? 'pri' : ''}`}
+                                                    onClick={() => setBulkMachineScope('all')}
+                                                    style={{ fontSize: '.76rem', padding: '3px 8px' }}
+                                                >
+                                                    সব মেশিন ({bn(allMyMachines.length)})
+                                                </button>
+                                            </div>
 
                                         <button
                                             type="button"
@@ -3754,13 +3859,71 @@ export default function KnitkhataIndex({
                                     </div>
                                 </div>
 
+                                {/* Selected Order Highlights Banner */}
+                                {selectedBulkOrder && (
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                                        border: '1px solid #bbf7d0',
+                                        borderRadius: '10px',
+                                        padding: '12px 16px',
+                                        marginBottom: '16px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        flexWrap: 'wrap',
+                                        gap: '12px'
+                                    }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span className="pill p-ok" style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 8px' }}>
+                                                    ✓ নির্বাচিত অর্ডার
+                                                </span>
+                                                <b style={{ fontSize: '1.05rem', color: '#166534' }}>
+                                                    {selectedBulkOrder.title || selectedBulkOrder.fabric}
+                                                </b>
+                                                <span style={{ fontSize: '.84rem', color: '#15803d', fontWeight: 600 }}>
+                                                    ({selectedBulkOrder.id})
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '.82rem', color: '#166534', marginTop: '6px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <span>🏢 বায়ার: <b>{selectedBulkOrder.vendorName || vName(selectedBulkOrder.v)}</b></span>
+                                                <span>🧵 ফেব্রিক: <b>{selectedBulkOrder.fabric} {selectedBulkOrder.gsm ? `(${selectedBulkOrder.gsm} GSM)` : ''}</b></span>
+                                                <span>🎯 লক্ষ্য: <b>{bn(selectedBulkOrder.qty)} kg</b></span>
+                                                <span>✓ সম্পন্ন: <b>{bn(selectedBulkOrder.done)} kg ({pct(selectedBulkOrder)}%)</b></span>
+                                                <span>📦 সুতার লট: <b>{selectedBulkOrder.yarnIn?.[0]?.lot || '—'}</b></span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <button
+                                                type="button"
+                                                className="btn sm"
+                                                onClick={() => handleOpenAssignModal(selectedBulkOrder.id)}
+                                                style={{ background: '#fff', borderColor: '#86efac', color: '#15803d', fontSize: '.78rem', fontWeight: 600 }}
+                                                title="মেশিন বরাদ্দ দেখতে বা পরিবর্তন করতে ক্লিক করুন"
+                                            >
+                                                ⚙️ মেশিন বরাদ্দ ({selectedBulkOrder.machines?.length || 0}টি)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn sm"
+                                                onClick={() => setEntryOrderId('')}
+                                                style={{ background: '#fff', border: '1px solid #cbd5e1', color: 'var(--muted)', fontSize: '.78rem' }}
+                                                title="অন্য অর্ডার নির্বাচন করতে এটি ক্লিয়ার করুন"
+                                            >
+                                                ✕ পরিবর্তন
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="tw" style={{ border: '1px solid var(--border, #e2e8f0)', borderRadius: '8px', overflow: 'hidden' }}>
                                     <table>
                                         <thead>
                                             <tr style={{ background: 'var(--surface2, #f8fafc)' }}>
                                                 <th style={{ width: '95px' }}>মেশিন নং</th>
                                                 <th style={{ minWidth: '180px' }}>অর্ডার ও বায়ার</th>
-                                                <th style={{ minWidth: '160px' }}>ফেব্রিক ও লট</th>
+                                                <th style={{ minWidth: '160px' }}>লট</th>
                                                 <th style={{ width: '130px' }}>অপারেটর</th>
                                                 <th style={{ width: '130px' }}>উৎপাদন (kg) *</th>
                                                 <th style={{ width: '95px' }}>রোল নাম্বার</th>
@@ -3797,15 +3960,16 @@ export default function KnitkhataIndex({
                                                                 >
                                                                     {runningOrders.map(ro => (
                                                                         <option key={ro.id} value={ro.id}>
-                                                                            {ro.id} ({ro.vendorName || vName(ro.v)})
+                                                                            {ro.title || ro.fabric} — {ro.vendorName || vName(ro.v)} ({ro.id})
                                                                         </option>
                                                                     ))}
                                                                 </select>
                                                             ) : activeO ? (
                                                                 <>
-                                                                    <b style={{ color: 'var(--accent)', fontSize: '.88rem' }}>{activeO.id}</b>
+                                                                    <b style={{ color: 'var(--accent)', fontSize: '.88rem' }}>{activeO.title || activeO.fabric}</b>
                                                                     <div style={{ fontSize: '.78rem', color: 'var(--ink)' }}>
                                                                         {activeO.vendorName || vName(activeO.v)}
+                                                                        <span style={{ fontSize: '.72rem', color: 'var(--muted)', marginLeft: '4px' }}>({activeO.id})</span>
                                                                     </div>
                                                                 </>
                                                             ) : (
@@ -3814,12 +3978,15 @@ export default function KnitkhataIndex({
                                                         </td>
                                                         <td>
                                                             {activeO ? (
-                                                                <>
-                                                                    <div style={{ fontSize: '.82rem', fontWeight: 500 }}>{activeO.fabric}</div>
-                                                                    <div style={{ fontSize: '.75rem', color: 'var(--muted)' }}>
-                                                                        লট: {activeO.yarnIn?.[0]?.lot || '—'}
-                                                                    </div>
-                                                                </>
+                                                                <input
+                                                                    type="text"
+                                                                    className="prod-input"
+                                                                    placeholder={activeO.yarnIn?.[0]?.lot ? `লট: ${activeO.yarnIn[0].lot}` : 'সুতার লট (ঐচ্ছিক)'}
+                                                                    value={mState.lot}
+                                                                    onChange={e => handleBulkEntryChange(m.code, 'lot', e.target.value)}
+                                                                    style={{ width: '100%', padding: '6px 8px', fontSize: '.82rem', marginTop: '4px', borderRadius: '4px' }}
+                                                                    title="সুতার লট নম্বর ইনপুট বা পরিবর্তন করুন"
+                                                                />
                                                             ) : (
                                                                 <span className="small muted">—</span>
                                                             )}
@@ -3923,154 +4090,227 @@ export default function KnitkhataIndex({
                         )}
 
                         {/* MODE 2: SINGLE MACHINE ENTRY */}
-                        {entryMode === 'single' && (
-                            <form className="card" onSubmit={handleSaveEntry} style={{ padding: '20px', marginBottom: '24px' }}>
-                                <div style={{ marginBottom: '14px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
-                                        ⚡ সিঙ্গেল মেশিন প্রোডাকশন এন্ট্রি ({currentShiftList.find(s => s.id === entrySh)?.name})
-                                    </h3>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
-                                        একটি নির্দিষ্ট মেশিনের উৎপাদিত কাপড়ের সঠিক ওজন ও বিস্তারিত ইনপুট করুন
-                                    </p>
-                                </div>
-                                <div className="form">
-                                    <label className="f">
-                                        তারিখ
-                                        <input
-                                            className="prod-input"
-                                            value={entryDate}
-                                            onChange={e => setEntryDate(e.target.value)}
-                                        />
-                                    </label>
-                                    <label className="f">
-                                        শিফট
-                                        <select
-                                            className="prod-input"
-                                            value={entrySh}
-                                            onChange={e => setEntrySh(e.target.value)}
-                                        >
-                                            {currentShiftList.map(sh => (
-                                                <option key={sh.id} value={sh.id}>
-                                                    {sh.name} ({sh.time})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label className="f">
-                                        মেশিন ও রানিং অর্ডার
-                                        <select
-                                            className="prod-input"
-                                            value={entryM}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setEntryM(val);
-                                                const [mCode, oid] = val ? val.split('|') : ['', ''];
-                                                const targetOrder = orders.find(o => o.id === oid);
-                                                const mObj = allMyMachines.find(m => m.code === mCode);
-                                                if (mObj && mObj.op && mObj.op !== '—') {
-                                                    setEntryOp(mObj.op);
-                                                }
-                                                if (targetOrder && targetOrder.yarnIn && targetOrder.yarnIn.length > 0) {
-                                                    setEntryLot(targetOrder.yarnIn[0].lot);
-                                                }
-                                            }}
-                                        >
-                                            <option value="">-- মেশিন ও রানিং অর্ডার নির্বাচন করুন --</option>
-                                            {orders
-                                                .filter(o => o.status === 'run')
-                                                .flatMap(o =>
-                                                    (o.machines || []).map(m => (
-                                                        <option key={`${m}|${o.id}`} value={`${m}|${o.id}`}>
-                                                            {m} — {o.id} ({o.fabric})
+                        {entryMode === 'single' && (() => {
+                            const singleSelectedMachine = allMyMachines.find(m => m.code === entryM) || allMyMachines[0];
+                            const singleActiveOrder = (entryOrderId ? (orders.find(o => o.id === entryOrderId) || vendorOrders.find(o => o.id === entryOrderId)) : null)
+                                || (entryM ? (orders.find(o => o.machines?.includes(entryM)) || vendorOrders.find(o => o.machines?.includes(entryM))) : null)
+                                || orders.find(o => o.status === 'run')
+                                || vendorOrders.find(o => o.status === 'run')
+                                || orders[0]
+                                || vendorOrders[0];
+                            const isFilled = parseFloat(entryKg) > 0;
+
+                            return (
+                                <form className="card" onSubmit={handleSaveEntry} style={{ padding: '20px', marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>⚡</span> সিঙ্গেল মেশিন প্রোডাকশন এন্ট্রি — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
+                                            </h3>
+                                            <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                                একটি নির্দিষ্ট মেশিনের উৎপাদিত কাপড়ের সঠিক ওজন ও বিস্তারিত ইনপুট করুন
+                                            </p>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <span className="pill p-acc" style={{ fontSize: '.82rem', fontWeight: 700, padding: '4px 10px' }}>
+                                                চলমান শিফট: {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                                        {/* 1. মেশিন নির্বাচন */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>মেশিন নং *</span>
+                                            <select
+                                                className="prod-input"
+                                                value={entryM}
+                                                onChange={e => handleSingleMachineChange(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem', fontWeight: 600 }}
+                                            >
+                                                <option value="">-- মেশিন নির্বাচন করুন --</option>
+                                                {allMyMachines.map(m => (
+                                                    <option key={m.code} value={m.code}>
+                                                        ⚙ {m.code} — {m.type} {m.status === 'run' ? '(চলমান)' : `(${m.status === 'wait' ? 'অপেক্ষমাণ' : m.status === 'down' ? 'ত্রুটি' : 'বন্ধ'})`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        {/* 2. অর্ডার ও বায়ার */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>অর্ডার ও বায়ার *</span>
+                                            <select
+                                                className="prod-input"
+                                                value={singleActiveOrder?.id || ''}
+                                                onChange={e => handleSingleOrderChange(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem', fontWeight: 600 }}
+                                            >
+                                                <option value="">-- অর্ডার নির্বাচন করুন --</option>
+                                                {runningOrders.length > 0 ? (
+                                                    runningOrders.map(ro => (
+                                                        <option key={ro.id} value={ro.id}>
+                                                            {ro.title || ro.fabric} — {ro.vendorName || vName(ro.v)} ({ro.id})
+                                                        </option>
+                                                    ))
+                                                ) : (
+                                                    orders.map(o => (
+                                                        <option key={o.id} value={o.id}>
+                                                            {o.title || o.fabric} — {o.vendorName || vName(o.v)} ({o.id})
                                                         </option>
                                                     ))
                                                 )}
-                                        </select>
-                                    </label>
-                                    <label className="f">
-                                        প্রোডাকশন (kg) *
-                                        <input
-                                            type="number"
-                                            step="any"
-                                            required
-                                            className="prod-input prod-input-num"
-                                            placeholder="যেমন: ১৮০"
-                                            value={entryKg}
-                                            onChange={e => setEntryKg(e.target.value)}
-                                        />
-                                    </label>
-                                    <label className="f">
-                                        রোল নাম্বার
-                                        <input
-                                            type="number"
-                                            className="prod-input prod-input-num"
-                                            placeholder="যেমন: ৮"
-                                            value={entryR}
-                                            onChange={e => setEntryR(e.target.value)}
-                                        />
-                                    </label>
-                                    <label className="f">
-                                        অপারেটর
-                                        <input
-                                            type="text"
-                                            className="prod-input"
-                                            placeholder="অপারেটরের নাম"
-                                            value={entryOp}
-                                            onChange={e => setEntryOp(e.target.value)}
-                                        />
-                                    </label>
-                                    <label className="f">
-                                        লট
-                                        <input
-                                            type="text"
-                                            className="prod-input"
-                                            placeholder="যেমন: SQ-88412"
-                                            list="available-yarn-lots"
-                                            value={entryLot}
-                                            onChange={e => setEntryLot(e.target.value)}
-                                        />
-                                        <datalist id="available-yarn-lots">
-                                            {orders
-                                                .flatMap(o => o.yarnIn?.map(y => y.lot) || [])
-                                                .filter((lot, idx, arr) => lot && arr.indexOf(lot) === idx)
-                                                .map((lot, idx) => (
-                                                    <option key={idx} value={lot} />
-                                                ))}
-                                        </datalist>
-                                    </label>
-                                    <label className="f">
-                                        কোনো সমস্যা / ফল্ট?
-                                        <select
-                                            className="prod-input"
-                                            value={entryIss}
-                                            onChange={e => setEntryIss(e.target.value)}
-                                        >
-                                            <option value="না">না (সব ঠিক আছে)</option>
-                                            <option value="Hole">Hole</option>
-                                            <option value="Needle mark">Needle mark</option>
-                                            <option value="Barre">Barre</option>
-                                            <option value="Oil spot">Oil spot</option>
-                                            <option value="Lycra out">Lycra out</option>
-                                        </select>
-                                    </label>
-                                    <label className="f" style={{ gridColumn: 'span 2' }}>
-                                        মন্তব্য (Remarks)
-                                        <input
-                                            type="text"
-                                            className="prod-input"
-                                            placeholder="প্রোডাকশন সংক্রান্ত কোনো বিশেষ মন্তব্য বা নোট লিখুন (ঐচ্ছিক)"
-                                            value={entryRemarks}
-                                            onChange={e => setEntryRemarks(e.target.value)}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="row" style={{ marginTop: '16px' }}>
-                                    <button className="btn pri" type="submit" style={{ padding: '8px 22px', fontSize: '.95rem' }}>
-                                        ✓ এন্ট্রি সেভ করুন
-                                    </button>
-                                </div>
-                            </form>
-                        )}
+                                            </select>
+                                        </label>
+
+                                        {/* 3. ফেব্রিক ও বায়ার কার্ড (বাল্ক এন্ট্রির মতো অটো-ভিউ) */}
+                                        <div style={{ background: 'var(--surface2, #f8fafc)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                            <div style={{ fontSize: '.75rem', color: 'var(--muted)', fontWeight: 600 }}>অর্ডার ও বায়ার বিবরণ:</div>
+                                            <div style={{ fontSize: '.88rem', fontWeight: 600, color: 'var(--ink, #1e293b)', marginTop: '2px' }}>
+                                                {singleActiveOrder ? (singleActiveOrder.title || singleActiveOrder.fabric) : '—'}
+                                            </div>
+                                            <div style={{ fontSize: '.76rem', color: 'var(--muted)', marginTop: '2px' }}>
+                                                {singleActiveOrder ? (
+                                                    <>
+                                                        <span>ফেব্রিক: <b>{singleActiveOrder.fabric && singleActiveOrder.fabric !== singleActiveOrder.title ? singleActiveOrder.fabric : `${singleActiveOrder.fabric || 'Single Jersey'} (${singleActiveOrder.gsm || 160} GSM)`}</b> · </span>
+                                                        <span>বায়ার: {singleActiveOrder.vendorName || vName(singleActiveOrder.v)}</span>
+                                                    </>
+                                                ) : '—'}
+                                            </div>
+                                        </div>
+
+                                        {/* 4. সুতার লট নাম্বার */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>সুতার লট (Yarn Lot)</span>
+                                            <input
+                                                type="text"
+                                                className="prod-input"
+                                                placeholder={singleActiveOrder?.yarnIn?.[0]?.lot || 'যেমন: SQ-88412'}
+                                                value={entryLot}
+                                                onChange={e => setEntryLot(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem' }}
+                                            />
+                                        </label>
+
+                                        {/* 5. অপারেটর */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>অপারেটর</span>
+                                            <input
+                                                type="text"
+                                                className="prod-input"
+                                                placeholder={singleSelectedMachine?.op && singleSelectedMachine.op !== '—' ? singleSelectedMachine.op : 'অপারেটর'}
+                                                value={entryOp}
+                                                onChange={e => setEntryOp(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem' }}
+                                            />
+                                        </label>
+
+                                        {/* 6. উৎপাদন (kg) * */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>উৎপাদন (kg) *</span>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                required
+                                                className="prod-input prod-input-num"
+                                                placeholder="যেমন: ১৮০"
+                                                value={entryKg}
+                                                onChange={e => setEntryKg(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '7px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '.95rem',
+                                                    fontWeight: 700,
+                                                    border: isFilled ? '2px solid var(--accent, #0E6B66)' : undefined,
+                                                    background: isFilled ? '#ffffff' : undefined
+                                                }}
+                                            />
+                                        </label>
+
+                                        {/* 7. রোল সংখ্যা */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>রোল সংখ্যা</span>
+                                            <input
+                                                type="number"
+                                                className="prod-input prod-input-num"
+                                                placeholder="যেমন: ৮"
+                                                value={entryR}
+                                                onChange={e => setEntryR(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem' }}
+                                            />
+                                        </label>
+
+                                        {/* 8. কোয়ালিটি / ফল্ট (বাল্ক এন্ট্রির সাথে সম্পূর্ণ অভিন্ন) */}
+                                        <label className="f" style={{ margin: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>কোয়ালিটি / ফল্ট</span>
+                                            <select
+                                                className="prod-input"
+                                                value={entryIss}
+                                                onChange={e => setEntryIss(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem' }}
+                                            >
+                                                <option value="না">ঠিক আছে (OK)</option>
+                                                <option value="Hole">Hole (ছিদ্র)</option>
+                                                <option value="Needle mark">Needle mark (দাগ)</option>
+                                                <option value="Barre">Barre (ব্যারে)</option>
+                                                <option value="Oil spot">Oil spot (তেল দাগ)</option>
+                                                <option value="Lycra out">Lycra out</option>
+                                            </select>
+                                        </label>
+
+                                        {/* 9. মন্তব্য */}
+                                        <label className="f" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>মন্তব্য</span>
+                                            <input
+                                                type="text"
+                                                className="prod-input"
+                                                placeholder="মন্তব্য (ঐচ্ছিক)"
+                                                value={entryRemarks}
+                                                onChange={e => setEntryRemarks(e.target.value)}
+                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem' }}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Save Strip: exactly like Bulk Entry */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border, #e2e8f0)', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div style={{ fontSize: '.9rem' }}>
+                                            {isFilled ? (
+                                                <span>
+                                                    নির্বাচিত এন্ট্রি: <b style={{ color: 'var(--accent)', fontSize: '1.15rem' }}>{bn(parseFloat(entryKg))} kg</b>
+                                                    {entryR && <span style={{ color: 'var(--muted)', marginLeft: '8px' }}>({bn(parseInt(entryR))} রোল)</span>}
+                                                    {entryM && <span style={{ color: 'var(--muted)', marginLeft: '8px' }}>· মেশিন {entryM}</span>}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--muted)' }}>মেশিন ও উৎপাদনের সঠিক ওজন (kg) লিখুন</span>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button
+                                                type="button"
+                                                className="btn"
+                                                onClick={() => {
+                                                    setEntryKg('');
+                                                    setEntryR('');
+                                                    setEntryRemarks('');
+                                                }}
+                                            >
+                                                রিসেট
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn pri"
+                                                style={{ padding: '8px 22px', fontSize: '.95rem', fontWeight: 700 }}
+                                            >
+                                                ✓ {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} এর এন্ট্রি সেভ করুন
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            );
+                        })()}
 
                         {/* KPI METRIC CARDS */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '20px' }}>
@@ -4175,7 +4415,7 @@ export default function KnitkhataIndex({
                                             </tr>
                                         ) : (
                                             filteredHistory.map((p, idx) => {
-                                                const relatedO = orders.find(o => o.id === p.o);
+                                                const relatedO = orders.find(o => o.id === p.o) || vendorOrders.find(o => o.id === p.o);
                                                 return (
                                                     <tr key={idx}>
                                                         <td className="small">{p.d}</td>
@@ -4186,12 +4426,13 @@ export default function KnitkhataIndex({
                                                         </td>
                                                         <td className="mono" style={{ fontWeight: 700 }}>{p.m}</td>
                                                         <td>
-                                                            <b style={{ color: 'var(--accent)' }}>{p.o}</b>
-                                                            {relatedO && (
-                                                                <div className="small muted">
-                                                                    {relatedO.vendorName || vName(relatedO.v)}
-                                                                </div>
-                                                            )}
+                                                            <b style={{ color: 'var(--accent)', fontSize: '.88rem' }}>
+                                                                {relatedO?.title || p.order_title || relatedO?.fabric || p.o}
+                                                            </b>
+                                                            <div className="small muted">
+                                                                {relatedO?.vendorName || (relatedO ? vName(relatedO.v) : '—')}
+                                                                <span style={{ fontSize: '.72rem', color: 'var(--muted)', marginLeft: '4px' }}>({p.o})</span>
+                                                            </div>
                                                         </td>
                                                         <td className="n" style={{ fontWeight: 700, color: 'var(--ok)' }}>
                                                             {bn(p.kg)}
@@ -4790,29 +5031,39 @@ export default function KnitkhataIndex({
                                             </div>
                                         </div>
 
-                                        {isRun && m.assignedOrder && (
-                                            <div
-                                                style={{
-                                                    background: 'var(--surface2)',
-                                                    padding: '6px 10px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '.83rem',
-                                                    cursor: 'pointer'
-                                                }}
-                                                onClick={() => handleSelectOrder(m.assignedOrder!)}
-                                                title="অর্ডার বিস্তারিত দেখুন"
-                                            >
-                                                <span className="small muted">চলমান অর্ডার: </span>
-                                                <b className="mono" style={{ color: 'var(--accent)' }}>{m.assignedOrder}</b>
-                                                <div className="small muted">অপারেটর: {m.op} ({m.sh})</div>
-                                            </div>
-                                        )}
+                                        {isRun && m.assignedOrder && (() => {
+                                            const assignedO = orders.find(o => o.id === m.assignedOrder) || vendorOrders.find(o => o.id === m.assignedOrder);
+                                            return (
+                                                <div
+                                                    style={{
+                                                        background: 'var(--surface2)',
+                                                        padding: '6px 10px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '.83rem',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => handleSelectOrder(m.assignedOrder!)}
+                                                    title="অর্ডার বিস্তারিত দেখুন"
+                                                >
+                                                    <span className="small muted">চলমান অর্ডার: </span>
+                                                    <b style={{ color: 'var(--accent)' }}>{assignedO?.title || assignedO?.fabric || m.assignedOrder}</b>
+                                                    <div className="small muted">
+                                                        {assignedO && <span>বায়ার: {assignedO.vendorName || vName(assignedO.v)} · </span>}
+                                                        অপারেটর: {m.op} ({m.sh})
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
-                                        {isWait && (
-                                            <div style={{ background: 'var(--yarn-soft)', color: 'var(--yarn)', padding: '6px 10px', borderRadius: '6px', fontSize: '.83rem' }}>
-                                                <b>SC-2610-018</b> এর সুতা গ্রহণের অপেক্ষায়
-                                            </div>
-                                        )}
+                                        {isWait && (() => {
+                                            const assignedO = orders.find(o => o.id === m.assignedOrder) || vendorOrders.find(o => o.id === m.assignedOrder);
+                                            const orderTitle = assignedO?.title || assignedO?.fabric || m.assignedOrder;
+                                            return (
+                                                <div style={{ background: 'var(--yarn-soft)', color: 'var(--yarn)', padding: '6px 10px', borderRadius: '6px', fontSize: '.83rem' }}>
+                                                    {orderTitle ? <b>{orderTitle}</b> : <b>অর্ডার</b>} এর সুতা গ্রহণের অপেক্ষায়
+                                                </div>
+                                            );
+                                        })()}
 
                                         {isDown && (
                                             <div style={{ background: 'var(--bad-soft)', color: 'var(--bad)', padding: '6px 10px', borderRadius: '6px', fontSize: '.83rem' }}>

@@ -34,6 +34,7 @@ export interface DeliveryChallan {
 export interface Order {
     id: string;
     db_id?: number;
+    title?: string;
     v: string; // vendor key e.g. 'abc', 'xyz', 'nobo'
     vendorName?: string;
     vendorPhone?: string;
