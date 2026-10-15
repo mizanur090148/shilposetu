@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factory;
+use App\Models\FactoryShift;
 use App\Models\KnittingType;
 use App\Models\MachineType;
+use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -37,10 +39,10 @@ class FactoryProfileController extends Controller
 
         // Auto-seed default shifts if none exist for this factory
         if ($factory->factoryShifts->isEmpty()) {
-            $masterShifts = \App\Models\Shift::where('is_active', true)->orderBy('sort_order')->get();
+            $masterShifts = Shift::where('is_active', true)->orderBy('sort_order')->get();
             if ($masterShifts->isNotEmpty()) {
                 foreach ($masterShifts as $ms) {
-                    \App\Models\FactoryShift::create([
+                    FactoryShift::create([
                         'factory_id' => $factory->id,
                         'shift_id' => $ms->id,
                         'name' => $ms->name,
@@ -56,7 +58,7 @@ class FactoryProfileController extends Controller
                     ]);
                 }
             } else {
-                \App\Models\FactoryShift::create([
+                FactoryShift::create([
                     'factory_id' => $factory->id,
                     'name' => 'Day Shift (ডে শিফট)',
                     'code' => 'DAY',
@@ -69,7 +71,7 @@ class FactoryProfileController extends Controller
                     'sort_order' => 1,
                     'notes' => 'ডে শিফট (সকাল ৮:০০ - রাত ৮:০০)',
                 ]);
-                \App\Models\FactoryShift::create([
+                FactoryShift::create([
                     'factory_id' => $factory->id,
                     'name' => 'Night Shift (নাইট শিফট)',
                     'code' => 'NIGHT',
@@ -214,16 +216,48 @@ class FactoryProfileController extends Controller
                 }
             }
 
-            $validated['total_machines'] = $totalMachines;
-            if ($totalDailyCap > 0) {
-                $validated['daily_capacity'] = number_format($totalDailyCap).' Kg/Day';
-            }
-            $validated['production_capacities'] = [
-                'knitting' => $knittingRows,
+            $factoryUpdateData = [
+                'business_name' => $validated['business_name'],
+                'industry_type' => 'Knitting',
+                'contact_person' => $validated['contact_person'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'district' => $validated['district'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'total_machines' => $totalMachines,
+                'trade_license_no' => $validated['trade_license_no'] ?? null,
+                'tin_no' => $validated['tin_no'] ?? null,
+                'bin_no' => $validated['bin_no'] ?? null,
+                'capabilities' => $validated['capabilities'] ?? [],
+                'production_capacities' => [
+                    'knitting' => $knittingRows,
+                ],
             ];
-        }
 
-        $factory->update($validated);
+            if ($totalDailyCap > 0) {
+                $factoryUpdateData['daily_capacity'] = number_format($totalDailyCap).' Kg/Day';
+            } elseif (! empty($validated['daily_capacity'])) {
+                $factoryUpdateData['daily_capacity'] = $validated['daily_capacity'];
+            }
+
+            $factory->update($factoryUpdateData);
+        } else {
+            $factoryUpdateData = [
+                'business_name' => $validated['business_name'],
+                'industry_type' => 'Knitting',
+                'contact_person' => $validated['contact_person'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'district' => $validated['district'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'daily_capacity' => $validated['daily_capacity'] ?? null,
+                'trade_license_no' => $validated['trade_license_no'] ?? null,
+                'tin_no' => $validated['tin_no'] ?? null,
+                'bin_no' => $validated['bin_no'] ?? null,
+                'capabilities' => $validated['capabilities'] ?? [],
+            ];
+            $factory->update($factoryUpdateData);
+        }
 
         if ($request->has('knitting_types')) {
             $factory->knittingTypes()->sync($request->input('knitting_types', []));
@@ -239,7 +273,7 @@ class FactoryProfileController extends Controller
                 if (empty($s['name']) && empty($s['code'])) {
                     continue;
                 }
-                \App\Models\FactoryShift::create([
+                FactoryShift::create([
                     'factory_id' => $factory->id,
                     'name' => $s['name'] ?? ('Shift '.$order),
                     'code' => strtoupper($s['code'] ?? ('S'.$order)),
