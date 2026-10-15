@@ -6,6 +6,7 @@ import {
     MachineType, 
     KnittingType,
     NonSewingMachineRow, 
+    FactoryShift,
     PageProps 
 } from '@/types';
 import { 
@@ -27,7 +28,8 @@ import {
     CheckCircle2,
     Info,
     ChevronRight,
-    HelpCircle
+    HelpCircle,
+    Clock
 } from 'lucide-react';
 
 const COMMON_CAPABILITIES = [
@@ -64,6 +66,7 @@ interface EditProps extends PageProps {
     factory: Factory;
     knittingTypes?: KnittingType[];
     machineTypes?: MachineType[];
+    factoryShifts?: FactoryShift[];
     status?: string;
 }
 
@@ -72,6 +75,7 @@ export default function Edit({
     factory, 
     knittingTypes = [], 
     machineTypes = [], 
+    factoryShifts = [],
     status 
 }: EditProps) {
     const initialCapabilities: string[] = Array.isArray(factory.capabilities) 
@@ -79,6 +83,33 @@ export default function Edit({
         : [];
 
     const initialKnittingMachines: NonSewingMachineRow[] = factory.production_capacities?.knitting || [];
+
+    const initialShifts: FactoryShift[] = factoryShifts && factoryShifts.length > 0
+        ? factoryShifts
+        : (factory.factory_shifts && factory.factory_shifts.length > 0 ? factory.factory_shifts : [
+            {
+                name: 'Day Shift (ডে শিফট)',
+                code: 'DAY',
+                start_time: '08:00',
+                end_time: '20:00',
+                duration_hours: 12,
+                in_charge: factory.contact_person || '',
+                target_output_kg: 1200,
+                is_active: true,
+                notes: '১২ ঘণ্টার ডে প্রোডাকশন শিফট'
+            },
+            {
+                name: 'Night Shift (নাইট শিফট)',
+                code: 'NIGHT',
+                start_time: '20:00',
+                end_time: '08:00',
+                duration_hours: 12,
+                in_charge: factory.contact_person || '',
+                target_output_kg: 1000,
+                is_active: true,
+                notes: '১২ ঘণ্টার নাইট প্রোডাকশন শিফট'
+            }
+        ]);
 
     const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
         business_name: factory.business_name || '',
@@ -93,6 +124,7 @@ export default function Edit({
         production_capacities: {
             knitting: initialKnittingMachines,
         },
+        shifts: initialShifts,
         trade_license_no: factory.trade_license_no || '',
         tin_no: factory.tin_no || '',
         bin_no: factory.bin_no || '',
@@ -199,6 +231,145 @@ export default function Edit({
         }
     };
 
+    // Calculate shift duration in hours
+    const calculateShiftHours = (start: string, end: string): number => {
+        if (!start || !end) return 8;
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        let startMin = (sh || 0) * 60 + (sm || 0);
+        let endMin = (eh || 0) * 60 + (em || 0);
+        if (endMin <= startMin) {
+            endMin += 24 * 60; // passes midnight
+        }
+        const diff = (endMin - startMin) / 60;
+        return Math.round(diff * 10) / 10;
+    };
+
+    // Apply quick presets
+    const applyShiftPreset = (presetCount: 1 | 2 | 3) => {
+        const defaultPerson = data.contact_person || factory.contact_person || '';
+        if (presetCount === 1) {
+            setData('shifts', [
+                {
+                    name: 'Day Shift (ডে শিফট)',
+                    code: 'DAY',
+                    start_time: '08:00',
+                    end_time: '20:00',
+                    duration_hours: 12,
+                    in_charge: defaultPerson,
+                    target_output_kg: 1200,
+                    is_active: true,
+                    notes: '১২ ঘণ্টার ডে প্রোডাকশন শিফট'
+                }
+            ]);
+        } else if (presetCount === 2) {
+            setData('shifts', [
+                {
+                    name: 'Day Shift (ডে শিফট)',
+                    code: 'DAY',
+                    start_time: '08:00',
+                    end_time: '20:00',
+                    duration_hours: 12,
+                    in_charge: defaultPerson,
+                    target_output_kg: 1200,
+                    is_active: true,
+                    notes: 'সকাল ৮:০০ - রাত ৮:০০ (ডে শিফট)'
+                },
+                {
+                    name: 'Night Shift (নাইট শিফট)',
+                    code: 'NIGHT',
+                    start_time: '20:00',
+                    end_time: '08:00',
+                    duration_hours: 12,
+                    in_charge: defaultPerson,
+                    target_output_kg: 1000,
+                    is_active: true,
+                    notes: 'রাত ৮:০০ - সকাল ৮:০০ (নাইট শিফট)'
+                }
+            ]);
+        } else {
+            setData('shifts', [
+                {
+                    name: 'শিফট A (মর্নিং)',
+                    code: 'A',
+                    start_time: '06:00',
+                    end_time: '14:00',
+                    duration_hours: 8,
+                    in_charge: defaultPerson,
+                    target_output_kg: 800,
+                    is_active: true,
+                    notes: 'সকাল ৬:০০ - দুপুর ২:০০ (মর্নিং শিফট)'
+                },
+                {
+                    name: 'শিফট B (ইভনিং)',
+                    code: 'B',
+                    start_time: '14:00',
+                    end_time: '22:00',
+                    duration_hours: 8,
+                    in_charge: defaultPerson,
+                    target_output_kg: 800,
+                    is_active: true,
+                    notes: 'দুপুর ২:০০ - রাত ১০:০০ (ইভনিং শিফট)'
+                },
+                {
+                    name: 'শিফট C (নাইট)',
+                    code: 'C',
+                    start_time: '22:00',
+                    end_time: '06:00',
+                    duration_hours: 8,
+                    in_charge: defaultPerson,
+                    target_output_kg: 700,
+                    is_active: true,
+                    notes: 'রাত ১০:০০ - সকাল ৬:০০ (নাইট শিফট)'
+                }
+            ]);
+        }
+    };
+
+    const addShiftRow = () => {
+        const nextIdx = (data.shifts || []).length + 1;
+        const newShift: FactoryShift = {
+            name: `শিফট ${String.fromCharCode(64 + nextIdx)}`,
+            code: String.fromCharCode(64 + nextIdx),
+            start_time: '08:00',
+            end_time: '16:00',
+            duration_hours: 8,
+            in_charge: data.contact_person || '',
+            target_output_kg: 800,
+            is_active: true,
+            notes: ''
+        };
+        setData('shifts', [...(data.shifts || []), newShift]);
+    };
+
+    const updateShiftRow = (index: number, field: keyof FactoryShift, val: any) => {
+        const list = [...(data.shifts || [])];
+        if (!list[index]) return;
+        const updated = { ...list[index], [field]: val };
+
+        if (field === 'start_time' || field === 'end_time') {
+            const start = field === 'start_time' ? val : updated.start_time;
+            const end = field === 'end_time' ? val : updated.end_time;
+            updated.duration_hours = calculateShiftHours(start, end);
+        }
+
+        list[index] = updated;
+        setData('shifts', list);
+    };
+
+    const removeShiftRow = (index: number) => {
+        const list = [...(data.shifts || [])];
+        list.splice(index, 1);
+        setData('shifts', list);
+    };
+
+    const toggleShiftActive = (index: number) => {
+        const list = [...(data.shifts || [])];
+        if (!list[index]) return;
+        list[index] = { ...list[index], is_active: !list[index].is_active };
+        setData('shifts', list);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         patch(route('factory.update'));
@@ -206,6 +377,9 @@ export default function Edit({
 
     const knittingRows = data.production_capacities?.knitting || [];
     const totalDailyCapacity = knittingRows.reduce((acc, r) => acc + (Number(r.total_capacity_per_day) || 0), 0);
+
+    const activeShifts = (data.shifts || []).filter((s) => s.is_active);
+    const totalShiftHours = activeShifts.reduce((acc, s) => acc + (Number(s.duration_hours) || 0), 0);
 
     return (
         <ShilposetuLayout>
@@ -603,7 +777,249 @@ export default function Edit({
                             </div>
                         </div>
 
-                        {/* Section 4: Capabilities & Processes */}
+                        {/* Section 4: Factory Working Shifts & Operating Hours */}
+                        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                            {/* Section Header */}
+                            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                                            <span>4. Factory Shifts & Operating Hours</span>
+                                            <span className="text-[11px] font-normal text-slate-500">(কারখানার শিফট ব্যবস্থা ও কর্মঘণ্টা)</span>
+                                        </h2>
+                                        <p className="text-[11px] text-slate-500">
+                                            Configure daily work shifts, shift timings, in-charge supervisors, and production targets. These shifts sync with Knitkhata production logging.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Live Shift Summary Badges */}
+                                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs text-slate-600 self-start sm:self-auto">
+                                    <span className="flex items-center gap-1.5 font-bold text-emerald-700">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                                        {totalShiftHours} Hours / Day
+                                    </span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="flex items-center gap-1.5 font-bold text-blue-700">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                                        {activeShifts.length} Active Shifts
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Preset Buttons & Add Action */}
+                            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 sm:p-5 space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                            Quick Templates:
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => applyShiftPreset(1)}
+                                            className="px-2.5 py-1 text-[11px] font-semibold bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-700 rounded-lg shadow-2xs transition cursor-pointer"
+                                        >
+                                            ১টি শিফট (Day 12h)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => applyShiftPreset(2)}
+                                            className="px-2.5 py-1 text-[11px] font-semibold bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-700 rounded-lg shadow-2xs transition cursor-pointer"
+                                        >
+                                            ২টি শিফট (Day/Night 12h)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => applyShiftPreset(3)}
+                                            className="px-2.5 py-1 text-[11px] font-semibold bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-700 rounded-lg shadow-2xs transition cursor-pointer"
+                                        >
+                                            ৩টি শিফট (A, B, C 8h)
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={addShiftRow}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>Add Shift</span>
+                                    </button>
+                                </div>
+
+                                {/* Shift Roster Cards */}
+                                {(data.shifts || []).length === 0 ? (
+                                    <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
+                                        No shifts configured yet. Choose a quick template above or click "Add Shift".
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 pt-1">
+                                        {(data.shifts || []).map((shift, idx) => (
+                                            <div
+                                                key={shift.id || idx}
+                                                className={`p-4 rounded-xl border transition ${
+                                                    shift.is_active
+                                                        ? 'bg-white border-slate-200 shadow-2xs'
+                                                        : 'bg-slate-100/70 border-slate-200 opacity-60'
+                                                }`}
+                                            >
+                                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center font-mono">
+                                                            {shift.code || (idx + 1)}
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            value={shift.name}
+                                                            onChange={(e) => updateShiftRow(idx, 'name', e.target.value)}
+                                                            placeholder="শিফটের নাম (e.g. শিফট A / Day Shift)"
+                                                            className="text-xs font-bold text-slate-800 bg-transparent border-0 border-b border-dashed border-slate-300 focus:border-emerald-500 focus:ring-0 px-1 py-0.5 w-48 sm:w-64"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 self-end lg:self-auto">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleShiftActive(idx)}
+                                                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition flex items-center gap-1 cursor-pointer ${
+                                                                shift.is_active
+                                                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                                                    : 'bg-slate-200 border-slate-300 text-slate-600'
+                                                            }`}
+                                                        >
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${shift.is_active ? 'bg-emerald-600' : 'bg-slate-400'}`} />
+                                                            <span>{shift.is_active ? 'সক্রিয় (Active)' : 'নিষ্ক্রিয় (Inactive)'}</span>
+                                                        </button>
+
+                                                        {(data.shifts || []).length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeShiftRow(idx)}
+                                                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                                                title="Delete shift"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 text-xs">
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            শিফট কোড (Code)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={shift.code}
+                                                            onChange={(e) => updateShiftRow(idx, 'code', e.target.value.toUpperCase())}
+                                                            placeholder="A / B / DAY"
+                                                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:border-emerald-500 uppercase"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            শুরুর সময় (Start)
+                                                        </label>
+                                                        <input
+                                                            type="time"
+                                                            value={shift.start_time}
+                                                            onChange={(e) => updateShiftRow(idx, 'start_time', e.target.value)}
+                                                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold focus:border-emerald-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            শেষের সময় (End)
+                                                        </label>
+                                                        <input
+                                                            type="time"
+                                                            value={shift.end_time}
+                                                            onChange={(e) => updateShiftRow(idx, 'end_time', e.target.value)}
+                                                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold focus:border-emerald-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            কর্মঘণ্টা (Hours)
+                                                        </label>
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="number"
+                                                                step="0.5"
+                                                                min="1"
+                                                                max="24"
+                                                                value={shift.duration_hours || ''}
+                                                                onChange={(e) => updateShiftRow(idx, 'duration_hours', Number(e.target.value))}
+                                                                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-emerald-700 focus:border-emerald-500"
+                                                            />
+                                                            <span className="text-[10px] text-slate-400">h</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            ইন-চার্জ / সুপারভাইজার
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={shift.in_charge || ''}
+                                                            onChange={(e) => updateShiftRow(idx, 'in_charge', e.target.value)}
+                                                            placeholder="ইন-চার্জ নাম"
+                                                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:border-emerald-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                                            টার্গেট উৎপাদন (kg)
+                                                        </label>
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                value={shift.target_output_kg || ''}
+                                                                onChange={(e) => updateShiftRow(idx, 'target_output_kg', Number(e.target.value))}
+                                                                placeholder="৯০০"
+                                                                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:border-emerald-500"
+                                                            />
+                                                            <span className="text-[10px] text-slate-400">kg</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-2">
+                                                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">নোট / বিবরণ:</span>
+                                                    <input
+                                                        type="text"
+                                                        value={shift.notes || ''}
+                                                        onChange={(e) => updateShiftRow(idx, 'notes', e.target.value)}
+                                                        placeholder="যেমন: সকাল ৬:০০ - দুপুর ২:০০ (মর্নিং শিফট)"
+                                                        className="w-full bg-transparent border-0 text-slate-500 text-[11px] p-0 focus:ring-0 placeholder:text-slate-300"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+                                <Info className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>
+                                    এই শিফট কনফিগারেশনটি কারখানার <b>নিটখাতা (Knitkhata)</b> দৈনিক প্রোডাকশন লগ, বাল্ক ফ্লোর শিট এবং সিঙ্গেল মেশিন এন্ট্রির সাথে স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Section 5: Capabilities & Processes */}
                         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
@@ -611,7 +1027,7 @@ export default function Edit({
                                         <Layers className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-bold text-slate-900">4. Capabilities & Industrial Processes</h2>
+                                        <h2 className="text-sm font-bold text-slate-900">5. Capabilities & Industrial Processes</h2>
                                         <p className="text-[11px] text-slate-500">Select all manufacturing capabilities and certifications that apply to your unit.</p>
                                     </div>
                                 </div>
@@ -645,7 +1061,7 @@ export default function Edit({
                             </div>
                         </div>
 
-                        {/* Section 5: Legal & Tax Compliance */}
+                        {/* Section 6: Legal & Tax Compliance */}
                         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
@@ -653,7 +1069,7 @@ export default function Edit({
                                         <FileText className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-bold text-slate-900">5. Legal, Tax & License Numbers</h2>
+                                        <h2 className="text-sm font-bold text-slate-900">6. Legal, Tax & License Numbers</h2>
                                         <p className="text-[11px] text-slate-500">Used for verification of genuine manufacturing facilities.</p>
                                     </div>
                                 </div>

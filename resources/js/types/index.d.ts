@@ -62,8 +62,24 @@ export interface Factory {
     rating?: number | string;
     capabilities?: string[] | null;
     knitting_types?: KnittingType[];
+    factory_shifts?: FactoryShift[];
     created_at?: string;
     updated_at?: string;
+}
+
+export interface FactoryShift {
+    id?: number | string;
+    shift_id?: number | null;
+    name: string;
+    code: string;
+    start_time: string;
+    end_time: string;
+    duration_hours: number;
+    in_charge?: string | null;
+    target_output_kg?: number | null;
+    is_active: boolean;
+    sort_order?: number;
+    notes?: string | null;
 }
 
 export interface KnittingType {

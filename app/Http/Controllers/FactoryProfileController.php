@@ -33,7 +33,74 @@ class FactoryProfileController extends Controller
             ]);
         }
 
-        $factory->load(['knittingTypes', 'machines.machineType']);
+        $factory->load(['knittingTypes', 'machines.machineType', 'factoryShifts']);
+
+        // Auto-seed default shifts if none exist for this factory
+        if ($factory->factoryShifts->isEmpty()) {
+            $masterShifts = \App\Models\Shift::where('is_active', true)->orderBy('sort_order')->get();
+            if ($masterShifts->isNotEmpty()) {
+                foreach ($masterShifts as $ms) {
+                    \App\Models\FactoryShift::create([
+                        'factory_id' => $factory->id,
+                        'shift_id' => $ms->id,
+                        'name' => $ms->name,
+                        'code' => $ms->code,
+                        'start_time' => $ms->start_time,
+                        'end_time' => $ms->end_time,
+                        'duration_hours' => $ms->duration_hours,
+                        'in_charge' => $user->name,
+                        'target_output_kg' => 900,
+                        'is_active' => true,
+                        'sort_order' => $ms->sort_order,
+                        'notes' => $ms->description,
+                    ]);
+                }
+            } else {
+                \App\Models\FactoryShift::create([
+                    'factory_id' => $factory->id,
+                    'name' => 'Day Shift (ডে শিফট)',
+                    'code' => 'DAY',
+                    'start_time' => '08:00:00',
+                    'end_time' => '20:00:00',
+                    'duration_hours' => 12.0,
+                    'in_charge' => $user->name,
+                    'target_output_kg' => 1200,
+                    'is_active' => true,
+                    'sort_order' => 1,
+                    'notes' => 'ডে শিফট (সকাল ৮:০০ - রাত ৮:০০)',
+                ]);
+                \App\Models\FactoryShift::create([
+                    'factory_id' => $factory->id,
+                    'name' => 'Night Shift (নাইট শিফট)',
+                    'code' => 'NIGHT',
+                    'start_time' => '20:00:00',
+                    'end_time' => '08:00:00',
+                    'duration_hours' => 12.0,
+                    'in_charge' => $user->name,
+                    'target_output_kg' => 1000,
+                    'is_active' => true,
+                    'sort_order' => 2,
+                    'notes' => 'নাইট শিফট (রাত ৮:০০ - সকাল ৮:০০)',
+                ]);
+            }
+            $factory->load('factoryShifts');
+        }
+
+        $factoryShifts = $factory->factoryShifts()->orderBy('sort_order')->get()->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'name' => $s->name,
+                'code' => $s->code,
+                'start_time' => substr($s->start_time, 0, 5),
+                'end_time' => substr($s->end_time, 0, 5),
+                'duration_hours' => (float) $s->duration_hours,
+                'in_charge' => $s->in_charge ?? '',
+                'target_output_kg' => (float) ($s->target_output_kg ?? 0),
+                'is_active' => (bool) $s->is_active,
+                'sort_order' => (int) $s->sort_order,
+                'notes' => $s->notes ?? '',
+            ];
+        })->values()->all();
 
         // Format knitting machine rows for the frontend
         $knittingMachines = $factory->machines->where('category', 'knitting')->map(function ($m) {
@@ -57,6 +124,7 @@ class FactoryProfileController extends Controller
         $factoryData['production_capacities'] = [
             'knitting' => $knittingMachines,
         ];
+        $factoryData['factory_shifts'] = $factoryShifts;
 
         $machineTypes = MachineType::query()
             ->active()
@@ -70,6 +138,7 @@ class FactoryProfileController extends Controller
             'factory' => $factoryData,
             'knittingTypes' => $knittingTypes,
             'machineTypes' => $machineTypes,
+            'factoryShifts' => $factoryShifts,
             'status' => session('status'),
         ]);
     }
@@ -106,6 +175,7 @@ class FactoryProfileController extends Controller
             'knitting_types.*' => ['integer'],
             'production_capacities' => ['nullable', 'array'],
             'capabilities' => ['nullable', 'array'],
+            'shifts' => ['nullable', 'array'],
         ]);
 
         $validated['industry_type'] = 'Knitting';
@@ -157,6 +227,32 @@ class FactoryProfileController extends Controller
 
         if ($request->has('knitting_types')) {
             $factory->knittingTypes()->sync($request->input('knitting_types', []));
+        }
+
+        // Process shifts rows
+        if ($request->has('shifts') && is_array($request->input('shifts'))) {
+            $shiftRows = $request->input('shifts', []);
+            $factory->factoryShifts()->delete();
+            $order = 1;
+
+            foreach ($shiftRows as $s) {
+                if (empty($s['name']) && empty($s['code'])) {
+                    continue;
+                }
+                \App\Models\FactoryShift::create([
+                    'factory_id' => $factory->id,
+                    'name' => $s['name'] ?? ('Shift '.$order),
+                    'code' => strtoupper($s['code'] ?? ('S'.$order)),
+                    'start_time' => ! empty($s['start_time']) ? (strlen($s['start_time']) === 5 ? $s['start_time'].':00' : $s['start_time']) : '08:00:00',
+                    'end_time' => ! empty($s['end_time']) ? (strlen($s['end_time']) === 5 ? $s['end_time'].':00' : $s['end_time']) : '20:00:00',
+                    'duration_hours' => ! empty($s['duration_hours']) ? (float) $s['duration_hours'] : 8.0,
+                    'in_charge' => $s['in_charge'] ?? null,
+                    'target_output_kg' => ! empty($s['target_output_kg']) ? (float) $s['target_output_kg'] : null,
+                    'is_active' => isset($s['is_active']) ? (bool) $s['is_active'] : true,
+                    'sort_order' => $order++,
+                    'notes' => $s['notes'] ?? null,
+                ]);
+            }
         }
 
         return redirect()->route('factory.edit')->with('success', 'Factory information updated successfully.');
