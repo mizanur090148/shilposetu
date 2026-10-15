@@ -3648,141 +3648,142 @@ export default function KnitkhataIndex({
 
                 return (
                     <>
-                        {/* Header with Entry Mode Selector */}
-                        <div className="head" style={{ marginBottom: '16px' }}>
-                            <div>
-                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span>🧵</span> দৈনিক প্রোডাকশন এন্ট্রি (Daily Shift Production)
-                                </h2>
-                                <p>ফ্লোর বাল্ক শিট ও সিঙ্গেল মেশিন উৎপাদন হিসাব</p>
-                            </div>
-
-                            {/* Entry Mode Switcher (Single vs Bulk Floor Sheet) */}
-                            <div style={{ background: 'var(--surface, #fff)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '.84rem', fontWeight: 700, color: 'var(--muted)' }}>
-                                    এন্ট্রি মোড:
-                                </span>
-                                <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button
-                                        type="button"
-                                        className={`shift-mode-chip ${entryMode === 'single' ? 'active' : ''}`}
-                                        onClick={() => setEntryMode('single')}
-                                        style={{ fontSize: '.84rem', padding: '6px 14px', fontWeight: 700 }}
-                                    >
-                                        ⚡ সিঙ্গেল মেশিন এন্ট্রি
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`shift-mode-chip ${entryMode === 'bulk' ? 'active' : ''}`}
-                                        onClick={() => setEntryMode('bulk')}
-                                        style={{ fontSize: '.84rem', padding: '6px 14px', fontWeight: 700 }}
-                                    >
-                                        📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
-                                    </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {/* Header with Entry Mode Selector */}
+                            <div className="head" style={{ marginBottom: 0 }}>
+                                <div>
+                                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                                        <span>🧵</span> দৈনিক প্রোডাকশন এন্ট্রি (Daily Shift Production)
+                                    </h2>
+                                    <p style={{ margin: '2px 0 0 0' }}>ফ্লোর বাল্ক শিট ও সিঙ্গেল মেশিন উৎপাদন হিসাব</p>
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Top Control Bar: Date, Order & Shift Selection */}
-                        <div className="card" style={{ padding: '16px', marginBottom: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                                {/* Left: Date, Order & Active Shift Picker */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                                        <span>📅 তারিখ:</span>
-                                        <input
-                                            type="text"
-                                            className="prod-input"
-                                            value={entryDate}
-                                            onChange={e => setEntryDate(e.target.value)}
-                                            style={{
-                                                padding: '6px 12px',
-                                                borderRadius: '6px',
-                                                fontSize: '.88rem',
-                                                fontWeight: 600
-                                            }}
-                                        />
-                                    </label>
-
-                                    {/* 2. Subcontract Order Picker (Only my orders taken by login factory) */}
-                                    <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                                        <span>📦 সাব-কন্ট্রাক্ট অর্ডার:</span>
-                                        <select
-                                            className="prod-input"
-                                            value={entryOrderId}
-                                            onChange={e => handleTopOrderChange(e.target.value)}
-                                            style={{
-                                                padding: '6px 12px',
-                                                borderRadius: '6px',
-                                                fontSize: '.88rem',
-                                                fontWeight: 600,
-                                                minWidth: '230px',
-                                                maxWidth: '380px',
-                                                borderColor: entryOrderId ? 'var(--accent, #059669)' : undefined,
-                                                background: entryOrderId ? '#f0fdf4' : undefined,
-                                                color: entryOrderId ? '#166534' : undefined
-                                            }}
+                                {/* Entry Mode Switcher (Single vs Bulk Floor Sheet) */}
+                                <div style={{ background: 'var(--surface, #fff)', padding: '5px 10px', borderRadius: '8px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--muted)' }}>
+                                        এন্ট্রি মোড:
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button
+                                            type="button"
+                                            className={`shift-mode-chip ${entryMode === 'single' ? 'active' : ''}`}
+                                            onClick={() => setEntryMode('single')}
+                                            style={{ fontSize: '.82rem', padding: '5px 12px', fontWeight: 700 }}
                                         >
-                                            <option value="">-- সাব-কন্ট্রাক্ট অর্ডার নির্বাচন করুন --</option>
-                                            {orders.map(o => (
-                                                <option key={o.id} value={o.id}>
-                                                    {o.title || o.fabric} — {o.vendorName || vName(o.v)} ({o.id})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--muted)' }}>
-                                            চলমান শিফট:
-                                        </span>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            {currentShiftList.map(sh => (
-                                                <button
-                                                    key={sh.id}
-                                                    type="button"
-                                                    onClick={() => setEntrySh(sh.id)}
-                                                    className={`btn sm ${entrySh === sh.id ? 'pri' : ''}`}
-                                                    style={{
-                                                        padding: '6px 14px',
-                                                        fontWeight: 700,
-                                                        borderRadius: '8px',
-                                                        fontSize: '.85rem'
-                                                    }}
-                                                >
-                                                    {sh.name}
-                                                </button>
-                                            ))}
-                                        </div>
+                                            ⚡ সিঙ্গেল মেশিন এন্ট্রি
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`shift-mode-chip ${entryMode === 'bulk' ? 'active' : ''}`}
+                                            onClick={() => setEntryMode('bulk')}
+                                            style={{ fontSize: '.82rem', padding: '5px 12px', fontWeight: 700 }}
+                                        >
+                                            📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
+                                        </button>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Right: Shift timing info & link to profile shifts */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span className="pill p-info" style={{ fontSize: '.8rem', fontWeight: 600 }}>
-                                        🕒 শিফট সময়: {currentShiftList.find(s => s.id === entrySh)?.time || '—'}
-                                    </span>
-                                    <a
-                                        href="/factory/profile"
-                                        className="btn sm"
-                                        style={{ fontSize: '.78rem', padding: '5px 10px', textDecoration: 'none', color: 'var(--muted)' }}
-                                        title="কারখানার প্রোফাইলে শিফট ও কর্মঘণ্টা পরিবর্তন করুন"
-                                    >
-                                        ⚙️ শিফট সেটিংস
-                                    </a>
+                            {/* Top Control Bar: Date, Order & Shift Selection */}
+                            <div className="card" style={{ padding: '8px 12px', margin: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px 14px' }}>
+                                    {/* Left: Date, Order & Active Shift Picker */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                        <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                            <span>📅 তারিখ:</span>
+                                            <input
+                                                type="text"
+                                                className="prod-input"
+                                                value={entryDate}
+                                                onChange={e => setEntryDate(e.target.value)}
+                                                style={{
+                                                    padding: '5px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '.85rem',
+                                                    fontWeight: 600
+                                                }}
+                                            />
+                                        </label>
+
+                                        {/* 2. Subcontract Order Picker (Only my orders taken by login factory) */}
+                                        <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                            <span>📦 সাব-কন্ট্রাক্ট অর্ডার:</span>
+                                            <select
+                                                className="prod-input"
+                                                value={entryOrderId}
+                                                onChange={e => handleTopOrderChange(e.target.value)}
+                                                style={{
+                                                    padding: '5px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '.85rem',
+                                                    fontWeight: 600,
+                                                    minWidth: '220px',
+                                                    maxWidth: '380px',
+                                                    borderColor: entryOrderId ? 'var(--accent, #059669)' : undefined,
+                                                    background: entryOrderId ? '#f0fdf4' : undefined,
+                                                    color: entryOrderId ? '#166534' : undefined
+                                                }}
+                                            >
+                                                <option value="">-- সাব-কন্ট্রাক্ট অর্ডার নির্বাচন করুন --</option>
+                                                {orders.map(o => (
+                                                    <option key={o.id} value={o.id}>
+                                                        {o.title || o.fabric} — {o.vendorName || vName(o.v)} ({o.id})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '.84rem', fontWeight: 600, color: 'var(--muted)' }}>
+                                                চলমান শিফট:
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                {currentShiftList.map(sh => (
+                                                    <button
+                                                        key={sh.id}
+                                                        type="button"
+                                                        onClick={() => setEntrySh(sh.id)}
+                                                        className={`btn sm ${entrySh === sh.id ? 'pri' : ''}`}
+                                                        style={{
+                                                            padding: '5px 12px',
+                                                            fontWeight: 700,
+                                                            borderRadius: '6px',
+                                                            fontSize: '.82rem'
+                                                        }}
+                                                    >
+                                                        {sh.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Shift timing info & link to profile shifts */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span className="pill p-info" style={{ fontSize: '.78rem', fontWeight: 600, padding: '3px 8px' }}>
+                                            🕒 শিফট সময়: {currentShiftList.find(s => s.id === entrySh)?.time || '—'}
+                                        </span>
+                                        <a
+                                            href="/factory/profile"
+                                            className="btn sm"
+                                            style={{ fontSize: '.76rem', padding: '4px 8px', textDecoration: 'none', color: 'var(--muted)' }}
+                                            title="কারখানার প্রোফাইলে শিফট ও কর্মঘণ্টা পরিবর্তন করুন"
+                                        >
+                                            ⚙️ শিফট সেটিংস
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* MODE 1: BULK FLOOR SHEET ENTRY */}
-                        {entryMode === 'bulk' && (
-                            <form className="card" onSubmit={handleSaveBulkEntry} style={{ padding: '20px', marginBottom: '24px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                            {/* MODE 1: BULK FLOOR SHEET ENTRY */}
+                            {entryMode === 'bulk' && (
+                                <form className="card" onSubmit={handleSaveBulkEntry} style={{ padding: '12px 16px', margin: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px' }}>
                                         <div>
-                                            <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '1.08rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span>📋</span> ফ্লোর বাল্ক শিট — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
                                             </h3>
-                                            <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                            <p style={{ margin: '2px 0 0 0', fontSize: '.82rem', color: 'var(--muted)' }}>
                                                 শিফট শেষে ফ্লোরের মেশিনগুলোর উৎপাদিত ওজন ও রোল এক টেবিলে দ্রুত ইনপুট করুন
                                             </p>
                                         </div>
@@ -4088,13 +4089,13 @@ export default function KnitkhataIndex({
                             const isFilled = parseFloat(entryKg) > 0;
 
                             return (
-                                <form className="card" onSubmit={handleSaveEntry} style={{ padding: '20px', marginBottom: '24px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                                <form className="card" onSubmit={handleSaveEntry} style={{ padding: '12px 16px', margin: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px' }}>
                                         <div>
-                                            <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '1.08rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span>⚡</span> সিঙ্গেল মেশিন প্রোডাকশন এন্ট্রি — {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} ({entryDate})
                                             </h3>
-                                            <p style={{ margin: '4px 0 0 0', fontSize: '.84rem', color: 'var(--muted)' }}>
+                                            <p style={{ margin: '2px 0 0 0', fontSize: '.82rem', color: 'var(--muted)' }}>
                                                 একটি নির্দিষ্ট মেশিনের উৎপাদিত কাপড়ের সঠিক ওজন ও বিস্তারিত ইনপুট করুন
                                             </p>
                                         </div>
@@ -4340,8 +4341,9 @@ export default function KnitkhataIndex({
                                 </form>
                             );
                         })()}
+                    </div>
 
-                        {/* KPI METRIC CARDS */}
+                    {/* KPI METRIC CARDS */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '20px' }}>
                             <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--accent, #0E6B66)' }}>
                                 <div style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 600 }}>আজকের মোট উৎপাদন</div>
