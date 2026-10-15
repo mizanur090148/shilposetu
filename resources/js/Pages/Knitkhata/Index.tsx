@@ -3648,50 +3648,45 @@ export default function KnitkhataIndex({
 
                 return (
                     <>
-                        {/* Header with Shift System Selector */}
+                        {/* Header with Entry Mode Selector */}
                         <div className="head" style={{ marginBottom: '16px' }}>
                             <div>
                                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span>🧵</span> দৈনিক প্রোডাকশন এন্ট্রি (Daily Shift Production)
                                 </h2>
-                                <p>কারখানার শিফট ব্যবস্থা নির্ধারণ, ফ্লোর বাল্ক শিট ও সিঙ্গেল মেশিন উৎপাদন হিসাব</p>
+                                <p>ফ্লোর বাল্ক শিট ও সিঙ্গেল মেশিন উৎপাদন হিসাব</p>
                             </div>
 
-                            {/* Shift Mode Selector (1, 2, or 3 Shifts) */}
+                            {/* Entry Mode Switcher (Single vs Bulk Floor Sheet) */}
                             <div style={{ background: 'var(--surface, #fff)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)' }}>
-                                    কারখানার শিফট ব্যবস্থা:
+                                <span style={{ fontSize: '.84rem', fontWeight: 700, color: 'var(--muted)' }}>
+                                    এন্ট্রি মোড:
                                 </span>
-                                <div style={{ display: 'flex', gap: '4px' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
                                     <button
                                         type="button"
-                                        className={`shift-mode-chip ${shiftMode === 1 ? 'active' : ''}`}
-                                        onClick={() => handleShiftModeChange(1)}
+                                        className={`shift-mode-chip ${entryMode === 'single' ? 'active' : ''}`}
+                                        onClick={() => setEntryMode('single')}
+                                        style={{ fontSize: '.84rem', padding: '6px 14px', fontWeight: 700 }}
                                     >
-                                        ১টি শিফট (Day)
+                                        ⚡ সিঙ্গেল মেশিন এন্ট্রি
                                     </button>
                                     <button
                                         type="button"
-                                        className={`shift-mode-chip ${shiftMode === 2 ? 'active' : ''}`}
-                                        onClick={() => handleShiftModeChange(2)}
+                                        className={`shift-mode-chip ${entryMode === 'bulk' ? 'active' : ''}`}
+                                        onClick={() => setEntryMode('bulk')}
+                                        style={{ fontSize: '.84rem', padding: '6px 14px', fontWeight: 700 }}
                                     >
-                                        ২টি শিফট (Day/Night)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`shift-mode-chip ${shiftMode === 3 ? 'active' : ''}`}
-                                        onClick={() => handleShiftModeChange(3)}
-                                    >
-                                        ৩টি শিফট (8-Hours)
+                                        📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Top Control Bar: Date, Shift Selection, & Entry Mode Toggle */}
+                        {/* Top Control Bar: Date, Order & Shift Selection */}
                         <div className="card" style={{ padding: '16px', marginBottom: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                                {/* Left: Date & Active Shift Picker */}
+                                {/* Left: Date, Order & Active Shift Picker */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                                     <label style={{ fontSize: '.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                                         <span>📅 তারিখ:</span>
@@ -3762,27 +3757,19 @@ export default function KnitkhataIndex({
                                     </div>
                                 </div>
 
-                                {/* Right: Mode Switcher (Bulk vs Single) */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--muted)' }}>এন্ট্রি মোড:</span>
-                                    <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '3px', borderRadius: '8px', display: 'flex', gap: '3px' }}>
-                                        <button
-                                            type="button"
-                                            className={`btn sm ${entryMode === 'single' ? 'pri' : ''}`}
-                                            onClick={() => setEntryMode('single')}
-                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
-                                        >
-                                            ⚡ সিঙ্গেল মেশিন এন্ট্রি
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`btn sm ${entryMode === 'bulk' ? 'pri' : ''}`}
-                                            onClick={() => setEntryMode('bulk')}
-                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
-                                        >
-                                            📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
-                                        </button>
-                                    </div>
+                                {/* Right: Shift timing info & link to profile shifts */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span className="pill p-info" style={{ fontSize: '.8rem', fontWeight: 600 }}>
+                                        🕒 শিফট সময়: {currentShiftList.find(s => s.id === entrySh)?.time || '—'}
+                                    </span>
+                                    <a
+                                        href="/factory/profile"
+                                        className="btn sm"
+                                        style={{ fontSize: '.78rem', padding: '5px 10px', textDecoration: 'none', color: 'var(--muted)' }}
+                                        title="কারখানার প্রোফাইলে শিফট ও কর্মঘণ্টা পরিবর্তন করুন"
+                                    >
+                                        ⚙️ শিফট সেটিংস
+                                    </a>
                                 </div>
                             </div>
                         </div>
