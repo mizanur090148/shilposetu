@@ -3689,7 +3689,7 @@ export default function KnitkhataIndex({
                         </div>
 
                         {/* Top Control Bar: Date, Shift Selection, & Entry Mode Toggle */}
-                        <div className="card" style={{ padding: '16px', marginBottom: '20px' }}>
+                        <div className="card" style={{ padding: '16px', marginBottom: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                                 {/* Left: Date & Active Shift Picker */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -3768,19 +3768,19 @@ export default function KnitkhataIndex({
                                     <div style={{ background: 'var(--surface2, #f1f5f9)', padding: '3px', borderRadius: '8px', display: 'flex', gap: '3px' }}>
                                         <button
                                             type="button"
-                                            className={`btn sm ${entryMode === 'bulk' ? 'pri' : ''}`}
-                                            onClick={() => setEntryMode('bulk')}
-                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
-                                        >
-                                            📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
-                                        </button>
-                                        <button
-                                            type="button"
                                             className={`btn sm ${entryMode === 'single' ? 'pri' : ''}`}
                                             onClick={() => setEntryMode('single')}
                                             style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
                                         >
                                             ⚡ সিঙ্গেল মেশিন এন্ট্রি
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`btn sm ${entryMode === 'bulk' ? 'pri' : ''}`}
+                                            onClick={() => setEntryMode('bulk')}
+                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
+                                        >
+                                            📋 ফ্লোর শিট (বাল্ক এন্ট্রি)
                                         </button>
                                     </div>
                                 </div>
@@ -4011,7 +4011,7 @@ export default function KnitkhataIndex({
                                                                 onChange={e => handleBulkEntryChange(m.code, 'kg', e.target.value)}
                                                                 style={{
                                                                     width: '100%',
-                                                                    padding: '7px 10px',
+                                                                    padding: '6px 8px',
                                                                     borderRadius: '6px',
                                                                     border: isFilled ? '2px solid var(--accent, #0E6B66)' : undefined,
                                                                     fontSize: '.92rem',
@@ -4080,7 +4080,7 @@ export default function KnitkhataIndex({
                                         <button
                                             type="submit"
                                             className="btn pri"
-                                            style={{ padding: '8px 22px', fontSize: '.95rem', fontWeight: 700 }}
+                                            style={{ fontSize: '.82rem', padding: '5px 14px', fontWeight: 600 }}
                                         >
                                             ✓ {currentShiftList.find(s => s.id === entrySh)?.name || `শিফট ${entrySh}`} এর সমস্ত এন্ট্রি সেভ করুন
                                         </button>
@@ -4273,7 +4273,7 @@ export default function KnitkhataIndex({
 
                                         {/* 7. রোল সংখ্যা */}
                                         <label className="f" style={{ margin: 0 }}>
-                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>রোল সংখ্যা</span>
+                                            <span style={{ fontWeight: 600, fontSize: '.84rem' }}>রোল নাম্বার</span>
                                             <input
                                                 type="number"
                                                 className="prod-input prod-input-num"
