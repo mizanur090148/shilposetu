@@ -2,6 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Factory;
+use App\Models\FactoryMachine;
+use App\Models\FactoryShift;
+use App\Models\Machine;
+use App\Models\MachineType;
+use App\Models\Production;
+use App\Models\Quotation;
+use App\Models\Shift;
+use App\Models\SubcontractPost;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,18 +26,18 @@ class KnitkhataController extends Controller
      */
     private function getKnitkhataOrdersAndVendors($user, $factory): array
     {
-        if (!$factory && $user) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first();
+        if (! $factory && $user) {
+            $factory = Factory::where('user_id', $user->id)->first();
         }
 
         $factoryId = $factory?->id;
 
-        if (!$factoryId) {
+        if (! $factoryId) {
             return ['orders' => [], 'vendors' => []];
         }
 
         // Match DIRECTLY on accepted_factory_id of subcontract_posts table
-        $posts = \App\Models\SubcontractPost::where('accepted_factory_id', $factoryId)
+        $posts = SubcontractPost::where('accepted_factory_id', $factoryId)
             ->with(['factory', 'user', 'acceptedFactory'])
             ->latest()
             ->get();
@@ -37,12 +46,12 @@ class KnitkhataController extends Controller
         $vendors = [];
 
         foreach ($posts as $p) {
-            $vendorKey = 'v_' . ($p->factory_id ?: $p->user_id);
+            $vendorKey = 'v_'.($p->factory_id ?: $p->user_id);
             $vendorName = $p->factory?->business_name ?: $p->user?->name ?: 'বায়ার পার্টি';
             $vendorPhone = $p->factory?->phone ?: $p->user?->phone ?: '০১৭১১-২২৩৩৪৪';
             $vendorEmail = $p->factory?->email ?: $p->user?->email ?: '';
 
-            if (!isset($vendors[$vendorKey])) {
+            if (! isset($vendors[$vendorKey])) {
                 $vendors[$vendorKey] = [
                     'name' => $vendorName,
                     'phone' => $vendorPhone,
@@ -62,14 +71,14 @@ class KnitkhataController extends Controller
             $done = isset($specs['done']) ? (int) $specs['done'] : ($st === 'done' ? $qty : ($st === 'run' ? (int) round($qty * 0.62) : 0));
 
             $orders[] = [
-                'id' => 'SC-POST-' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
+                'id' => 'SC-POST-'.str_pad($p->id, 3, '0', STR_PAD_LEFT),
                 'db_id' => $p->id,
                 'title' => $p->title,
                 'v' => $vendorKey,
                 'vendorName' => $vendorName,
                 'vendorPhone' => $vendorPhone,
                 'vendorEmail' => $vendorEmail,
-                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (!empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
+                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (! empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
                 'category' => $p->category,
                 'gsm' => (int) ($specs['gsm'] ?? 160),
                 'dia' => $specs['dia'] ?? '30" × 24G',
@@ -87,20 +96,63 @@ class KnitkhataController extends Controller
                     [
                         'count' => $specs['yarn'] ?? '30s Combed',
                         'spinner' => 'Square Textiles',
-                        'lot' => 'SQ-' . (88410 + $p->id),
+                        'lot' => 'SQ-'.(88410 + $p->id),
                         'bags' => 80,
                         'kg' => (int) round($qty * 0.55),
-                    ]
+                    ],
                 ] : []),
-                'qc' => $specs['qc'] ?? [],
+                'qc' => ! empty($specs['qc']) ? array_values(array_map(function ($item, $idx) use ($p) {
+                    if (! isset($item['id'])) {
+                        $item['id'] = 'qc_'.$p->id.'_'.($idx + 1);
+                    }
+
+                    return $item;
+                }, $specs['qc'], array_keys($specs['qc']))) : ($st !== 'wait' ? [
+                    [
+                        'id' => 'qc_'.$p->id.'_1',
+                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '02 Oct 2026',
+                        'roll' => 'R-'.str_pad((string) (140 + $p->id), 3, '0', STR_PAD_LEFT),
+                        'm' => 'M-01',
+                        'issue' => 'Needle mark (১টি সুঁচ ভাঙা)',
+                        'kg' => 22.5,
+                        's' => 'bad',
+                        'res' => 'রিজেক্ট',
+                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'নিডেল পরিবর্তন ও মেকানিক চেক সম্পন্ন',
+                    ],
+                    [
+                        'id' => 'qc_'.$p->id.'_2',
+                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '03 Oct 2026',
+                        'roll' => 'R-'.str_pad((string) (141 + $p->id), 3, '0', STR_PAD_LEFT),
+                        'm' => 'M-02',
+                        'issue' => 'লুব্রিকেশন দাগ (Oil spot)',
+                        'kg' => 24.0,
+                        's' => 'warn',
+                        'res' => 'ওয়াশিংয়ে দূর',
+                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'ওয়াশিং প্ল্যান্টে আলাদা মার্ক করে পাঠানো হয়েছে',
+                    ],
+                    [
+                        'id' => 'qc_'.$p->id.'_3',
+                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '04 Oct 2026',
+                        'roll' => 'R-'.str_pad((string) (142 + $p->id), 3, '0', STR_PAD_LEFT),
+                        'm' => 'M-01',
+                        'issue' => 'কোনো সমস্যা নেই (পাস)',
+                        'kg' => 25.0,
+                        's' => 'ok',
+                        'res' => 'পাস',
+                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => '১০০% স্পেসিফিকেশন ও জিএসএম সঠিক',
+                    ],
+                ] : []),
                 'challans' => $specs['challans'] ?? ($st === 'done' ? [
                     [
-                        'challanNo' => 'CH-2610-0' . (30 + $p->id),
+                        'challanNo' => 'CH-2610-0'.(30 + $p->id),
                         'date' => '02 Oct 2026',
                         'rolls' => 60,
                         'kg' => $qty,
                         'vehicle' => 'ঢাকা মেট্রো-ন ১২-৮৮৪০',
-                    ]
+                    ],
                 ] : []),
             ];
         }
@@ -113,18 +165,18 @@ class KnitkhataController extends Controller
      */
     private function getKnitkhataVendorOrdersAndFactories($user): array
     {
-        if (!$user) {
+        if (! $user) {
             return ['vendorOrders' => [], 'subcontractorFactories' => []];
         }
 
-        $posts = \App\Models\SubcontractPost::where('user_id', $user->id)
+        $posts = SubcontractPost::where('user_id', $user->id)
             ->with(['acceptedFactory', 'factory'])
             ->withCount('quotations')
             ->latest()
             ->get();
 
         if ($posts->isEmpty()) {
-            $posts = \App\Models\SubcontractPost::with(['acceptedFactory', 'factory'])
+            $posts = SubcontractPost::with(['acceptedFactory', 'factory'])
                 ->withCount('quotations')
                 ->latest()
                 ->take(10)
@@ -146,13 +198,13 @@ class KnitkhataController extends Controller
             $qty = (int) $p->target_quantity;
             $done = isset($specs['done']) ? (int) $specs['done'] : ($st === 'done' ? $qty : ($st === 'run' ? (int) round($qty * 0.62) : 0));
 
-            $factoryKey = $p->accepted_factory_id ? 'fac_' . $p->accepted_factory_id : 'open_bidding';
+            $factoryKey = $p->accepted_factory_id ? 'fac_'.$p->accepted_factory_id : 'open_bidding';
             $factoryName = $p->acceptedFactory?->business_name ?: ($p->status === 'open' ? 'উন্মুক্ত (দরপত্র আহ্বান চলছে)' : 'ফ্যাক্টরি নির্ধারণ বাকি');
             $factoryPhone = $p->acceptedFactory?->phone ?: '০১৭১১-২২৩৩৪৪';
             $factoryLocation = $p->acceptedFactory?->location ?: ($p->acceptedFactory?->district ?: 'বাংলাদেশ');
 
             if ($p->accepted_factory_id) {
-                if (!isset($factories[$factoryKey])) {
+                if (! isset($factories[$factoryKey])) {
                     $factories[$factoryKey] = [
                         'id' => $p->accepted_factory_id,
                         'name' => $factoryName,
@@ -169,7 +221,7 @@ class KnitkhataController extends Controller
             }
 
             $orders[] = [
-                'id' => 'SC-POST-' . str_pad($p->id, 3, '0', STR_PAD_LEFT),
+                'id' => 'SC-POST-'.str_pad($p->id, 3, '0', STR_PAD_LEFT),
                 'db_id' => $p->id,
                 'title' => $p->title,
                 'v' => $factoryKey,
@@ -185,7 +237,7 @@ class KnitkhataController extends Controller
                     'location' => $factoryLocation,
                 ] : null,
                 'quotations_count' => (int) $p->quotations_count,
-                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (!empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
+                'fabric' => $specs['fabric'] ?? $specs['fabric_type'] ?? $specs['fabric_name'] ?? (! empty($specs['machine_type']) ? preg_replace('/.*?\((.*?)\).*/', '$1', $specs['machine_type']) : ($p->category === 'knitting' ? 'Single Jersey 100% Cotton' : $p->title)),
                 'category' => $p->category,
                 'gsm' => (int) ($specs['gsm'] ?? 160),
                 'dia' => $specs['dia'] ?? '30" × 24G',
@@ -204,20 +256,51 @@ class KnitkhataController extends Controller
                     [
                         'count' => $specs['yarn'] ?? '30s Combed',
                         'spinner' => 'Square Textiles',
-                        'lot' => 'SQ-' . (88410 + $p->id),
+                        'lot' => 'SQ-'.(88410 + $p->id),
                         'bags' => 80,
                         'kg' => (int) round($qty * 0.55),
-                    ]
+                    ],
                 ] : []),
-                'qc' => $specs['qc'] ?? [],
+                'qc' => ! empty($specs['qc']) ? array_values(array_map(function ($item, $idx) use ($p) {
+                    if (! isset($item['id'])) {
+                        $item['id'] = 'qc_'.$p->id.'_'.($idx + 1);
+                    }
+
+                    return $item;
+                }, $specs['qc'], array_keys($specs['qc']))) : ($st !== 'wait' ? [
+                    [
+                        'id' => 'qc_'.$p->id.'_1',
+                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '02 Oct 2026',
+                        'roll' => 'R-'.str_pad((string) (140 + $p->id), 3, '0', STR_PAD_LEFT),
+                        'm' => 'M-01',
+                        'issue' => 'Needle mark (১টি সুঁচ ভাঙা)',
+                        'kg' => 22.5,
+                        's' => 'bad',
+                        'res' => 'রিজেক্ট',
+                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'নিডেল পরিবর্তন ও মেকানিক চেক সম্পন্ন',
+                    ],
+                    [
+                        'id' => 'qc_'.$p->id.'_2',
+                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '03 Oct 2026',
+                        'roll' => 'R-'.str_pad((string) (141 + $p->id), 3, '0', STR_PAD_LEFT),
+                        'm' => 'M-02',
+                        'issue' => 'লুব্রিকেশন দাগ (Oil spot)',
+                        'kg' => 24.0,
+                        's' => 'warn',
+                        'res' => 'ওয়াশিংয়ে দূর',
+                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'ওয়াশিং প্ল্যান্টে আলাদা মার্ক করে পাঠানো হয়েছে',
+                    ],
+                ] : []),
                 'challans' => $specs['challans'] ?? ($st === 'done' ? [
                     [
-                        'challanNo' => 'CH-2610-0' . (30 + $p->id),
+                        'challanNo' => 'CH-2610-0'.(30 + $p->id),
                         'date' => '02 Oct 2026',
                         'rolls' => 60,
                         'kg' => $qty,
                         'vehicle' => 'ঢাকা মেট্রো-ন ১২-৮৮৪০',
-                    ]
+                    ],
                 ] : []),
             ];
         }
@@ -235,27 +318,27 @@ class KnitkhataController extends Controller
         $role = $extra['role'] ?? $request->query('role', (str_starts_with($tab, 'v') ? 'ven' : 'fac'));
 
         // Fetch user's posted subcontract orders and submitted bids for dual-role sync
-        $userPosts = $user ? \App\Models\SubcontractPost::where('user_id', $user->id)
+        $userPosts = $user ? SubcontractPost::where('user_id', $user->id)
             ->with(['acceptedFactory', 'factory'])
             ->withCount('quotations')
             ->latest()
             ->get() : collect();
 
         if ($userPosts->isEmpty()) {
-            $userPosts = \App\Models\SubcontractPost::with(['acceptedFactory', 'factory'])
+            $userPosts = SubcontractPost::with(['acceptedFactory', 'factory'])
                 ->withCount('quotations')
                 ->latest()
                 ->take(10)
                 ->get();
         }
 
-        $quotationsSubmitted = $user ? \App\Models\Quotation::where('bidder_user_id', $user->id)
+        $quotationsSubmitted = $user ? Quotation::where('bidder_user_id', $user->id)
             ->with(['post.user', 'post.factory', 'post.acceptedFactory'])
             ->latest()
             ->get() : collect();
 
         if ($quotationsSubmitted->isEmpty()) {
-            $quotationsSubmitted = \App\Models\Quotation::with(['post.user', 'post.factory', 'post.acceptedFactory'])
+            $quotationsSubmitted = Quotation::with(['post.user', 'post.factory', 'post.acceptedFactory'])
                 ->latest()
                 ->get();
         }
@@ -266,11 +349,11 @@ class KnitkhataController extends Controller
         // Factory Shifts loading & Auto-initialization from Master Shifts (শিফট A, B, C)
         $dbShifts = [];
         if ($factory) {
-            $fShifts = \App\Models\FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
+            $fShifts = FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
             if ($fShifts->isEmpty()) {
-                $masterShifts = \App\Models\Shift::where('is_active', true)->orderBy('sort_order')->get();
+                $masterShifts = Shift::where('is_active', true)->orderBy('sort_order')->get();
                 foreach ($masterShifts as $ms) {
-                    \App\Models\FactoryShift::create([
+                    FactoryShift::create([
                         'factory_id' => $factory->id,
                         'shift_id' => $ms->id,
                         'name' => $ms->name,
@@ -285,7 +368,7 @@ class KnitkhataController extends Controller
                         'notes' => $ms->description,
                     ]);
                 }
-                $fShifts = \App\Models\FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
+                $fShifts = FactoryShift::where('factory_id', $factory->id)->orderBy('sort_order')->get();
             }
 
             $dbShifts = $fShifts->map(function ($s) {
@@ -308,7 +391,7 @@ class KnitkhataController extends Controller
         // Production Records loading for floor view
         $dbProductionLogs = [];
         if ($factory) {
-            $productions = \App\Models\Production::where('factory_id', $factory->id)
+            $productions = Production::where('factory_id', $factory->id)
                 ->with('subcontractPost')
                 ->latest('production_date')
                 ->latest('id')
@@ -321,7 +404,7 @@ class KnitkhataController extends Controller
                     'd' => $p->production_date ? $p->production_date->format('d M Y') : now()->format('d M Y'),
                     'sh' => $p->shift_code ?: 'A',
                     'm' => $p->machine_code ?: 'M-01',
-                    'o' => $p->subcontract_post_id ? ('SC-POST-' . str_pad($p->subcontract_post_id, 3, '0', STR_PAD_LEFT)) : 'SC-POST-001',
+                    'o' => $p->subcontract_post_id ? ('SC-POST-'.str_pad($p->subcontract_post_id, 3, '0', STR_PAD_LEFT)) : 'SC-POST-001',
                     'order_title' => $p->subcontractPost?->title,
                     'kg' => (float) $p->quantity_kg,
                     'rolls' => (int) $p->rolls_count,
@@ -332,6 +415,94 @@ class KnitkhataController extends Controller
                 ];
             })->all();
         }
+
+        // Factory Machines & Floor Machine Roster loaded directly from DB
+        $factoryMachines = collect();
+        $dbFloorMachines = [];
+
+        if (! $factory && $user) {
+            $factory = Factory::where('user_id', $user->id)->first() ?? Factory::first();
+        }
+
+        if ($factory) {
+            $fMachines = $factory->machines()->with('machineType')->orderBy('sort_order')->get();
+
+            // If this factory has no factory_machines registered yet, initialize from active machine types
+            if ($fMachines->isEmpty()) {
+                $defaultTypes = MachineType::where('is_active', true)->orderBy('sort_order')->take(3)->get();
+                if ($defaultTypes->isNotEmpty()) {
+                    foreach ($defaultTypes as $idx => $dt) {
+                        FactoryMachine::create([
+                            'factory_id' => $factory->id,
+                            'machine_type_id' => $dt->id,
+                            'category' => $dt->category ?? 'knitting',
+                            'no_of_machine' => 4,
+                            'capacity_per_machine' => 600,
+                            'total_capacity_per_day' => 2400,
+                            'unit_type' => 'Kg',
+                            'sort_order' => $idx + 1,
+                        ]);
+                    }
+                    $fMachines = $factory->machines()->with('machineType')->orderBy('sort_order')->get();
+                }
+            }
+
+            $factoryMachines = $fMachines->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'category' => $m->category,
+                    'no_of_machine' => (int) $m->no_of_machine,
+                    'capacity_per_machine' => (float) $m->capacity_per_machine,
+                    'total_capacity_per_day' => (float) $m->total_capacity_per_day,
+                    'unit_type' => $m->unit_type ?: 'Kg',
+                    'machine_type' => $m->machineType?->name ?? 'Industrial Knitting Machine',
+                    'brand_or_model' => $m->machineType?->brand_or_model ?? 'Standard Model',
+                ];
+            });
+
+            // Expand factory_machines into individual floor machines (e.g. M-01, M-02, ...)
+            $machineIndex = 1;
+            foreach ($fMachines as $fm) {
+                $count = max(1, (int) $fm->no_of_machine);
+                $typeName = $fm->machineType?->name ?? 'Single Jersey';
+                $brand = $fm->machineType?->brand_or_model ?? 'Standard Industrial';
+                $capDaily = (float) $fm->capacity_per_machine ?: 600;
+                $cph = round($capDaily / 24, 1);
+
+                $dia = '30" × 24G';
+                if (preg_match('/(\d+["\']?\s*[×x]\s*\d+G?)/i', $typeName.' '.$brand, $matches)) {
+                    $dia = $matches[1];
+                }
+
+                for ($i = 0; $i < $count; $i++) {
+                    $code = 'M-'.str_pad((string) $machineIndex, 2, '0', STR_PAD_LEFT);
+                    $dbFloorMachines[] = [
+                        'code' => $code,
+                        'type' => $typeName,
+                        'dia' => $dia,
+                        'brand' => $brand,
+                        'cph' => $cph > 0 ? $cph : 25.0,
+                        'op' => '—',
+                        'sh' => 'খালি',
+                        'factory_machine_id' => $fm->id,
+                    ];
+                    $machineIndex++;
+                }
+            }
+        }
+
+        $userIds = array_filter([$user?->id, $factory?->user_id]);
+        $customMachines = Machine::query()
+            ->when(! empty($userIds), function ($q) use ($userIds) {
+                $q->whereIn('created_by_id', $userIds);
+            })
+            ->with('machineType')
+            ->orderBy('sort_order')
+            ->get();
+
+        $machineTypes = MachineType::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'brand_or_model', 'category']);
 
         return Inertia::render('Knitkhata/Index', array_merge([
             'factory' => $factory,
@@ -349,6 +520,10 @@ class KnitkhataController extends Controller
             'subcontractorFactories' => $vendorData['subcontractorFactories'],
             'dbShifts' => $dbShifts,
             'dbProductionLogs' => $dbProductionLogs,
+            'factoryMachines' => $factoryMachines,
+            'customMachines' => $customMachines,
+            'machineTypes' => $machineTypes,
+            'dbFloorMachines' => $dbFloorMachines,
         ], $extra));
     }
 
@@ -365,6 +540,7 @@ class KnitkhataController extends Controller
     public function orders(Request $request): Response
     {
         $role = $request->query('role', 'fac');
+
         return $this->renderKnitkhata($request, 'orders', ['role' => $role]);
     }
 
@@ -395,51 +571,7 @@ class KnitkhataController extends Controller
 
     public function machines(Request $request): Response
     {
-        $user = $request->user();
-        $factory = $user?->factory;
-
-        if (!$factory && $user) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
-        }
-
-        $factoryMachines = collect();
-        if ($factory) {
-            $factoryMachines = $factory->machines()
-                ->with('machineType')
-                ->get()
-                ->map(function ($m) {
-                    return [
-                        'id' => $m->id,
-                        'category' => $m->category,
-                        'no_of_machine' => (int) $m->no_of_machine,
-                        'capacity_per_machine' => (float) $m->capacity_per_machine,
-                        'total_capacity_per_day' => (float) $m->total_capacity_per_day,
-                        'unit_type' => $m->unit_type ?: 'Kg',
-                        'machine_type' => $m->machineType?->name ?? 'Industrial Knitting Machine',
-                        'brand_or_model' => $m->machineType?->brand_or_model ?? 'Standard Model',
-                    ];
-                });
-        }
-
-        $userIds = array_filter([$user?->id, $factory?->user_id]);
-        $customMachines = \App\Models\Machine::query()
-            ->when(!empty($userIds), function ($q) use ($userIds) {
-                $q->whereIn('created_by_id', $userIds);
-            })
-            ->with('machineType')
-            ->orderBy('sort_order')
-            ->get();
-
-        $machineTypes = \App\Models\MachineType::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'brand_or_model', 'category']);
-
-        return $this->renderKnitkhata($request, 'machines', [
-            'factory' => $factory,
-            'factoryMachines' => $factoryMachines,
-            'customMachines' => $customMachines,
-            'machineTypes' => $machineTypes,
-        ]);
+        return $this->renderKnitkhata($request, 'machines');
     }
 
     public function shifts(Request $request): Response
@@ -460,7 +592,7 @@ class KnitkhataController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        \App\Models\Machine::create([
+        Machine::create([
             'name' => $validated['name'],
             'machine_type_id' => $validated['machine_type_id'] ?? null,
             'cph' => $validated['cph'] ?? 25.0,
@@ -470,7 +602,7 @@ class KnitkhataController extends Controller
             'notes' => $validated['notes'] ?? null,
             'is_active' => true,
             'created_by_id' => $user->id,
-            'sort_order' => \App\Models\Machine::where('created_by_id', $user->id)->count() + 1,
+            'sort_order' => Machine::where('created_by_id', $user->id)->count() + 1,
         ]);
 
         return redirect()->back()->with('success', 'নতুন মেশিন সফলভাবে যুক্ত হয়েছে!');
@@ -509,44 +641,44 @@ class KnitkhataController extends Controller
         $user = $request->user();
         $factory = $user?->factory;
         $validated = $request->validate([
-            'fabric'   => 'required|string|max:200',
-            'qty'      => 'required|numeric|min:1',
-            'status'   => 'nullable|string',
-            'vendor'   => 'nullable|string',
-            'gsm'      => 'nullable|numeric',
-            'dia'      => 'nullable|string',
-            'color'    => 'nullable|string',
-            'yarn'     => 'nullable|string',
-            'rate_tk'  => 'nullable|numeric',
+            'fabric' => 'required|string|max:200',
+            'qty' => 'required|numeric|min:1',
+            'status' => 'nullable|string',
+            'vendor' => 'nullable|string',
+            'gsm' => 'nullable|numeric',
+            'dia' => 'nullable|string',
+            'color' => 'nullable|string',
+            'yarn' => 'nullable|string',
+            'rate_tk' => 'nullable|numeric',
             'machines' => 'nullable|array',
         ]);
 
         $dbStatus = match ($validated['status'] ?? 'wait') {
-            'run'   => 'in_progress',
-            'done'  => 'completed',
+            'run' => 'in_progress',
+            'done' => 'completed',
             default => 'open',
         };
 
-        \App\Models\SubcontractPost::create([
-            'user_id'             => $user->id,
-            'factory_id'          => $factory?->id,
+        SubcontractPost::create([
+            'user_id' => $user->id,
+            'factory_id' => $factory?->id,
             'accepted_factory_id' => ($dbStatus === 'in_progress' ? $factory?->id : null),
-            'post_type'           => 'DEMAND',
-            'category'            => 'Single Jersey',
-            'title'               => $validated['fabric'],
-            'target_quantity'     => (int) $validated['qty'],
-            'unit'                => 'kg',
-            'target_rate'         => $validated['rate_tk'] ?? 22.0,
-            'deadline'            => now()->addDays(20),
-            'specs'               => [
-                'gsm'      => $validated['gsm'] ?? 160,
-                'dia'      => $validated['dia'] ?? '30" × 24G',
-                'color'    => $validated['color'] ?? 'Navy Blue',
-                'yarn'     => $validated['yarn'] ?? '30s Combed Cotton',
+            'post_type' => 'DEMAND',
+            'category' => 'Single Jersey',
+            'title' => $validated['fabric'],
+            'target_quantity' => (int) $validated['qty'],
+            'unit' => 'kg',
+            'target_rate' => $validated['rate_tk'] ?? 22.0,
+            'deadline' => now()->addDays(20),
+            'specs' => [
+                'gsm' => $validated['gsm'] ?? 160,
+                'dia' => $validated['dia'] ?? '30" × 24G',
+                'color' => $validated['color'] ?? 'Navy Blue',
+                'yarn' => $validated['yarn'] ?? '30s Combed Cotton',
                 'machines' => $validated['machines'] ?? [],
-                'done'     => 0,
+                'done' => 0,
             ],
-            'status'              => $dbStatus,
+            'status' => $dbStatus,
         ]);
 
         return redirect()->back()->with('success', 'নতুন সাব-কন্ট্রাক্ট অর্ডার সফলভাবে যুক্ত হয়েছে!');
@@ -559,22 +691,22 @@ class KnitkhataController extends Controller
     {
         $validated = $request->validate([
             'order_id' => 'required',
-            'status'   => 'required|string',
+            'status' => 'required|string',
         ]);
 
         $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-        $post = \App\Models\SubcontractPost::find($id);
+        $post = SubcontractPost::find($id);
 
         if ($post) {
             $dbStatus = match ($validated['status']) {
-                'run'   => 'in_progress',
-                'wait'  => 'open',
-                'done'  => 'completed',
+                'run' => 'in_progress',
+                'wait' => 'open',
+                'done' => 'completed',
                 default => $validated['status'],
             };
 
             $updateData = ['status' => $dbStatus];
-            if ($dbStatus === 'in_progress' && !$post->accepted_factory_id) {
+            if ($dbStatus === 'in_progress' && ! $post->accepted_factory_id) {
                 $user = $request->user();
                 $updateData['accepted_factory_id'] = $user?->factory?->id;
             }
@@ -592,25 +724,25 @@ class KnitkhataController extends Controller
     {
         $validated = $request->validate([
             'order_id' => 'required',
-            'count'    => 'nullable|string',
-            'spinner'  => 'nullable|string',
-            'lot'      => 'nullable|string',
-            'bags'     => 'nullable|numeric',
-            'kg'       => 'required|numeric|min:1',
+            'count' => 'nullable|string',
+            'spinner' => 'nullable|string',
+            'lot' => 'nullable|string',
+            'bags' => 'nullable|numeric',
+            'kg' => 'required|numeric|min:1',
         ]);
 
         $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-        $post = \App\Models\SubcontractPost::find($id);
+        $post = SubcontractPost::find($id);
 
         if ($post) {
             $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
             $yarnIn = $specs['yarn_in'] ?? [];
             $yarnIn[] = [
-                'count'   => $validated['count'] ?? '30s Combed',
+                'count' => $validated['count'] ?? '30s Combed',
                 'spinner' => $validated['spinner'] ?? 'Standard Spinner',
-                'lot'     => $validated['lot'] ?? ('LOT-' . rand(1000, 9999)),
-                'bags'    => (int) ($validated['bags'] ?? 0),
-                'kg'      => (float) $validated['kg'],
+                'lot' => $validated['lot'] ?? ('LOT-'.rand(1000, 9999)),
+                'bags' => (int) ($validated['bags'] ?? 0),
+                'kg' => (float) $validated['kg'],
             ];
             $specs['yarn_in'] = $yarnIn;
 
@@ -618,7 +750,7 @@ class KnitkhataController extends Controller
             $newStatus = $post->status === 'open' ? 'in_progress' : $post->status;
 
             $post->update([
-                'specs'  => $specs,
+                'specs' => $specs,
                 'status' => $newStatus,
             ]);
         }
@@ -632,27 +764,27 @@ class KnitkhataController extends Controller
     public function recordDeliveryChallan(Request $request)
     {
         $validated = $request->validate([
-            'order_id'     => 'required',
-            'challan_no'   => 'nullable|string',
-            'date'         => 'nullable|string',
-            'rolls'        => 'nullable|numeric',
-            'kg'           => 'required|numeric|min:1',
-            'vehicle'      => 'nullable|string',
+            'order_id' => 'required',
+            'challan_no' => 'nullable|string',
+            'date' => 'nullable|string',
+            'rolls' => 'nullable|numeric',
+            'kg' => 'required|numeric|min:1',
+            'vehicle' => 'nullable|string',
             'driver_phone' => 'nullable|string',
         ]);
 
         $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-        $post = \App\Models\SubcontractPost::find($id);
+        $post = SubcontractPost::find($id);
 
         if ($post) {
             $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
             $challans = $specs['challans'] ?? [];
             $challans[] = [
-                'challanNo'   => $validated['challan_no'] ?: ('CH-' . rand(1000, 9999)),
-                'date'        => $validated['date'] ?: now()->format('d M Y'),
-                'rolls'       => (int) ($validated['rolls'] ?? 0),
-                'kg'          => (float) $validated['kg'],
-                'vehicle'     => $validated['vehicle'] ?? '',
+                'challanNo' => $validated['challan_no'] ?: ('CH-'.rand(1000, 9999)),
+                'date' => $validated['date'] ?: now()->format('d M Y'),
+                'rolls' => (int) ($validated['rolls'] ?? 0),
+                'kg' => (float) $validated['kg'],
+                'vehicle' => $validated['vehicle'] ?? '',
                 'driverPhone' => $validated['driver_phone'] ?? '',
             ];
             $specs['challans'] = $challans;
@@ -667,7 +799,7 @@ class KnitkhataController extends Controller
             }
 
             $post->update([
-                'specs'  => $specs,
+                'specs' => $specs,
                 'status' => $newStatus,
             ]);
         }
@@ -686,7 +818,7 @@ class KnitkhataController extends Controller
         ]);
 
         $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-        $post = \App\Models\SubcontractPost::find($id);
+        $post = SubcontractPost::find($id);
 
         if ($post) {
             $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
@@ -694,7 +826,7 @@ class KnitkhataController extends Controller
 
             $updateData = ['specs' => $specs];
             // If machines are assigned and status is open, optionally transition to in_progress if accepted
-            if (!empty($specs['machines']) && $post->status === 'open' && $post->accepted_factory_id) {
+            if (! empty($specs['machines']) && $post->status === 'open' && $post->accepted_factory_id) {
                 $updateData['status'] = 'in_progress';
             }
 
@@ -711,10 +843,10 @@ class KnitkhataController extends Controller
     {
         $user = $request->user();
         $factory = $user?->factory;
-        if (!$factory) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        if (! $factory) {
+            $factory = Factory::where('user_id', $user->id)->first() ?? Factory::first();
         }
-        if (!$factory) {
+        if (! $factory) {
             return redirect()->back()->with('error', 'ফ্যাক্টরি পাওয়া যায়নি!');
         }
 
@@ -735,8 +867,8 @@ class KnitkhataController extends Controller
         $isActive = isset($validated['is_active']) ? (bool) $validated['is_active'] : (($validated['status'] ?? 'active') === 'active');
         $duration = $validated['duration_hours'] ?? 8.0;
 
-        if (!empty($validated['id']) && is_numeric($validated['id'])) {
-            $shift = \App\Models\FactoryShift::where('factory_id', $factory->id)->find($validated['id']);
+        if (! empty($validated['id']) && is_numeric($validated['id'])) {
+            $shift = FactoryShift::where('factory_id', $factory->id)->find($validated['id']);
             if ($shift) {
                 $shift->update([
                     'name' => $validated['name'],
@@ -749,11 +881,12 @@ class KnitkhataController extends Controller
                     'is_active' => $isActive,
                     'notes' => $validated['notes'] ?? null,
                 ]);
+
                 return redirect()->back()->with('success', 'শিফট তথ্য সফলভাবে আপডেট হয়েছে!');
             }
         }
 
-        \App\Models\FactoryShift::create([
+        FactoryShift::create([
             'factory_id' => $factory->id,
             'name' => $validated['name'],
             'code' => $validated['code'],
@@ -763,7 +896,7 @@ class KnitkhataController extends Controller
             'in_charge' => $validated['in_charge'] ?? null,
             'target_output_kg' => $validated['target_output_kg'] ?? null,
             'is_active' => $isActive,
-            'sort_order' => \App\Models\FactoryShift::where('factory_id', $factory->id)->count() + 1,
+            'sort_order' => FactoryShift::where('factory_id', $factory->id)->count() + 1,
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -777,13 +910,14 @@ class KnitkhataController extends Controller
     {
         $user = $request->user();
         $factory = $user?->factory;
-        if (!$factory) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        if (! $factory) {
+            $factory = Factory::where('user_id', $user->id)->first() ?? Factory::first();
         }
 
-        $shift = \App\Models\FactoryShift::where('factory_id', $factory?->id)->find($id);
+        $shift = FactoryShift::where('factory_id', $factory?->id)->find($id);
         if ($shift) {
             $shift->delete();
+
             return redirect()->back()->with('success', 'শিফট মুছে ফেলা হয়েছে!');
         }
 
@@ -797,10 +931,10 @@ class KnitkhataController extends Controller
     {
         $user = $request->user();
         $factory = $user?->factory;
-        if (!$factory) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        if (! $factory) {
+            $factory = Factory::where('user_id', $user->id)->first() ?? Factory::first();
         }
-        if (!$factory) {
+        if (! $factory) {
             return redirect()->back()->with('error', 'ফ্যাক্টরি পাওয়া যায়নি!');
         }
 
@@ -816,7 +950,9 @@ class KnitkhataController extends Controller
 
             foreach ($entries as $item) {
                 $kg = (float) ($item['quantity_kg'] ?? $item['kg'] ?? 0);
-                if ($kg <= 0) continue;
+                if ($kg <= 0) {
+                    continue;
+                }
 
                 $rolls = (int) ($item['rolls_count'] ?? $item['rolls'] ?? 0);
                 $mCode = $item['machine_code'] ?? $item['m'] ?? 'M-01';
@@ -829,27 +965,27 @@ class KnitkhataController extends Controller
                 $postId = null;
                 if ($orderRawId) {
                     $cleanId = (int) preg_replace('/\D/', '', (string) $orderRawId);
-                    $post = \App\Models\SubcontractPost::find($cleanId);
+                    $post = SubcontractPost::find($cleanId);
                     if ($post) {
                         $postId = $post->id;
                     }
                 }
 
-                if (!$postId) {
-                    $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)
+                if (! $postId) {
+                    $post = SubcontractPost::where('accepted_factory_id', $factory->id)
                         ->whereIn('status', ['in_progress', 'open'])
                         ->first();
                     $postId = $post?->id;
                 }
 
                 // Resolve factory shift id
-                $factoryShift = \App\Models\FactoryShift::where('factory_id', $factory->id)
+                $factoryShift = FactoryShift::where('factory_id', $factory->id)
                     ->where('code', $shiftCode)
                     ->first();
 
                 $notes = $item['notes'] ?? $item['remarks'] ?? null;
 
-                \App\Models\Production::create([
+                Production::create([
                     'factory_id' => $factory->id,
                     'subcontract_post_id' => $postId,
                     'machine_code' => $mCode,
@@ -866,7 +1002,7 @@ class KnitkhataController extends Controller
                 ]);
 
                 // Sync with subcontract_post progress
-                if ($postId && $post = \App\Models\SubcontractPost::find($postId)) {
+                if ($postId && $post = SubcontractPost::find($postId)) {
                     $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
                     $currDone = (float) ($specs['done'] ?? 0);
                     $specs['done'] = $currDone + $kg;
@@ -898,30 +1034,30 @@ class KnitkhataController extends Controller
                 'remarks' => 'nullable|string',
             ]);
 
-            $prodDate = !empty($validated['production_date']) ? date('Y-m-d', strtotime($validated['production_date'])) : now()->toDateString();
+            $prodDate = ! empty($validated['production_date']) ? date('Y-m-d', strtotime($validated['production_date'])) : now()->toDateString();
             $kg = (float) $validated['quantity_kg'];
             $rolls = (int) ($validated['rolls_count'] ?? 0);
 
             $postId = null;
-            if (!empty($validated['order_id'])) {
+            if (! empty($validated['order_id'])) {
                 $cleanId = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-                $post = \App\Models\SubcontractPost::find($cleanId);
+                $post = SubcontractPost::find($cleanId);
                 if ($post) {
                     $postId = $post->id;
                 }
             }
-            if (!$postId) {
-                $post = \App\Models\SubcontractPost::where('accepted_factory_id', $factory->id)
+            if (! $postId) {
+                $post = SubcontractPost::where('accepted_factory_id', $factory->id)
                     ->whereIn('status', ['in_progress', 'open'])
                     ->first();
                 $postId = $post?->id;
             }
 
-            $factoryShift = \App\Models\FactoryShift::where('factory_id', $factory->id)
+            $factoryShift = FactoryShift::where('factory_id', $factory->id)
                 ->where('code', $validated['shift_code'])
                 ->first();
 
-            \App\Models\Production::create([
+            Production::create([
                 'factory_id' => $factory->id,
                 'subcontract_post_id' => $postId,
                 'machine_code' => $validated['machine_code'],
@@ -937,7 +1073,7 @@ class KnitkhataController extends Controller
                 'created_by_id' => $user->id,
             ]);
 
-            if ($postId && $post = \App\Models\SubcontractPost::find($postId)) {
+            if ($postId && $post = SubcontractPost::find($postId)) {
                 $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
                 $currDone = (float) ($specs['done'] ?? 0);
                 $specs['done'] = $currDone + $kg;
@@ -959,22 +1095,103 @@ class KnitkhataController extends Controller
     {
         $user = $request->user();
         $factory = $user?->factory;
-        if (!$factory) {
-            $factory = \App\Models\Factory::where('user_id', $user->id)->first() ?? \App\Models\Factory::first();
+        if (! $factory) {
+            $factory = Factory::where('user_id', $user->id)->first() ?? Factory::first();
         }
 
-        $prod = \App\Models\Production::where('factory_id', $factory?->id)->find($id);
+        $prod = Production::where('factory_id', $factory?->id)->find($id);
         if ($prod) {
-            if ($prod->subcontract_post_id && $post = \App\Models\SubcontractPost::find($prod->subcontract_post_id)) {
+            if ($prod->subcontract_post_id && $post = SubcontractPost::find($prod->subcontract_post_id)) {
                 $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
                 $currDone = (float) ($specs['done'] ?? 0);
                 $specs['done'] = max(0, $currDone - (float) $prod->quantity_kg);
                 $post->update(['specs' => $specs]);
             }
             $prod->delete();
+
             return redirect()->back()->with('success', 'প্রোডাকশন এন্ট্রি মুছে ফেলা হয়েছে!');
         }
 
         return redirect()->back()->with('error', 'এন্ট্রি পাওয়া যায়নি!');
+    }
+
+    /**
+     * Store or append a QC inspection entry on a subcontract post.
+     */
+    public function storeQc(Request $request)
+    {
+        $validated = $request->validate([
+            'order_id' => 'required',
+            'roll' => 'required|string',
+            'machine' => 'required|string',
+            'issue' => 'required|string',
+            'kg' => 'required|numeric|min:0.1',
+            'status' => 'required|in:ok,bad,warn',
+            'resolution' => 'nullable|string',
+            'date' => 'nullable|string',
+            'inspector' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
+        $post = SubcontractPost::find($id);
+
+        if (! $post) {
+            $user = $request->user();
+            $factory = $user?->factory ?: Factory::where('user_id', $user?->id)->first();
+            $post = SubcontractPost::where('accepted_factory_id', $factory?->id)
+                ->whereIn('status', ['in_progress', 'open', 'completed'])
+                ->latest()
+                ->first();
+        }
+
+        if ($post) {
+            $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+            $qcList = $specs['qc'] ?? [];
+
+            $qcId = 'qc_'.time().'_'.rand(100, 999);
+            $qcList[] = [
+                'id' => $qcId,
+                'd' => $validated['date'] ?: now()->format('d M Y'),
+                'roll' => $validated['roll'],
+                'm' => $validated['machine'],
+                'issue' => $validated['issue'],
+                'kg' => (float) $validated['kg'],
+                's' => $validated['status'],
+                'res' => $validated['resolution'] ?: ($validated['status'] === 'ok' ? 'পাস' : ($validated['status'] === 'warn' ? 'মেরামত' : 'রিজেক্ট')),
+                'inspector' => $validated['inspector'] ?? 'মো. জহিরুল ইসলাম (QC)',
+                'notes' => $validated['notes'] ?? '',
+            ];
+            $specs['qc'] = $qcList;
+            $post->update(['specs' => $specs]);
+
+            return redirect()->back()->with('success', "রোল {$validated['roll']}-এর QC পরিদর্শন সফলভাবে সংরক্ষিত হয়েছে!");
+        }
+
+        return redirect()->back()->with('error', 'অর্ডার পাওয়া যায়নি!');
+    }
+
+    /**
+     * Delete a QC inspection entry from a subcontract post.
+     */
+    public function destroyQc(Request $request, $id)
+    {
+        $posts = SubcontractPost::whereNotNull('specs')->get();
+        foreach ($posts as $post) {
+            $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
+            if (! empty($specs['qc']) && is_array($specs['qc'])) {
+                $filtered = array_values(array_filter($specs['qc'], function ($q) use ($id) {
+                    return ($q['id'] ?? '') !== (string) $id && ($q['roll'] ?? '') !== (string) $id;
+                }));
+                if (count($filtered) !== count($specs['qc'])) {
+                    $specs['qc'] = $filtered;
+                    $post->update(['specs' => $specs]);
+
+                    return redirect()->back()->with('success', 'QC রেকর্ড সফলভাবে মুছে ফেলা হয়েছে!');
+                }
+            }
+        }
+
+        return redirect()->back()->with('error', 'QC রেকর্ড পাওয়া যায়নি!');
     }
 }

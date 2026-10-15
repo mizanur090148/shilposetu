@@ -12,7 +12,8 @@ import {
     Vendor,
     YarnIntake,
     DeliveryChallan,
-    FactoryShift
+    FactoryShift,
+    QcIssue
 } from './types';
 import {
     INITIAL_ORDERS,
@@ -123,7 +124,8 @@ export default function KnitkhataIndex({
     initialVendorOrders = [],
     subcontractorFactories = {},
     dbShifts = [],
-    dbProductionLogs = []
+    dbProductionLogs = [],
+    dbFloorMachines = []
 }: KnitkhataProps) {
     const [role, setRole] = useState<RoleMode>(initialRole);
     const [view, setView] = useState<KnitkhataViewTab>(initialTab);
@@ -449,6 +451,27 @@ export default function KnitkhataIndex({
     const [assignMachineSearch, setAssignMachineSearch] = useState<string>('');
     const [assignMachineFilter, setAssignMachineFilter] = useState<'all' | 'idle' | 'assigned'>('all');
 
+    // QC Inspections state
+    const [qcSearch, setQcSearch] = useState<string>('');
+    const [qcStatusFilter, setQcStatusFilter] = useState<'all' | 'ok' | 'warn' | 'bad'>('all');
+    const [qcOrderFilter, setQcOrderFilter] = useState<string>('all');
+    const [qcMachineFilter, setQcMachineFilter] = useState<string>('all');
+    const [showQcModal, setShowQcModal] = useState<boolean>(false);
+
+    // QC form fields
+    const [qcFormOrderId, setQcFormOrderId] = useState<string>('');
+    const [qcFormDate, setQcFormDate] = useState<string>(() => {
+        return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    });
+    const [qcFormMachine, setQcFormMachine] = useState<string>('M-01');
+    const [qcFormRoll, setQcFormRoll] = useState<string>('R-01');
+    const [qcFormKg, setQcFormKg] = useState<string>('24.5');
+    const [qcFormStatus, setQcFormStatus] = useState<'ok' | 'warn' | 'bad'>('ok');
+    const [qcFormIssue, setQcFormIssue] = useState<string>('কোনো ত্রুটি নেই (পাস)');
+    const [qcFormResolution, setQcFormResolution] = useState<string>('পাস ও ছাড়করণ');
+    const [qcFormInspector, setQcFormInspector] = useState<string>('মো. জহিরুল ইসলাম (QC)');
+    const [qcFormNotes, setQcFormNotes] = useState<string>('');
+
     const handleOpenDeliveryModal = (orderId: string) => {
         setDeliveryTargetOrder(orderId);
         const target = orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId);
@@ -525,6 +548,154 @@ export default function KnitkhataIndex({
                 machines: selectedMachines,
             }, { preserveScroll: true });
         }
+    };
+
+    const handleOpenQcModal = () => {
+        const defaultOrder = orders.find(o => o.id === curOrder) || orders[0];
+        const ordId = defaultOrder?.id || 'SC-POST-001';
+        setQcFormOrderId(ordId);
+
+        // Derive next roll number
+        const currentCount = orders.reduce((sum, o) => sum + (o.qc?.length || 0), 0);
+        const nextRollNum = currentCount + 1;
+        setQcFormRoll(`R-${String(nextRollNum).padStart(2, '0')}`);
+
+        // Default machine from order or floor
+        const defaultM = (defaultOrder?.machines && defaultOrder.machines.length > 0)
+            ? defaultOrder.machines[0]
+            : (baseFloorMachines[0]?.code || 'M-01');
+        setQcFormMachine(defaultM);
+
+        setQcFormDate(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
+        setQcFormKg('24.5');
+        setQcFormStatus('ok');
+        setQcFormIssue('কোনো ত্রুটি নেই (পাস)');
+        setQcFormResolution('পাস ও ছাড়করণ');
+        setQcFormInspector(auth.user?.name ? `${auth.user.name} (QC)` : 'মো. জহিরুল ইসলাম (QC)');
+        setQcFormNotes('');
+        setShowQcModal(true);
+    };
+
+    const handleSaveQc = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const kg = parseFloat(qcFormKg) || 0;
+        if (kg <= 0) {
+            showToast('অনুগ্রহ করে সঠিক রোল ওজন (kg) লিখুন');
+            return;
+        }
+        if (!qcFormRoll.trim()) {
+            showToast('অনুগ্রহ করে রোল নম্বর লিখুন');
+            return;
+        }
+
+        const newQcItem: QcIssue = {
+            id: `qc_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`,
+            d: qcFormDate,
+            roll: qcFormRoll.trim(),
+            m: qcFormMachine,
+            issue: qcFormIssue,
+            kg,
+            s: qcFormStatus,
+            res: qcFormResolution || (qcFormStatus === 'ok' ? 'পাস' : (qcFormStatus === 'warn' ? 'মেরামত' : 'রিজেক্ট')),
+            inspector: qcFormInspector,
+            notes: qcFormNotes,
+            order_id: qcFormOrderId,
+        };
+
+        // 1. Optimistic update
+        setOrders(prev =>
+            prev.map(o => {
+                if (o.id === qcFormOrderId) {
+                    return {
+                        ...o,
+                        qc: [newQcItem, ...(o.qc || [])]
+                    };
+                }
+                return o;
+            })
+        );
+
+        setShowQcModal(false);
+        showToast(`রোল ${qcFormRoll} এর QC পরিদর্শন সংরক্ষিত হয়েছে!`);
+
+        // 2. Persist to backend
+        const target = orders.find(o => o.id === qcFormOrderId);
+        const dbId = target?.db_id || parseInt((qcFormOrderId || '').replace(/\D/g, ''), 10);
+        router.post('/knitkhata/qc', {
+            order_id: dbId || qcFormOrderId,
+            roll: qcFormRoll.trim(),
+            machine: qcFormMachine,
+            issue: qcFormIssue,
+            kg,
+            status: qcFormStatus,
+            resolution: qcFormResolution,
+            date: qcFormDate,
+            inspector: qcFormInspector,
+            notes: qcFormNotes,
+        }, {
+            preserveScroll: true,
+            onError: () => {
+                showToast('QC সংরক্ষণ করতে সমস্যা হয়েছে');
+            }
+        });
+    };
+
+    const handleDeleteQc = (item: any) => {
+        if (!confirm(`আপনি কি নিশ্চিত যে রোল ${item.roll}-এর QC রেকর্ড মুছে ফেলতে চান?`)) {
+            return;
+        }
+
+        setOrders(prev =>
+            prev.map(o => ({
+                ...o,
+                qc: (o.qc || []).filter(q => (q.id && item.id ? q.id !== item.id : q.roll !== item.roll))
+            }))
+        );
+
+        showToast(`রোল ${item.roll}-এর QC এন্ট্রি মুছে ফেলা হয়েছে`);
+
+        const deleteId = item.id || item.roll;
+        router.delete(`/knitkhata/qc/${deleteId}`, {
+            preserveScroll: true
+        });
+    };
+
+    const handleToggleQcStatus = (item: any) => {
+        const nextMap: Record<string, { s: 'ok' | 'warn' | 'bad', res: string }> = {
+            'ok': { s: 'warn', res: 'মেরামত প্রয়োজন' },
+            'warn': { s: 'bad', res: 'রিজেক্ট' },
+            'bad': { s: 'ok', res: 'পাস' }
+        };
+        const next = nextMap[item.s] || { s: 'ok', res: 'পাস' };
+
+        setOrders(prev =>
+            prev.map(o => ({
+                ...o,
+                qc: (o.qc || []).map(q => {
+                    if ((q.id && item.id ? q.id === item.id : q.roll === item.roll)) {
+                        return { ...q, s: next.s, res: next.res };
+                    }
+                    return q;
+                })
+            }))
+        );
+
+        showToast(`রোল ${item.roll} এর অবস্থা পরিবর্তন: ${next.res}`);
+
+        const target = orders.find(o => o.id === item.o);
+        const dbId = target?.db_id || parseInt((item.o || '').replace(/\D/g, ''), 10);
+        router.post('/knitkhata/qc', {
+            order_id: dbId || item.o,
+            roll: item.roll,
+            machine: item.m,
+            issue: item.issue,
+            kg: item.kg,
+            status: next.s,
+            resolution: next.res,
+            date: item.d,
+            inspector: item.inspector,
+            notes: item.notes,
+        }, { preserveScroll: true });
     };
 
     const handleDeliverySubmit = (e: React.FormEvent) => {
@@ -795,33 +966,36 @@ export default function KnitkhataIndex({
         return [];
     });
 
-    // Factory baseline 24 floor machines
-    const baseFloorMachines = [
-        { code: 'M-01', type: 'Single Jersey', dia: '30" × 24G', brand: 'Mayer & Cie / Germany', cph: 28.5, op: 'মাসুদ', sh: 'A' },
-        { code: 'M-02', type: 'Single Jersey', dia: '30" × 24G', brand: 'Mayer & Cie / Germany', cph: 28.5, op: 'আলাউদ্দিন', sh: 'A' },
-        { code: 'M-03', type: 'Single Jersey', dia: '30" × 24G', brand: 'Fukuhara / Japan', cph: 30.0, op: '—', sh: 'খালি' },
-        { code: 'M-04', type: 'Single Jersey', dia: '30" × 24G', brand: 'Fukuhara / Japan', cph: 32.0, op: 'জসিম', sh: 'A' },
-        { code: 'M-05', type: 'Single Jersey', dia: '30" × 24G', brand: 'Fukuhara / Japan', cph: 31.0, op: 'বিল্লাল', sh: 'B' },
-        { code: 'M-06', type: 'Single Jersey', dia: '30" × 24G', brand: 'Mayer & Cie / Germany', cph: 28.0, op: 'নাজমুল (টেক.)', sh: 'মেরামত' },
-        { code: 'M-07', type: 'Single Jersey', dia: '30" × 24G', brand: 'Mayer & Cie / Germany', cph: 29.5, op: 'সোহেল', sh: 'A' },
-        { code: 'M-08', type: 'Single Jersey', dia: '30" × 24G', brand: 'Terrot / Germany', cph: 28.0, op: '—', sh: 'খালি' },
-        { code: 'M-09', type: 'Single Jersey', dia: '30" × 24G', brand: 'Terrot / Germany', cph: 28.0, op: '—', sh: 'খালি' },
-        { code: 'M-10', type: 'Single Jersey', dia: '30" × 24G', brand: 'Pai Lung / Taiwan', cph: 27.5, op: 'শরিফ', sh: 'B' },
-        { code: 'M-11', type: 'Single Jersey', dia: '30" × 24G', brand: 'Pai Lung / Taiwan', cph: 27.0, op: '—', sh: 'খালি' },
-        { code: 'M-12', type: 'Single Jersey', dia: '30" × 24G', brand: 'Fukuhara / Japan', cph: 32.5, op: 'ফারুক', sh: 'A' },
-        { code: 'M-13', type: 'Rib / Interlock', dia: '34" × 18G', brand: 'Terrot / Germany', cph: 26.0, op: '—', sh: 'খালি' },
-        { code: 'M-14', type: 'Rib / Interlock', dia: '34" × 18G', brand: 'Terrot / Germany', cph: 26.0, op: 'নাজমুল (টেক.)', sh: 'মেরামত' },
-        { code: 'M-15', type: 'Rib / Interlock', dia: '34" × 18G', brand: 'Pai Lung / Taiwan', cph: 25.5, op: 'রফিক', sh: 'সুতা অপেক্ষায়' },
-        { code: 'M-16', type: 'Rib / Interlock', dia: '34" × 18G', brand: 'Pai Lung / Taiwan', cph: 25.5, op: 'তারেক', sh: 'সুতা অপেক্ষায়' },
-        { code: 'M-17', type: 'Rib / Interlock', dia: '34" × 18G', brand: 'Pai Lung / Taiwan', cph: 25.0, op: 'হাসান', sh: 'সুতা অপেক্ষায়' },
-        { code: 'M-18', type: 'Rib / Interlock', dia: '34" × 28G', brand: 'Terrot / Germany', cph: 27.0, op: 'নাজমুল', sh: 'A' },
-        { code: 'M-19', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Santec / Taiwan', cph: 26.0, op: 'বাবুল', sh: 'B' },
-        { code: 'M-20', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Santec / Taiwan', cph: 26.0, op: '—', sh: 'খালি' },
-        { code: 'M-21', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Wellknit / China', cph: 24.5, op: '—', sh: 'খালি' },
-        { code: 'M-22', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Wellknit / China', cph: 24.5, op: '—', sh: 'খালি' },
-        { code: 'M-23', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Santec / Taiwan', cph: 25.0, op: '—', sh: 'খালি' },
-        { code: 'M-24', type: 'Fleece 3-End', dia: '32" × 20G', brand: 'Santec / Taiwan', cph: 25.0, op: '—', sh: 'খালি' },
-    ];
+    // Factory floor machines dynamically loaded from factory_machines database
+    const baseFloorMachines = (dbFloorMachines && dbFloorMachines.length > 0)
+        ? dbFloorMachines
+        : (factoryMachines && factoryMachines.length > 0
+            ? factoryMachines.flatMap((fm, fIdx) => {
+                const count = Math.max(1, fm.no_of_machine || 1);
+                const typeName = fm.machine_type || 'Circular Knitting';
+                const brand = fm.brand_or_model || 'Standard Industrial';
+                const cph = Math.round(((fm.capacity_per_machine || 600) / 24) * 10) / 10;
+                let dia = '30" × 24G';
+                const match = (typeName + ' ' + brand).match(/(\d+["']?\s*[×x]\s*\d+G?)/i);
+                if (match) {
+                    dia = match[1];
+                }
+                return Array.from({ length: count }, (_, idx) => {
+                    const machineNum = fIdx * 10 + idx + 1;
+                    return {
+                        code: `M-${String(machineNum).padStart(2, '0')}`,
+                        type: typeName,
+                        dia,
+                        brand,
+                        cph: cph > 0 ? cph : 25.0,
+                        op: '—',
+                        sh: 'খালি',
+                        factory_machine_id: fm.id,
+                    };
+                });
+            })
+            : []
+        );
 
     const allMyMachines = [...baseFloorMachines, ...addedMachines].map(m => {
         const rawState = machineState[m.code] || 'idle';
@@ -849,35 +1023,7 @@ export default function KnitkhataIndex({
     const idleMyMachinesCount = allMyMachines.filter(m => m.status === 'idle').length;
     const totalDailyCapacityKg = Math.round(allMyMachines.reduce((sum, m) => sum + (m.cph * 24), 0));
 
-    const factoryCapRows = factoryMachines.length > 0 ? factoryMachines : [
-        {
-            category: 'Single Jersey',
-            machine_type: 'Circular Single Jersey Knitting Machine',
-            brand_or_model: 'Mayer & Cie / Fukuhara (30" × 24G)',
-            no_of_machine: 12,
-            capacity_per_machine: 720,
-            total_capacity_per_day: 8640,
-            unit_type: 'Kg'
-        },
-        {
-            category: 'Rib / Interlock',
-            machine_type: 'Double Jersey Rib & Interlock Machine',
-            brand_or_model: 'Terrot / Pai Lung (34" × 18G/28G)',
-            no_of_machine: 6,
-            capacity_per_machine: 620,
-            total_capacity_per_day: 3720,
-            unit_type: 'Kg'
-        },
-        {
-            category: 'Fleece / Terry',
-            machine_type: '3-End Fleece Circular Knitting Machine',
-            brand_or_model: 'Santec / Wellknit (32" × 20G)',
-            no_of_machine: 6,
-            capacity_per_machine: 600,
-            total_capacity_per_day: 3600,
-            unit_type: 'Kg'
-        }
-    ];
+    const factoryCapRows = factoryMachines;
 
     const filteredMachines = allMyMachines.filter(m => {
         if (machineFilter === 'run' && m.status !== 'run') return false;
@@ -1941,7 +2087,12 @@ export default function KnitkhataIndex({
     const days = ['27', '28', '29', '30', '01', '02', '03'];
 
     // All QC items
-    const allQc = orders.flatMap(o => o.qc.map(q => ({ ...q, o: o.id, v: vName(o.v) })));
+    const allQc = orders.flatMap(o => (o.qc || []).map(q => ({
+        ...q,
+        o: o.id,
+        order_title: o.title || o.fabric,
+        v: o.vendorName || vName(o.v)
+    })));
 
     // WhatsApp phone simulator
     const renderWaPhone = () => {
@@ -4509,75 +4660,692 @@ export default function KnitkhataIndex({
             })()}
 
             {/* SCREEN: QC */}
-            {view === 'qc' && (
-                <>
-                    <div className="head">
-                        <div>
-                            <h2>QC ও কাপড়ের সমস্যা</h2>
-                            <p>রোল ধরে ধরে পরিদর্শন, ফল্ট আর সমাধানের রেকর্ড</p>
-                        </div>
-                        <button
-                            type="button"
-                            className="btn pri"
-                            onClick={() => showToast('QC এন্ট্রি ফর্ম — পরের ভার্সনে')}
-                        >
-                            + QC এন্ট্রি
-                        </button>
-                    </div>
+            {view === 'qc' && (() => {
+                const totalRolls = allQc.length;
+                const totalKg = allQc.reduce((sum, q) => sum + (Number(q.kg) || 0), 0);
+                const passRolls = allQc.filter(q => q.s === 'ok' || q.res === 'পাস').length;
+                const warnRolls = allQc.filter(q => q.s === 'warn' || (q.res && (q.res.includes('মেরামত') || q.res.includes('চলমান')))).length;
+                const badRolls = allQc.filter(q => q.s === 'bad' || q.res === 'রিজেক্ট').length;
+                const badKg = allQc.filter(q => q.s === 'bad' || q.res === 'রিজেক্ট').reduce((sum, q) => sum + (Number(q.kg) || 0), 0);
+                const rejectPct = totalRolls > 0 ? ((badRolls / totalRolls) * 100).toFixed(1) : '0.0';
 
-                    <div className="kpis">
-                        <div className="kpi">
-                            <span>আজ পরিদর্শন</span>
-                            <b>46 রোল</b>
-                        </div>
-                        <div className="kpi">
-                            <span>পাস</span>
-                            <b>44</b>
-                        </div>
-                        <div className="kpi">
-                            <span>খোলা সমস্যা</span>
-                            <b>3</b>
-                        </div>
-                        <div className="kpi">
-                            <span>রিজেক্ট (এ মাসে)</span>
-                            <b>0.6%</b>
-                        </div>
-                    </div>
+                const filteredQc = allQc.filter(q => {
+                    if (qcStatusFilter !== 'all') {
+                        if (qcStatusFilter === 'ok' && q.s !== 'ok' && q.res !== 'পাস') return false;
+                        if (qcStatusFilter === 'warn' && q.s !== 'warn' && !(q.res && q.res.includes('মেরামত'))) return false;
+                        if (qcStatusFilter === 'bad' && q.s !== 'bad' && q.res !== 'রিজেক্ট') return false;
+                    }
+                    if (qcOrderFilter !== 'all' && q.o !== qcOrderFilter) return false;
+                    if (qcMachineFilter !== 'all' && q.m !== qcMachineFilter) return false;
+                    if (qcSearch.trim()) {
+                        const term = qcSearch.toLowerCase();
+                        const rollMatch = (q.roll || '').toLowerCase().includes(term);
+                        const issueMatch = (q.issue || '').toLowerCase().includes(term);
+                        const machineMatch = (q.m || '').toLowerCase().includes(term);
+                        const orderMatch = (q.o || '').toLowerCase().includes(term);
+                        const notesMatch = (q.notes || '').toLowerCase().includes(term);
+                        const inspectorMatch = (q.inspector || '').toLowerCase().includes(term);
+                        if (!rollMatch && !issueMatch && !machineMatch && !orderMatch && !notesMatch && !inspectorMatch) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
 
-                    <div className="tw">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>তারিখ</th>
-                                    <th>অর্ডার</th>
-                                    <th>ভেন্ডর</th>
-                                    <th>রোল</th>
-                                    <th>মেশিন</th>
-                                    <th>সমস্যা</th>
-                                    <th className="n">kg</th>
-                                    <th>অবস্থা</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {allQc.map((q, idx) => (
-                                    <tr key={idx}>
-                                        <td>{q.d}</td>
-                                        <td className="mono">{q.o}</td>
-                                        <td>{q.v}</td>
-                                        <td className="mono">{q.roll}</td>
-                                        <td className="mono">{q.m}</td>
-                                        <td>{q.issue}</td>
-                                        <td className="n">{q.kg}</td>
-                                        <td>
-                                            <span className={`pill p-${q.s}`}>{q.res}</span>
-                                        </td>
+                return (
+                    <>
+                        <div className="head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '1.4rem' }}>🔍</span>
+                                    <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>QC ও কোয়ালিটি কন্ট্রোল খাতা</h2>
+                                </div>
+                                <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: '.88rem' }}>
+                                    রোল ধরে ধরে কোয়ালিটি পরিদর্শন, ফল্ট ট্র্যাকিং, সমাধান ও অনুমোদন
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn pri"
+                                onClick={handleOpenQcModal}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600, padding: '8px 16px' }}
+                            >
+                                <span>➕</span>
+                                <b>নতুন QC পরিদর্শন এন্ট্রি</b>
+                            </button>
+                        </div>
+
+                        {/* Live KPI Summary */}
+                        <div className="kpis" style={{ marginBottom: '16px' }}>
+                            <div className="kpi">
+                                <span>মোট পরিদর্শন</span>
+                                <b>{bn(totalRolls)} রোল <small style={{ fontSize: '.78rem', fontWeight: 500, color: 'var(--muted)' }}>({bn(Math.round(totalKg))} kg)</small></b>
+                            </div>
+                            <div className="kpi" style={{ borderLeft: '3px solid #10b981' }}>
+                                <span style={{ color: '#059669' }}>✅ ত্রুটিমুক্ত (পাস)</span>
+                                <b style={{ color: '#059669' }}>{bn(passRolls)} রোল <small style={{ fontSize: '.78rem', fontWeight: 500 }}>({totalRolls > 0 ? Math.round((passRolls / totalRolls) * 100) : 0}%)</small></b>
+                            </div>
+                            <div className="kpi" style={{ borderLeft: '3px solid #f59e0b' }}>
+                                <span style={{ color: '#d97706' }}>⚠️ মেরামত / হোল্ড</span>
+                                <b style={{ color: '#d97706' }}>{bn(warnRolls)} রোল</b>
+                            </div>
+                            <div className="kpi" style={{ borderLeft: '3px solid #ef4444' }}>
+                                <span style={{ color: '#dc2626' }}>❌ রিজেক্ট রেট</span>
+                                <b style={{ color: '#dc2626' }}>{bn(rejectPct)}% <small style={{ fontSize: '.78rem', fontWeight: 500 }}>({bn(badRolls)}টি · {bn(badKg)} kg)</small></b>
+                            </div>
+                        </div>
+
+                        {/* Filter Toolbar */}
+                        <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '10px',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '14px',
+                            padding: '10px 14px',
+                            background: 'var(--card, #ffffff)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border, #e5e7eb)'
+                        }}>
+                            {/* Status Filter Chips */}
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setQcStatusFilter('all')}
+                                    className={`btn ${qcStatusFilter === 'all' ? 'pri' : 'sec'}`}
+                                    style={{ fontSize: '.82rem', padding: '5px 12px', borderRadius: '20px' }}
+                                >
+                                    সকল ({bn(totalRolls)})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setQcStatusFilter('ok')}
+                                    className={`btn ${qcStatusFilter === 'ok' ? 'pri' : 'sec'}`}
+                                    style={{
+                                        fontSize: '.82rem',
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        borderColor: '#10b981',
+                                        color: qcStatusFilter === 'ok' ? '#fff' : '#059669',
+                                        background: qcStatusFilter === 'ok' ? '#10b981' : 'transparent'
+                                    }}
+                                >
+                                    ✅ পাস ({bn(passRolls)})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setQcStatusFilter('warn')}
+                                    className={`btn ${qcStatusFilter === 'warn' ? 'pri' : 'sec'}`}
+                                    style={{
+                                        fontSize: '.82rem',
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        borderColor: '#f59e0b',
+                                        color: qcStatusFilter === 'warn' ? '#fff' : '#d97706',
+                                        background: qcStatusFilter === 'warn' ? '#f59e0b' : 'transparent'
+                                    }}
+                                >
+                                    ⚠️ মেরামত ({bn(warnRolls)})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setQcStatusFilter('bad')}
+                                    className={`btn ${qcStatusFilter === 'bad' ? 'pri' : 'sec'}`}
+                                    style={{
+                                        fontSize: '.82rem',
+                                        padding: '5px 12px',
+                                        borderRadius: '20px',
+                                        borderColor: '#ef4444',
+                                        color: qcStatusFilter === 'bad' ? '#fff' : '#dc2626',
+                                        background: qcStatusFilter === 'bad' ? '#ef4444' : 'transparent'
+                                    }}
+                                >
+                                    ❌ রিজেক্ট ({bn(badRolls)})
+                                </button>
+                            </div>
+
+                            {/* Dropdowns & Search */}
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <select
+                                    value={qcOrderFilter}
+                                    onChange={e => setQcOrderFilter(e.target.value)}
+                                    style={{
+                                        fontSize: '.82rem',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border, #d1d5db)',
+                                        background: 'var(--bg, #fff)'
+                                    }}
+                                >
+                                    <option value="all">সব অর্ডার ({bn(orders.length)})</option>
+                                    {orders.map(o => (
+                                        <option key={o.id} value={o.id}>{o.id} — {o.title || o.fabric}</option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={qcMachineFilter}
+                                    onChange={e => setQcMachineFilter(e.target.value)}
+                                    style={{
+                                        fontSize: '.82rem',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border, #d1d5db)',
+                                        background: 'var(--bg, #fff)'
+                                    }}
+                                >
+                                    <option value="all">সব মেশিন ({bn(allMyMachines.length)})</option>
+                                    {allMyMachines.map(m => (
+                                        <option key={m.code} value={m.code}>{m.code} ({m.type})</option>
+                                    ))}
+                                </select>
+
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="রোল, সমস্যা বা পরিদর্শক খুঁজুন..."
+                                        value={qcSearch}
+                                        onChange={e => setQcSearch(e.target.value)}
+                                        style={{
+                                            fontSize: '.82rem',
+                                            padding: '6px 10px 6px 28px',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--border, #d1d5db)',
+                                            width: '190px'
+                                        }}
+                                    />
+                                    <span style={{ position: 'absolute', left: '8px', top: '7px', fontSize: '.82rem', color: '#9ca3af' }}>🔎</span>
+                                    {qcSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setQcSearch('')}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '6px',
+                                                top: '6px',
+                                                border: 'none',
+                                                background: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '.8rem',
+                                                color: '#9ca3af'
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Inspections Table */}
+                        <div className="tw" style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border, #e5e7eb)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '110px' }}>তারিখ</th>
+                                        <th style={{ width: '90px' }}>রোল নং</th>
+                                        <th>অর্ডার ও ভেন্ডর</th>
+                                        <th style={{ width: '95px' }}>মেশিন</th>
+                                        <th style={{ width: '80px' }} className="n">ওজন (kg)</th>
+                                        <th>সমস্যা / ত্রুটি</th>
+                                        <th style={{ width: '140px' }}>অবস্থা / রেজোলিউশন</th>
+                                        <th>পরিদর্শক ও মন্তব্য</th>
+                                        <th style={{ width: '110px', textAlign: 'center' }}>অ্যাকশন</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </>
-            )}
+                                </thead>
+                                <tbody>
+                                    {filteredQc.length > 0 ? (
+                                        filteredQc.map((q, idx) => (
+                                            <tr key={q.id || `${q.o}-${q.roll}-${idx}`}>
+                                                <td style={{ fontSize: '.84rem', color: 'var(--muted)' }}>{q.d}</td>
+                                                <td>
+                                                    <span className="mono" style={{
+                                                        fontWeight: 700,
+                                                        background: 'var(--bg-subtle, #f1f5f9)',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '.85rem'
+                                                    }}>
+                                                        {q.roll}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span className="mono" style={{ fontWeight: 600, color: 'var(--accent)' }}>{q.o}</span>
+                                                        <span style={{ fontSize: '.78rem', color: 'var(--muted)' }}>{q.order_title || q.v}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="mono" style={{
+                                                        padding: '2px 7px',
+                                                        borderRadius: '4px',
+                                                        background: '#e0f2fe',
+                                                        color: '#0369a1',
+                                                        fontWeight: 600,
+                                                        fontSize: '.82rem'
+                                                    }}>
+                                                        {q.m}
+                                                    </span>
+                                                </td>
+                                                <td className="n" style={{ fontWeight: 600, fontSize: '.9rem' }}>
+                                                    {bn(q.kg)}
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span>{q.s === 'ok' ? '🟢' : q.s === 'warn' ? '🟡' : '🔴'}</span>
+                                                        <span style={{ fontWeight: q.s !== 'ok' ? 600 : 400 }}>{q.issue}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleQcStatus(q)}
+                                                        title="ক্লিক করে অবস্থা পরিবর্তন করুন"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            padding: 0,
+                                                            cursor: 'pointer',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <span className={`pill p-${q.s}`} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            {q.res || (q.s === 'ok' ? 'পাস' : q.s === 'warn' ? 'মেরামত' : 'রিজেক্ট')}
+                                                            <span style={{ fontSize: '.7rem', opacity: 0.6 }}>↻</span>
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                                <td style={{ fontSize: '.82rem' }}>
+                                                    <div>
+                                                        <span style={{ color: 'var(--fg)', fontWeight: 500 }}>{q.inspector || 'QC টিম'}</span>
+                                                        {q.notes && (
+                                                            <span style={{ display: 'block', color: 'var(--muted)', fontSize: '.75rem', marginTop: '2px' }}>
+                                                                💬 {q.notes}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                        <button
+                                                            type="button"
+                                                            className="btn sec"
+                                                            onClick={() => handleToggleQcStatus(q)}
+                                                            title="অবস্থা পরিবর্তন করুন"
+                                                            style={{ fontSize: '.75rem', padding: '3px 7px' }}
+                                                        >
+                                                            টগল
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn sec"
+                                                            onClick={() => handleDeleteQc(q)}
+                                                            title="রেকর্ড মুছে ফেলুন"
+                                                            style={{ fontSize: '.75rem', padding: '3px 7px', color: '#dc2626' }}
+                                                        >
+                                                            মুছুন
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={9} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted)' }}>
+                                                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📋</div>
+                                                <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--fg)' }}>কোনো QC রেকর্ড পাওয়া যায়নি</div>
+                                                <p style={{ margin: '4px 0 16px 0', fontSize: '.85rem' }}>
+                                                    {qcSearch || qcStatusFilter !== 'all' || qcOrderFilter !== 'all' || qcMachineFilter !== 'all'
+                                                        ? 'ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।'
+                                                        : 'এখনই আপনার প্রথম কাপড়ের রোল পরিদর্শন রেকর্ড যুক্ত করুন।'}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    className="btn pri"
+                                                    onClick={handleOpenQcModal}
+                                                    style={{ fontSize: '.85rem', padding: '6px 14px' }}
+                                                >
+                                                    ➕ নতুন QC পরিদর্শন এন্ট্রি
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Interactive QC Entry Modal */}
+                        {showQcModal && (
+                            <div
+                                className="modal-backdrop"
+                                onClick={() => setShowQcModal(false)}
+                                style={{ zIndex: 1000 }}
+                            >
+                                <div
+                                    className="modal-box"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ maxWidth: '640px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+                                >
+                                    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', borderBottom: '1px solid var(--border, #e5e7eb)', paddingBottom: '12px' }}>
+                                        <div>
+                                            <div className="row" style={{ gap: '8px', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '1.4rem' }}>🔍</span>
+                                                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>নতুন QC রোল পরিদর্শন এন্ট্রি</h3>
+                                            </div>
+                                            <p style={{ margin: '4px 0 0 0', fontSize: '.88rem', color: 'var(--muted)' }}>
+                                                নিটিং ফ্লোরের রোল ধরে ধরে কোয়ালিটি চেক ও ফল্ট লগ
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn sec"
+                                            onClick={() => setShowQcModal(false)}
+                                            style={{ padding: '4px 10px', fontSize: '.9rem' }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    <form onSubmit={handleSaveQc} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                                            {/* Order select */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    সাব-কন্ট্রাক্ট অর্ডার <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <select
+                                                    value={qcFormOrderId}
+                                                    onChange={e => {
+                                                        setQcFormOrderId(e.target.value);
+                                                        const o = orders.find(ord => ord.id === e.target.value);
+                                                        if (o && o.machines && o.machines.length > 0) {
+                                                            setQcFormMachine(o.machines[0]);
+                                                        }
+                                                    }}
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    required
+                                                >
+                                                    {orders.map(o => (
+                                                        <option key={o.id} value={o.id}>
+                                                            {o.id} — {o.title || o.fabric} ({o.vendorName || vName(o.v)})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Inspection Date */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    পরিদর্শন তারিখ <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={qcFormDate}
+                                                    onChange={e => setQcFormDate(e.target.value)}
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Machine code */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    নিটিং মেশিন <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <select
+                                                    value={qcFormMachine}
+                                                    onChange={e => setQcFormMachine(e.target.value)}
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    required
+                                                >
+                                                    {allMyMachines.map(m => (
+                                                        <option key={m.code} value={m.code}>
+                                                            {m.code} ({m.type} · {m.brand})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Roll No */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    রোল নম্বর <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={qcFormRoll}
+                                                    onChange={e => setQcFormRoll(e.target.value)}
+                                                    placeholder="যেমন: R-01, R-15"
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Roll Weight */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    রোলের ওজন (kg) <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0.5"
+                                                    value={qcFormKg}
+                                                    onChange={e => setQcFormKg(e.target.value)}
+                                                    placeholder="যেমন: 24.5"
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Inspector */}
+                                            <div className="field">
+                                                <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                    পরিদর্শক (QC Inspector)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={qcFormInspector}
+                                                    onChange={e => setQcFormInspector(e.target.value)}
+                                                    placeholder="পরিদর্শকের নাম"
+                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Status selector radio pills */}
+                                        <div className="field" style={{ marginTop: '4px' }}>
+                                            <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '6px', display: 'block' }}>
+                                                পরিদর্শন ফলাফল / অবস্থা <span style={{ color: '#ef4444' }}>*</span>
+                                            </label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                                <label style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '6px',
+                                                    border: `2px solid ${qcFormStatus === 'ok' ? '#10b981' : '#e5e7eb'}`,
+                                                    background: qcFormStatus === 'ok' ? '#ecfdf5' : 'transparent',
+                                                    cursor: 'pointer'
+                                                }}>
+                                                    <input
+                                                        type="radio"
+                                                        name="qc_status"
+                                                        checked={qcFormStatus === 'ok'}
+                                                        onChange={() => {
+                                                            setQcFormStatus('ok');
+                                                            setQcFormIssue('কোনো ত্রুটি নেই (পাস)');
+                                                            setQcFormResolution('পাস ও ছাড়করণ');
+                                                        }}
+                                                    />
+                                                    <div>
+                                                        <b style={{ color: '#059669', fontSize: '.88rem' }}>🟢 পাস</b>
+                                                        <small style={{ display: 'block', color: '#64748b', fontSize: '.72rem' }}>ত্রুটিমুক্ত কাপড়</small>
+                                                    </div>
+                                                </label>
+
+                                                <label style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '6px',
+                                                    border: `2px solid ${qcFormStatus === 'warn' ? '#f59e0b' : '#e5e7eb'}`,
+                                                    background: qcFormStatus === 'warn' ? '#fffbeb' : 'transparent',
+                                                    cursor: 'pointer'
+                                                }}>
+                                                    <input
+                                                        type="radio"
+                                                        name="qc_status"
+                                                        checked={qcFormStatus === 'warn'}
+                                                        onChange={() => {
+                                                            setQcFormStatus('warn');
+                                                            setQcFormIssue('নিডেল ড্রপ (Needle mark)');
+                                                            setQcFormResolution('মেরামত সম্পন্ন');
+                                                        }}
+                                                    />
+                                                    <div>
+                                                        <b style={{ color: '#d97706', fontSize: '.88rem' }}>🟡 হোল্ড / মেরামত</b>
+                                                        <small style={{ display: 'block', color: '#64748b', fontSize: '.72rem' }}>সংশোধনযোগ্য সমস্যা</small>
+                                                    </div>
+                                                </label>
+
+                                                <label style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '6px',
+                                                    border: `2px solid ${qcFormStatus === 'bad' ? '#ef4444' : '#e5e7eb'}`,
+                                                    background: qcFormStatus === 'bad' ? '#fef2f2' : 'transparent',
+                                                    cursor: 'pointer'
+                                                }}>
+                                                    <input
+                                                        type="radio"
+                                                        name="qc_status"
+                                                        checked={qcFormStatus === 'bad'}
+                                                        onChange={() => {
+                                                            setQcFormStatus('bad');
+                                                            setQcFormIssue('সুতা কাটা / হোল (Hole)');
+                                                            setQcFormResolution('রিজেক্ট ও বাদ');
+                                                        }}
+                                                    />
+                                                    <div>
+                                                        <b style={{ color: '#dc2626', fontSize: '.88rem' }}>🔴 রিজেক্ট</b>
+                                                        <small style={{ display: 'block', color: '#64748b', fontSize: '.72rem' }}>গুরুতর ত্রুটি / বাতিল</small>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Issue / Defect Type */}
+                                        <div className="field">
+                                            <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                ত্রুটি / ডিফেক্টের ধরন <span style={{ color: '#ef4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={qcFormIssue}
+                                                onChange={e => setQcFormIssue(e.target.value)}
+                                                placeholder="যেমন: নিডেল ড্রপ, লুব্রিকেশন দাগ, লাইক্রা মিস..."
+                                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)', marginBottom: '6px' }}
+                                                required
+                                            />
+                                            {/* Quick Defect Chips */}
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                {[
+                                                    'কোনো ত্রুটি নেই (পাস)',
+                                                    'নিডেল ড্রপ (Needle mark)',
+                                                    'লুব্রিকেশন দাগ (Oil spot)',
+                                                    'ব্যারি মার্ক (Barre mark)',
+                                                    'লাইক্রা মিস / ব্রোকেন',
+                                                    'সুতা কাটা / হোল (Hole)',
+                                                    'মোটা-চিকন সুতা (Thick-thin)'
+                                                ].map((def, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setQcFormIssue(def);
+                                                            if (def === 'কোনো ত্রুটি নেই (পাস)') {
+                                                                setQcFormStatus('ok');
+                                                                setQcFormResolution('পাস ও ছাড়করণ');
+                                                            } else if (qcFormStatus === 'ok') {
+                                                                setQcFormStatus('warn');
+                                                                setQcFormResolution('মেরামত সম্পন্ন');
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            fontSize: '.74rem',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '12px',
+                                                            border: '1px solid #d1d5db',
+                                                            background: qcFormIssue === def ? 'var(--accent, #3b82f6)' : '#f8fafc',
+                                                            color: qcFormIssue === def ? '#fff' : '#334155',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {def}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Resolution */}
+                                        <div className="field">
+                                            <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                সমাধান / গৃহিত ব্যবস্থা
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={qcFormResolution}
+                                                onChange={e => setQcFormResolution(e.target.value)}
+                                                placeholder="যেমন: পাস ও ছাড়করণ, মেরামত সম্পন্ন, মেকানিক চেক..."
+                                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                            />
+                                        </div>
+
+                                        {/* Notes */}
+                                        <div className="field">
+                                            <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                                                মন্তব্য ও পর্যবেক্ষণ (Notes)
+                                            </label>
+                                            <textarea
+                                                rows={2}
+                                                value={qcFormNotes}
+                                                onChange={e => setQcFormNotes(e.target.value)}
+                                                placeholder="অতিরিক্ত কোনো নির্দেশ বা নোট লিখুন..."
+                                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                            />
+                                        </div>
+
+                                        {/* Buttons */}
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px', borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: '14px' }}>
+                                            <button
+                                                type="button"
+                                                className="btn sec"
+                                                onClick={() => setShowQcModal(false)}
+                                                style={{ padding: '8px 18px' }}
+                                            >
+                                                বাতিল
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn pri"
+                                                style={{ padding: '8px 22px', fontWeight: 600 }}
+                                            >
+                                                💾 সংরক্ষণ করুন
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
 
             {/* SCREEN: ACCOUNTS */}
             {view === 'acc' && (

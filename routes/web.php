@@ -4,13 +4,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FactoryController;
 use App\Http\Controllers\FactoryProfileController;
 use App\Http\Controllers\FeedController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\KnitkhataController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\SubscriptionController;
-use App\Http\Controllers\VendorController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\KnitkhataController;
 use Illuminate\Support\Facades\Route;
 
 // Public Industrial Landing Page (Home)
@@ -74,6 +73,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/production-entry', [KnitkhataController::class, 'storeProduction'])->name('entry.store');
         Route::delete('/production-entry/{id}', [KnitkhataController::class, 'destroyProduction'])->name('entry.destroy');
         Route::get('/qc', [KnitkhataController::class, 'qc'])->name('qc');
+        Route::post('/qc', [KnitkhataController::class, 'storeQc'])->name('qc.store');
+        Route::delete('/qc/{id}', [KnitkhataController::class, 'destroyQc'])->name('qc.destroy');
         Route::get('/accounts', [KnitkhataController::class, 'accounts'])->name('accounts');
         Route::get('/attendance', [KnitkhataController::class, 'attendance'])->name('attendance');
         Route::get('/my-machines', [KnitkhataController::class, 'machines'])->name('machines');

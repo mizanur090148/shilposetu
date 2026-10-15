@@ -13,6 +13,7 @@ export interface YarnIntake {
 }
 
 export interface QcIssue {
+    id?: string;
     d: string;
     roll: string;
     m: string;
@@ -20,6 +21,9 @@ export interface QcIssue {
     kg: number;
     s: 'ok' | 'bad' | 'warn';
     res: string;
+    inspector?: string;
+    notes?: string;
+    order_id?: string;
 }
 
 export interface DeliveryChallan {
@@ -146,6 +150,20 @@ export interface CustomMachineItem {
     };
 }
 
+export interface FloorMachineItem {
+    code: string;
+    type: string;
+    dia: string;
+    brand: string;
+    cph: number;
+    op: string;
+    sh: string;
+    status?: 'run' | 'wait' | 'down' | 'idle';
+    assignedOrder?: string;
+    factory_machine_id?: number;
+    isCustom?: boolean;
+}
+
 export interface KnitkhataProps {
     factory?: any;
     auth: {
@@ -157,6 +175,7 @@ export interface KnitkhataProps {
     factoryMachines?: FactoryMachineItem[];
     customMachines?: CustomMachineItem[];
     machineTypes?: any[];
+    dbFloorMachines?: FloorMachineItem[];
     userPosts?: any[];
     quotationsSubmitted?: any[];
     initialOrders?: Order[];
