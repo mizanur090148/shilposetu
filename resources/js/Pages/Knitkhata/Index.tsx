@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import KnitkhataLayout, { TAB_HREFS } from '../../Layouts/KnitkhataLayout';
+import { SearchableDropdown } from './SearchableDropdown';
 import './knitkhata.css';
 import {
     RoleMode,
@@ -4104,18 +4105,21 @@ export default function KnitkhataIndex({
                                                         </td>
                                                         <td>
                                                             {runningOrders.length > 0 ? (
-                                                                <select
-                                                                    className="prod-input"
+                                                                <SearchableDropdown
+                                                                    compact
                                                                     value={activeO?.id || ''}
-                                                                    onChange={e => handleBulkEntryChange(m.code, 'orderId', e.target.value)}
-                                                                    style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', fontSize: '.82rem', fontWeight: 600 }}
-                                                                >
-                                                                    {runningOrders.map(ro => (
-                                                                        <option key={ro.id} value={ro.id}>
-                                                                            {ro.title || ro.fabric} — {ro.vendorName || vName(ro.v)} ({ro.id})
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
+                                                                    onChange={val => handleBulkEntryChange(m.code, 'orderId', val)}
+                                                                    options={runningOrders.map(ro => ({
+                                                                        value: ro.id,
+                                                                        label: `${ro.title || ro.fabric} (${ro.id})`,
+                                                                        subLabel: ro.vendorName || vName(ro.v),
+                                                                        badge: `${bn(ro.qty)} kg`,
+                                                                        icon: '📦'
+                                                                    }))}
+                                                                    placeholder="অর্ডার নির্বাচন..."
+                                                                    searchPlaceholder="অর্ডার খুঁজুন..."
+                                                                    width="100%"
+                                                                />
                                                             ) : activeO ? (
                                                                 <>
                                                                     <b style={{ color: 'var(--accent)', fontSize: '.88rem' }}>{activeO.title || activeO.fabric}</b>
@@ -4333,45 +4337,41 @@ export default function KnitkhataIndex({
                                         {/* 1. মেশিন নির্বাচন */}
                                         <label className="f" style={{ margin: 0 }}>
                                             <span style={{ fontWeight: 600, fontSize: '.84rem' }}>মেশিন নং *</span>
-                                            <select
-                                                className="prod-input"
+                                            <SearchableDropdown
                                                 value={entryM}
-                                                onChange={e => handleSingleMachineChange(e.target.value)}
-                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem', fontWeight: 600 }}
-                                            >
-                                                <option value="">-- মেশিন নির্বাচন করুন --</option>
-                                                {allMyMachines.map(m => (
-                                                    <option key={m.code} value={m.code}>
-                                                        ⚙ {m.code} — {m.type} {m.status === 'run' ? '(চলমান)' : `(${m.status === 'wait' ? 'অপেক্ষমাণ' : m.status === 'down' ? 'ত্রুটি' : 'বন্ধ'})`}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                onChange={val => handleSingleMachineChange(val)}
+                                                options={allMyMachines.map(m => ({
+                                                    value: m.code,
+                                                    label: `${m.code} — ${m.type}`,
+                                                    subLabel: `${m.brand || 'মেশিন'} · ${m.status === 'run' ? 'চলমান' : m.status === 'wait' ? 'অপেক্ষমাণ' : m.status === 'down' ? 'ত্রুটি' : 'বন্ধ'}`,
+                                                    badge: m.status === 'run' ? 'রানিং' : undefined,
+                                                    icon: '⚙️'
+                                                }))}
+                                                placeholder="মেশিন নির্বাচন করুন..."
+                                                searchPlaceholder="মেশিন কোড বা নাম খুঁজুন..."
+                                                width="100%"
+                                                required
+                                            />
                                         </label>
 
                                         {/* 2. অর্ডার ও বায়ার */}
                                         <label className="f" style={{ margin: 0 }}>
                                             <span style={{ fontWeight: 600, fontSize: '.84rem' }}>অর্ডার ও বায়ার *</span>
-                                            <select
-                                                className="prod-input"
+                                            <SearchableDropdown
                                                 value={singleActiveOrder?.id || ''}
-                                                onChange={e => handleSingleOrderChange(e.target.value)}
-                                                style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', fontSize: '.88rem', fontWeight: 600 }}
-                                            >
-                                                <option value="">-- অর্ডার নির্বাচন করুন --</option>
-                                                {runningOrders.length > 0 ? (
-                                                    runningOrders.map(ro => (
-                                                        <option key={ro.id} value={ro.id}>
-                                                            {ro.title || ro.fabric} — {ro.vendorName || vName(ro.v)} ({ro.id})
-                                                        </option>
-                                                    ))
-                                                ) : (
-                                                    orders.map(o => (
-                                                        <option key={o.id} value={o.id}>
-                                                            {o.title || o.fabric} — {o.vendorName || vName(o.v)} ({o.id})
-                                                        </option>
-                                                    ))
-                                                )}
-                                            </select>
+                                                onChange={val => handleSingleOrderChange(val)}
+                                                options={(runningOrders.length > 0 ? runningOrders : orders).map(ro => ({
+                                                    value: ro.id,
+                                                    label: `${ro.title || ro.fabric} (${ro.id})`,
+                                                    subLabel: `${ro.vendorName || vName(ro.v)} · ${bn(ro.qty)} kg`,
+                                                    badge: ro.category || 'Knitting',
+                                                    icon: '📦'
+                                                }))}
+                                                placeholder="অর্ডার নির্বাচন করুন..."
+                                                searchPlaceholder="অর্ডার নং বা ফেব্রিক খুঁজুন..."
+                                                width="100%"
+                                                required
+                                            />
                                         </label>
 
                                         {/* 4. সুতার লট নাম্বার */}
@@ -4820,39 +4820,40 @@ export default function KnitkhataIndex({
 
                             {/* Dropdowns & Search */}
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <select
+                                <SearchableDropdown
                                     value={qcOrderFilter}
-                                    onChange={e => setQcOrderFilter(e.target.value)}
-                                    style={{
-                                        fontSize: '.82rem',
-                                        padding: '6px 10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border, #d1d5db)',
-                                        background: 'var(--bg, #fff)'
-                                    }}
-                                >
-                                    <option value="all">সব অর্ডার ({bn(orders.length)})</option>
-                                    {orders.map(o => (
-                                        <option key={o.id} value={o.id}>{o.id} — {o.title || o.fabric}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => setQcOrderFilter(val)}
+                                    allOption={{ value: 'all', label: `সব অর্ডার (${bn(orders.length)})` }}
+                                    options={orders.map(o => ({
+                                        value: o.id,
+                                        label: `${o.id} — ${o.title || o.fabric}`,
+                                        subLabel: o.vendorName || vName(o.v),
+                                        badge: `${bn(o.qty)} kg`,
+                                        icon: '📦'
+                                    }))}
+                                    placeholder="সব অর্ডার"
+                                    searchPlaceholder="অর্ডার নং বা ফেব্রিক খুঁজুন..."
+                                    width={230}
+                                    clearable
+                                />
 
-                                <select
+                                <SearchableDropdown
                                     value={qcMachineFilter}
-                                    onChange={e => setQcMachineFilter(e.target.value)}
-                                    style={{
-                                        fontSize: '.82rem',
-                                        padding: '6px 10px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border, #d1d5db)',
-                                        background: 'var(--bg, #fff)'
-                                    }}
-                                >
-                                    <option value="all">সব মেশিন ({bn(allMyMachines.length)})</option>
-                                    {allMyMachines.map(m => (
-                                        <option key={m.code} value={m.code}>{m.code} ({m.type})</option>
-                                    ))}
-                                </select>
+                                    onChange={val => setQcMachineFilter(val)}
+                                    allOption={{ value: 'all', label: `সব মেশিন (${bn(allMyMachines.length)})` }}
+                                    options={allMyMachines.map(m => ({
+                                        value: m.code,
+                                        label: `${m.code} (${m.type})`,
+                                        subLabel: `${m.brand || 'মেশিন'} · ${m.dia || ''}`,
+                                        badge: m.status === 'run' ? 'রানিং' : m.status === 'wait' ? 'অপেক্ষমাণ' : m.status === 'down' ? 'মেরামত' : 'খালি',
+                                        badgeColor: m.status === 'run' ? '#dcfce7' : m.status === 'down' ? '#fee2e2' : undefined,
+                                        icon: '⚙️'
+                                    }))}
+                                    placeholder="সব মেশিন"
+                                    searchPlaceholder="মেশিন কোড বা ব্র্যান্ড খুঁজুন..."
+                                    width={200}
+                                    clearable
+                                />
 
                                 <div style={{ position: 'relative' }}>
                                     <input
@@ -5067,24 +5068,27 @@ export default function KnitkhataIndex({
                                                 <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
                                                     সাব-কন্ট্রাক্ট অর্ডার <span style={{ color: '#ef4444' }}>*</span>
                                                 </label>
-                                                <select
+                                                <SearchableDropdown
                                                     value={qcFormOrderId}
-                                                    onChange={e => {
-                                                        setQcFormOrderId(e.target.value);
-                                                        const o = orders.find(ord => ord.id === e.target.value);
+                                                    onChange={val => {
+                                                        setQcFormOrderId(val);
+                                                        const o = orders.find(ord => ord.id === val);
                                                         if (o && o.machines && o.machines.length > 0) {
                                                             setQcFormMachine(o.machines[0]);
                                                         }
                                                     }}
-                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    options={orders.map(o => ({
+                                                        value: o.id,
+                                                        label: `${o.id} — ${o.title || o.fabric}`,
+                                                        subLabel: `${o.vendorName || vName(o.v)} · ${bn(o.qty)} kg`,
+                                                        badge: o.status === 'run' ? 'চলমান' : o.status === 'done' ? 'সম্পন্ন' : 'অপেক্ষমাণ',
+                                                        icon: '📦'
+                                                    }))}
+                                                    placeholder="অর্ডার নির্বাচন করুন..."
+                                                    searchPlaceholder="অর্ডার নং, ফেব্রিক বা বায়ার খুঁজুন..."
+                                                    width="100%"
                                                     required
-                                                >
-                                                    {orders.map(o => (
-                                                        <option key={o.id} value={o.id}>
-                                                            {o.id} — {o.title || o.fabric} ({o.vendorName || vName(o.v)})
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                />
                                             </div>
 
                                             {/* Inspection Date */}
@@ -5106,18 +5110,21 @@ export default function KnitkhataIndex({
                                                 <label style={{ fontSize: '.84rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
                                                     নিটিং মেশিন <span style={{ color: '#ef4444' }}>*</span>
                                                 </label>
-                                                <select
+                                                <SearchableDropdown
                                                     value={qcFormMachine}
-                                                    onChange={e => setQcFormMachine(e.target.value)}
-                                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border, #d1d5db)' }}
+                                                    onChange={val => setQcFormMachine(val)}
+                                                    options={allMyMachines.map(m => ({
+                                                        value: m.code,
+                                                        label: `${m.code} (${m.type} · ${m.brand})`,
+                                                        subLabel: `${m.brand || 'মেশিন'} · ${m.dia || ''}`,
+                                                        badge: m.status === 'run' ? 'রানিং' : undefined,
+                                                        icon: '⚙️'
+                                                    }))}
+                                                    placeholder="মেশিন নির্বাচন করুন..."
+                                                    searchPlaceholder="মেশিন কোড বা ধরন খুঁজুন..."
+                                                    width="100%"
                                                     required
-                                                >
-                                                    {allMyMachines.map(m => (
-                                                        <option key={m.code} value={m.code}>
-                                                            {m.code} ({m.type} · {m.brand})
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                />
                                             </div>
 
                                             {/* Roll No */}
