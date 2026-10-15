@@ -4119,6 +4119,64 @@ export default function KnitkhataIndex({
                                         </div>
                                     </div>
 
+                                    {/* Selected Order Highlights Banner (Same as Floor Sheet / Bulk Entry) */}
+                                    {singleActiveOrder && (
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                                            border: '1px solid #bbf7d0',
+                                            borderRadius: '10px',
+                                            padding: '12px 16px',
+                                            marginBottom: '16px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            flexWrap: 'wrap',
+                                            gap: '12px'
+                                        }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <span className="pill p-ok" style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 8px' }}>
+                                                        ✓ নির্বাচিত অর্ডার
+                                                    </span>
+                                                    <b style={{ fontSize: '1.05rem', color: '#166534' }}>
+                                                        {singleActiveOrder.title || singleActiveOrder.fabric}
+                                                    </b>
+                                                    <span style={{ fontSize: '.84rem', color: '#15803d', fontWeight: 600 }}>
+                                                        ({singleActiveOrder.id})
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '.82rem', color: '#166534', marginTop: '6px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                    <span>🏢 বায়ার: <b>{singleActiveOrder.vendorName || vName(singleActiveOrder.v)}</b></span>
+                                                    <span>🧵 ফেব্রিক: <b>{singleActiveOrder.fabric} {singleActiveOrder.gsm ? `(${singleActiveOrder.gsm} GSM)` : ''}</b></span>
+                                                    <span>🎯 লক্ষ্য: <b>{bn(singleActiveOrder.qty)} kg</b></span>
+                                                    <span>✓ সম্পন্ন: <b>{bn(singleActiveOrder.done)} kg ({pct(singleActiveOrder)}%)</b></span>
+                                                    <span>📦 সুতার লট: <b>{singleActiveOrder.yarnIn?.[0]?.lot || '—'}</b></span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <button
+                                                    type="button"
+                                                    className="btn sm"
+                                                    onClick={() => handleOpenAssignModal(singleActiveOrder.id)}
+                                                    style={{ background: '#fff', borderColor: '#86efac', color: '#15803d', fontSize: '.78rem', fontWeight: 600 }}
+                                                    title="মেশিন বরাদ্দ দেখতে বা পরিবর্তন করতে ক্লিক করুন"
+                                                >
+                                                    ⚙️ মেশিন বরাদ্দ ({singleActiveOrder.machines?.length || 0}টি)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn sm"
+                                                    onClick={() => handleSingleOrderChange('')}
+                                                    style={{ background: '#fff', border: '1px solid #cbd5e1', color: 'var(--muted)', fontSize: '.78rem' }}
+                                                    title="অন্য অর্ডার নির্বাচন করতে এটি ক্লিয়ার করুন"
+                                                >
+                                                    ✕ পরিবর্তন
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
                                         {/* 1. মেশিন নির্বাচন */}
                                         <label className="f" style={{ margin: 0 }}>
@@ -4163,22 +4221,6 @@ export default function KnitkhataIndex({
                                                 )}
                                             </select>
                                         </label>
-
-                                        {/* 3. ফেব্রিক ও বায়ার কার্ড (বাল্ক এন্ট্রির মতো অটো-ভিউ) */}
-                                        <div style={{ background: 'var(--surface2, #f8fafc)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border, #e2e8f0)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                            <div style={{ fontSize: '.75rem', color: 'var(--muted)', fontWeight: 600 }}>অর্ডার ও বায়ার বিবরণ:</div>
-                                            <div style={{ fontSize: '.88rem', fontWeight: 600, color: 'var(--ink, #1e293b)', marginTop: '2px' }}>
-                                                {singleActiveOrder ? (singleActiveOrder.title || singleActiveOrder.fabric) : '—'}
-                                            </div>
-                                            <div style={{ fontSize: '.76rem', color: 'var(--muted)', marginTop: '2px' }}>
-                                                {singleActiveOrder ? (
-                                                    <>
-                                                        <span>ফেব্রিক: <b>{singleActiveOrder.fabric && singleActiveOrder.fabric !== singleActiveOrder.title ? singleActiveOrder.fabric : `${singleActiveOrder.fabric || 'Single Jersey'} (${singleActiveOrder.gsm || 160} GSM)`}</b> · </span>
-                                                        <span>বায়ার: {singleActiveOrder.vendorName || vName(singleActiveOrder.v)}</span>
-                                                    </>
-                                                ) : '—'}
-                                            </div>
-                                        </div>
 
                                         {/* 4. সুতার লট নাম্বার */}
                                         <label className="f" style={{ margin: 0 }}>
