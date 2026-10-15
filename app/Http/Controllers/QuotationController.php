@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Factory;
 use App\Models\Quotation;
 use App\Models\SubcontractPost;
 use Illuminate\Http\RedirectResponse;
@@ -121,8 +122,8 @@ class QuotationController extends Controller
 
             // Determine the winning factory ID
             $acceptedFactoryId = $quotation->bidder_factory_id;
-            if (!$acceptedFactoryId && $quotation->bidder_user_id) {
-                $acceptedFactoryId = \App\Models\Factory::where('user_id', $quotation->bidder_user_id)->value('id');
+            if (! $acceptedFactoryId && $quotation->bidder_user_id) {
+                $acceptedFactoryId = Factory::where('user_id', $quotation->bidder_user_id)->value('id');
             }
 
             $quotation->post->update([

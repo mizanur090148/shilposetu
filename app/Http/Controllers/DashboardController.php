@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Factory;
+use App\Models\KnittingType;
 use App\Models\Quotation;
 use App\Models\SubcontractPost;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class DashboardController extends Controller
             ->get();
 
         // Top 5 Knitting Types breakdown (focused on knitting sector)
-        $topKnittingTypes = \App\Models\KnittingType::active()
+        $topKnittingTypes = KnittingType::active()
             ->orderBy('sort_order')
             ->take(5)
             ->get();

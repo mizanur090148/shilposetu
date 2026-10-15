@@ -111,4 +111,12 @@ class Factory extends Model
     {
         return $this->hasMany(Production::class)->latest('production_date');
     }
+
+    /**
+     * Quality control inspection records for this factory.
+     */
+    public function qualityControls(): HasMany
+    {
+        return $this->hasMany(QualityControl::class)->latest('inspection_date');
+    }
 }

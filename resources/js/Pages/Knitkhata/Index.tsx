@@ -125,7 +125,8 @@ export default function KnitkhataIndex({
     subcontractorFactories = {},
     dbShifts = [],
     dbProductionLogs = [],
-    dbFloorMachines = []
+    dbFloorMachines = [],
+    dbQualityControls = []
 }: KnitkhataProps) {
     const [role, setRole] = useState<RoleMode>(initialRole);
     const [view, setView] = useState<KnitkhataViewTab>(initialTab);
@@ -451,7 +452,25 @@ export default function KnitkhataIndex({
     const [assignMachineSearch, setAssignMachineSearch] = useState<string>('');
     const [assignMachineFilter, setAssignMachineFilter] = useState<'all' | 'idle' | 'assigned'>('all');
 
-    // QC Inspections state
+    // QC Inspections state (backed by dedicated quality_controls table)
+    const [qcList, setQcList] = useState<QcIssue[]>(() => {
+        if (dbQualityControls && dbQualityControls.length > 0) {
+            return dbQualityControls;
+        }
+        return orders.flatMap(o => (o.qc || []).map(q => ({
+            ...q,
+            o: o.id,
+            order_title: o.title || o.fabric,
+            v: o.vendorName || vName(o.v)
+        })));
+    });
+
+    useEffect(() => {
+        if (dbQualityControls && dbQualityControls.length > 0) {
+            setQcList(dbQualityControls);
+        }
+    }, [dbQualityControls]);
+
     const [qcSearch, setQcSearch] = useState<string>('');
     const [qcStatusFilter, setQcStatusFilter] = useState<'all' | 'ok' | 'warn' | 'bad'>('all');
     const [qcOrderFilter, setQcOrderFilter] = useState<string>('all');
@@ -556,7 +575,7 @@ export default function KnitkhataIndex({
         setQcFormOrderId(ordId);
 
         // Derive next roll number
-        const currentCount = orders.reduce((sum, o) => sum + (o.qc?.length || 0), 0);
+        const currentCount = qcList.length;
         const nextRollNum = currentCount + 1;
         setQcFormRoll(`R-${String(nextRollNum).padStart(2, '0')}`);
 
@@ -588,6 +607,7 @@ export default function KnitkhataIndex({
             return;
         }
 
+        const target = orders.find(o => o.id === qcFormOrderId);
         const newQcItem: QcIssue = {
             id: `qc_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`,
             d: qcFormDate,
@@ -600,26 +620,18 @@ export default function KnitkhataIndex({
             inspector: qcFormInspector,
             notes: qcFormNotes,
             order_id: qcFormOrderId,
+            o: qcFormOrderId,
+            order_title: target?.title || target?.fabric || 'সাধারণ নিটিং লট',
+            v: target?.vendorName || vName(target?.v || 'fac'),
         };
 
-        // 1. Optimistic update
-        setOrders(prev =>
-            prev.map(o => {
-                if (o.id === qcFormOrderId) {
-                    return {
-                        ...o,
-                        qc: [newQcItem, ...(o.qc || [])]
-                    };
-                }
-                return o;
-            })
-        );
+        // 1. Optimistic update on qcList
+        setQcList(prev => [newQcItem, ...prev]);
 
         setShowQcModal(false);
-        showToast(`রোল ${qcFormRoll} এর QC পরিদর্শন সংরক্ষিত হয়েছে!`);
+        showToast(`রোল ${qcFormRoll} এর QC পরিদর্শন টেবিলে সংরক্ষিত হয়েছে!`);
 
-        // 2. Persist to backend
-        const target = orders.find(o => o.id === qcFormOrderId);
+        // 2. Persist to quality_controls table
         const dbId = target?.db_id || parseInt((qcFormOrderId || '').replace(/\D/g, ''), 10);
         router.post('/knitkhata/qc', {
             order_id: dbId || qcFormOrderId,
@@ -645,16 +657,13 @@ export default function KnitkhataIndex({
             return;
         }
 
-        setOrders(prev =>
-            prev.map(o => ({
-                ...o,
-                qc: (o.qc || []).filter(q => (q.id && item.id ? q.id !== item.id : q.roll !== item.roll))
-            }))
+        setQcList(prev =>
+            prev.filter(q => (q.id && item.id ? q.id !== item.id : (q.db_id && item.db_id ? q.db_id !== item.db_id : q.roll !== item.roll)))
         );
 
         showToast(`রোল ${item.roll}-এর QC এন্ট্রি মুছে ফেলা হয়েছে`);
 
-        const deleteId = item.id || item.roll;
+        const deleteId = item.db_id || item.id || item.roll;
         router.delete(`/knitkhata/qc/${deleteId}`, {
             preserveScroll: true
         });
@@ -668,16 +677,13 @@ export default function KnitkhataIndex({
         };
         const next = nextMap[item.s] || { s: 'ok', res: 'পাস' };
 
-        setOrders(prev =>
-            prev.map(o => ({
-                ...o,
-                qc: (o.qc || []).map(q => {
-                    if ((q.id && item.id ? q.id === item.id : q.roll === item.roll)) {
-                        return { ...q, s: next.s, res: next.res };
-                    }
-                    return q;
-                })
-            }))
+        setQcList(prev =>
+            prev.map(q => {
+                if ((q.id && item.id ? q.id === item.id : (q.db_id && item.db_id ? q.db_id === item.db_id : q.roll === item.roll))) {
+                    return { ...q, s: next.s, res: next.res };
+                }
+                return q;
+            })
         );
 
         showToast(`রোল ${item.roll} এর অবস্থা পরিবর্তন: ${next.res}`);
@@ -1864,36 +1870,39 @@ export default function KnitkhataIndex({
 
                     <div className="card">
                         <h3>QC ও কাপড়ের সমস্যা</h3>
-                        {o.qc.length ? (
-                            <div className="tw">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>তারিখ</th>
-                                            <th>রোল</th>
-                                            <th>মেশিন</th>
-                                            <th>সমস্যা</th>
-                                            <th className="n">kg</th>
-                                            <th>ফলাফল</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {o.qc.map((q, idx) => (
-                                            <tr key={idx}>
-                                                <td>{q.d}</td>
-                                                <td className="mono">{q.roll}</td>
-                                                <td className="mono">{q.m}</td>
-                                                <td>{q.issue}</td>
-                                                <td className="n">{q.kg}</td>
-                                                <td><span className={`pill p-${q.s}`}>{q.res}</span></td>
+                        {(() => {
+                            const orderQc = qcList.filter(q => q.order_id === o.id || q.o === o.id);
+                            return orderQc.length ? (
+                                <div className="tw">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>তারিখ</th>
+                                                <th>রোল</th>
+                                                <th>মেশিন</th>
+                                                <th>সমস্যা</th>
+                                                <th className="n">kg</th>
+                                                <th>ফলাফল</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <p className="small muted">কোনো রেকর্ড নেই।</p>
-                        )}
+                                        </thead>
+                                        <tbody>
+                                            {orderQc.map((q, idx) => (
+                                                <tr key={q.id || idx}>
+                                                    <td>{q.d}</td>
+                                                    <td className="mono">{q.roll}</td>
+                                                    <td className="mono">{q.m}</td>
+                                                    <td>{q.issue}</td>
+                                                    <td className="n">{q.kg}</td>
+                                                    <td><span className={`pill p-${q.s}`}>{q.res}</span></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="small muted">কোনো ত্রুটি রেকর্ড নেই। সব রোল পাস।</p>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -2086,13 +2095,8 @@ export default function KnitkhataIndex({
     ];
     const days = ['27', '28', '29', '30', '01', '02', '03'];
 
-    // All QC items
-    const allQc = orders.flatMap(o => (o.qc || []).map(q => ({
-        ...q,
-        o: o.id,
-        order_title: o.title || o.fabric,
-        v: o.vendorName || vName(o.v)
-    })));
+    // All QC items backed by quality_controls DB table
+    const allQc = qcList;
 
     // WhatsApp phone simulator
     const renderWaPhone = () => {
@@ -2167,7 +2171,7 @@ export default function KnitkhataIndex({
                                     <td>{pct(o)}</td>
                                     <td>{o.machines.length}</td>
                                     <td>{o.yarnIn.map(y => y.lot).join(', ')}</td>
-                                    <td>{o.qc.filter(q => q.s !== 'ok').length} issue</td>
+                                    <td>{qcList.filter(q => (q.order_id === o.id || q.o === o.id) && q.s !== 'ok').length} issue</td>
                                     <td>{e ? fmtD(e.date) : '—'}</td>
                                 </tr>
                             );
@@ -2205,7 +2209,16 @@ export default function KnitkhataIndex({
                 const waitingOrders = orders.filter(o => o.status === 'wait');
                 const nearDoneOrders = orders.filter(o => o.status === 'run' && (o.qty - o.done) <= 500);
                 const downMachines = allMyMachines.filter(m => m.status === 'down');
-                const qcIssues = orders.flatMap(o => (o.qc || []).filter(q => q.s !== 'ok').map(q => ({ o, q })));
+                const qcIssues = qcList.filter(q => q.s !== 'ok').map(q => ({
+                    o: orders.find(ord => ord.id === q.order_id || ord.id === q.o) || {
+                        id: q.o || q.order_id || 'GENERAL',
+                        title: q.order_title || 'সাধারণ নিটিং লট',
+                        fabric: q.order_title || 'Single Jersey',
+                        vendorName: q.v || 'ফ্যাক্টরি ফ্লোর',
+                        v: 'fac'
+                    },
+                    q
+                }));
                 const openQcList = qcIssues;
 
                 return (

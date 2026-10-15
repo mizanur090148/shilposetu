@@ -97,4 +97,12 @@ class SubcontractPost extends Model
     {
         return $this->hasMany(Production::class)->latest('production_date');
     }
+
+    /**
+     * QC inspection records for this subcontract post.
+     */
+    public function qualityControls(): HasMany
+    {
+        return $this->hasMany(QualityControl::class)->latest('inspection_date');
+    }
 }

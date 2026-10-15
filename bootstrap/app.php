@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureFactoryAccount;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -22,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'account.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
+            'account.active' => EnsureAccountIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

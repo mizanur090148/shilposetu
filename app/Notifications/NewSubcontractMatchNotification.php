@@ -32,7 +32,7 @@ class NewSubcontractMatchNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $frontendUrl = config('app.url', 'http://silposetu.test');
-        $url = rtrim($frontendUrl, '/') . '/feed/' . $this->post->id;
+        $url = rtrim($frontendUrl, '/').'/feed/'.$this->post->id;
         $posterName = $this->post->factory?->business_name ?? $this->post->user?->name ?? 'শিল্পসেতু মেম্বার';
 
         return (new MailMessage)
@@ -67,7 +67,7 @@ class NewSubcontractMatchNotification extends Notification
             'poster_name' => $this->post->factory?->business_name ?? $this->post->user?->name ?? 'Verified Industry Member',
             'poster_district' => $this->post->factory?->district ?? $this->post->district,
             'match_reason' => $this->matchReason,
-            'action_url' => '/feed/' . $this->post->id,
+            'action_url' => '/feed/'.$this->post->id,
             'type' => 'subcontract_match',
         ];
     }

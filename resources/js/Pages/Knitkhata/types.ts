@@ -14,6 +14,7 @@ export interface YarnIntake {
 
 export interface QcIssue {
     id?: string;
+    db_id?: number;
     d: string;
     roll: string;
     m: string;
@@ -24,6 +25,9 @@ export interface QcIssue {
     inspector?: string;
     notes?: string;
     order_id?: string;
+    o?: string;
+    order_title?: string;
+    v?: string;
 }
 
 export interface DeliveryChallan {
@@ -184,4 +188,5 @@ export interface KnitkhataProps {
     subcontractorFactories?: Record<string, any>;
     dbShifts?: FactoryShift[];
     dbProductionLogs?: ProductionLogItem[];
+    dbQualityControls?: any[];
 }

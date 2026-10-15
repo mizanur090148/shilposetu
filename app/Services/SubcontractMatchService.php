@@ -86,7 +86,7 @@ class SubcontractMatchService
             }
 
             // 2. Machine Department match (from factory_machines)
-            if (!empty($factory->machines)) {
+            if (! empty($factory->machines)) {
                 foreach ($factory->machines as $machine) {
                     $mCat = strtolower($machine->category ?? '');
                     if (
@@ -98,7 +98,7 @@ class SubcontractMatchService
                         str_contains($postCategoryLower, $mCat)
                     ) {
                         $score += 35;
-                        $reasons[] = "মেশিন সক্ষমতা (" . ucfirst(str_replace('_', ' ', $mCat)) . ")";
+                        $reasons[] = 'মেশিন সক্ষমতা ('.ucfirst(str_replace('_', ' ', $mCat)).')';
                         break;
                     }
                 }
@@ -121,7 +121,7 @@ class SubcontractMatchService
 
             // 4. District / Location Match
             $fDistrict = trim(strtolower($factory->district ?? ''));
-            if (!empty($postDistrict) && !empty($fDistrict) && $postDistrict === $fDistrict) {
+            if (! empty($postDistrict) && ! empty($fDistrict) && $postDistrict === $fDistrict) {
                 $score += 25;
                 $reasons[] = "একই এলাকা ({$factory->district})";
             }
@@ -133,7 +133,7 @@ class SubcontractMatchService
 
             // Qualification threshold: score >= 25
             if ($score >= 25) {
-                $matchReasonStr = !empty($reasons) ? implode(' • ', $reasons) : 'উৎপাদন সক্ষমতা মিল';
+                $matchReasonStr = ! empty($reasons) ? implode(' • ', $reasons) : 'উৎপাদন সক্ষমতা মিল';
                 $scoredFactories->push([
                     'factory' => $factory,
                     'user' => $factory->user,
@@ -147,7 +147,7 @@ class SubcontractMatchService
         if ($scoredFactories->isEmpty() && $candidates->isNotEmpty()) {
             foreach ($candidates as $factory) {
                 $fDistrict = trim(strtolower($factory->district ?? ''));
-                $isLocal = (!empty($postDistrict) && $fDistrict === $postDistrict);
+                $isLocal = (! empty($postDistrict) && $fDistrict === $postDistrict);
                 $scoredFactories->push([
                     'factory' => $factory,
                     'user' => $factory->user,
@@ -170,6 +170,7 @@ class SubcontractMatchService
 
             if ($matches->isEmpty()) {
                 Log::info("No matching factories found for subcontract post #{$post->id}");
+
                 return 0;
             }
 
@@ -178,7 +179,7 @@ class SubcontractMatchService
                 $user = $match['user'];
                 $reason = $match['match_reason'];
 
-                if (!$user) {
+                if (! $user) {
                     continue;
                 }
 
@@ -186,14 +187,16 @@ class SubcontractMatchService
                     $user->notify(new NewSubcontractMatchNotification($post, $reason));
                     $count++;
                 } catch (\Throwable $e) {
-                    Log::error("Failed to notify user #{$user->id} for post #{$post->id}: " . $e->getMessage());
+                    Log::error("Failed to notify user #{$user->id} for post #{$post->id}: ".$e->getMessage());
                 }
             }
 
             Log::info("Successfully sent match notifications to {$count} factories for subcontract post #{$post->id} ('{$post->title}')");
+
             return $count;
         } catch (\Throwable $e) {
-            Log::error("Error in notifyMatchingFactories for post #{$post->id}: " . $e->getMessage());
+            Log::error("Error in notifyMatchingFactories for post #{$post->id}: ".$e->getMessage());
+
             return 0;
         }
     }

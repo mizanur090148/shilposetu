@@ -8,9 +8,11 @@ use App\Models\FactoryShift;
 use App\Models\Machine;
 use App\Models\MachineType;
 use App\Models\Production;
+use App\Models\QualityControl;
 use App\Models\Quotation;
 use App\Models\Shift;
 use App\Models\SubcontractPost;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -101,50 +103,7 @@ class KnitkhataController extends Controller
                         'kg' => (int) round($qty * 0.55),
                     ],
                 ] : []),
-                'qc' => ! empty($specs['qc']) ? array_values(array_map(function ($item, $idx) use ($p) {
-                    if (! isset($item['id'])) {
-                        $item['id'] = 'qc_'.$p->id.'_'.($idx + 1);
-                    }
-
-                    return $item;
-                }, $specs['qc'], array_keys($specs['qc']))) : ($st !== 'wait' ? [
-                    [
-                        'id' => 'qc_'.$p->id.'_1',
-                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '02 Oct 2026',
-                        'roll' => 'R-'.str_pad((string) (140 + $p->id), 3, '0', STR_PAD_LEFT),
-                        'm' => 'M-01',
-                        'issue' => 'Needle mark (১টি সুঁচ ভাঙা)',
-                        'kg' => 22.5,
-                        's' => 'bad',
-                        'res' => 'রিজেক্ট',
-                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
-                        'notes' => 'নিডেল পরিবর্তন ও মেকানিক চেক সম্পন্ন',
-                    ],
-                    [
-                        'id' => 'qc_'.$p->id.'_2',
-                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '03 Oct 2026',
-                        'roll' => 'R-'.str_pad((string) (141 + $p->id), 3, '0', STR_PAD_LEFT),
-                        'm' => 'M-02',
-                        'issue' => 'লুব্রিকেশন দাগ (Oil spot)',
-                        'kg' => 24.0,
-                        's' => 'warn',
-                        'res' => 'ওয়াশিংয়ে দূর',
-                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
-                        'notes' => 'ওয়াশিং প্ল্যান্টে আলাদা মার্ক করে পাঠানো হয়েছে',
-                    ],
-                    [
-                        'id' => 'qc_'.$p->id.'_3',
-                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '04 Oct 2026',
-                        'roll' => 'R-'.str_pad((string) (142 + $p->id), 3, '0', STR_PAD_LEFT),
-                        'm' => 'M-01',
-                        'issue' => 'কোনো সমস্যা নেই (পাস)',
-                        'kg' => 25.0,
-                        's' => 'ok',
-                        'res' => 'পাস',
-                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
-                        'notes' => '১০০% স্পেসিফিকেশন ও জিএসএম সঠিক',
-                    ],
-                ] : []),
+                'qc' => [],
                 'challans' => $specs['challans'] ?? ($st === 'done' ? [
                     [
                         'challanNo' => 'CH-2610-0'.(30 + $p->id),
@@ -261,38 +220,7 @@ class KnitkhataController extends Controller
                         'kg' => (int) round($qty * 0.55),
                     ],
                 ] : []),
-                'qc' => ! empty($specs['qc']) ? array_values(array_map(function ($item, $idx) use ($p) {
-                    if (! isset($item['id'])) {
-                        $item['id'] = 'qc_'.$p->id.'_'.($idx + 1);
-                    }
-
-                    return $item;
-                }, $specs['qc'], array_keys($specs['qc']))) : ($st !== 'wait' ? [
-                    [
-                        'id' => 'qc_'.$p->id.'_1',
-                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '02 Oct 2026',
-                        'roll' => 'R-'.str_pad((string) (140 + $p->id), 3, '0', STR_PAD_LEFT),
-                        'm' => 'M-01',
-                        'issue' => 'Needle mark (১টি সুঁচ ভাঙা)',
-                        'kg' => 22.5,
-                        's' => 'bad',
-                        'res' => 'রিজেক্ট',
-                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
-                        'notes' => 'নিডেল পরিবর্তন ও মেকানিক চেক সম্পন্ন',
-                    ],
-                    [
-                        'id' => 'qc_'.$p->id.'_2',
-                        'd' => $p->created_at ? $p->created_at->format('d M Y') : '03 Oct 2026',
-                        'roll' => 'R-'.str_pad((string) (141 + $p->id), 3, '0', STR_PAD_LEFT),
-                        'm' => 'M-02',
-                        'issue' => 'লুব্রিকেশন দাগ (Oil spot)',
-                        'kg' => 24.0,
-                        's' => 'warn',
-                        'res' => 'ওয়াশিংয়ে দূর',
-                        'inspector' => 'মো. জহিরুল ইসলাম (QC)',
-                        'notes' => 'ওয়াশিং প্ল্যান্টে আলাদা মার্ক করে পাঠানো হয়েছে',
-                    ],
-                ] : []),
+                'qc' => [],
                 'challans' => $specs['challans'] ?? ($st === 'done' ? [
                     [
                         'challanNo' => 'CH-2610-0'.(30 + $p->id),
@@ -416,6 +344,95 @@ class KnitkhataController extends Controller
             })->all();
         }
 
+        // Quality Control inspection records loaded from quality_controls table
+        $dbQualityControls = [];
+        if ($factory) {
+            $qcRecords = QualityControl::where('factory_id', $factory->id)
+                ->with('subcontractPost')
+                ->latest('inspection_date')
+                ->latest('id')
+                ->take(200)
+                ->get();
+
+            // Seed initial sample QC inspections if none exist yet for this factory
+            if ($qcRecords->isEmpty()) {
+                $sampleQc = [
+                    [
+                        'factory_id' => $factory->id,
+                        'subcontract_post_id' => null,
+                        'roll_no' => 'R-01',
+                        'machine_code' => 'M-01',
+                        'inspection_date' => now()->subDays(2),
+                        'weight_kg' => 24.5,
+                        'status' => 'ok',
+                        'issue_type' => 'কোনো ত্রুটি নেই (পাস)',
+                        'resolution' => 'পাস ও ছাড়করণ',
+                        'inspector_name' => $user?->name ? "{$user->name} (QC)" : 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'লট কোয়ালিটি স্ট্যান্ডার্ড অনুযায়ী সঠিক',
+                        'created_by_id' => $user?->id,
+                    ],
+                    [
+                        'factory_id' => $factory->id,
+                        'subcontract_post_id' => null,
+                        'roll_no' => 'R-02',
+                        'machine_code' => 'M-02',
+                        'inspection_date' => now()->subDay(),
+                        'weight_kg' => 23.8,
+                        'status' => 'warn',
+                        'issue_type' => 'লুব্রিকেশন দাগ (Oil spot)',
+                        'resolution' => 'ওয়াশিংয়ে দূর',
+                        'inspector_name' => $user?->name ? "{$user->name} (QC)" : 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'ওয়াশিং প্ল্যান্টে আলাদা মার্ক করে পাঠানো হয়েছে',
+                        'created_by_id' => $user?->id,
+                    ],
+                    [
+                        'factory_id' => $factory->id,
+                        'subcontract_post_id' => null,
+                        'roll_no' => 'R-03',
+                        'machine_code' => 'M-01',
+                        'inspection_date' => now(),
+                        'weight_kg' => 22.0,
+                        'status' => 'bad',
+                        'issue_type' => 'Needle mark (১টি সুঁচ ভাঙা)',
+                        'resolution' => 'রিজেক্ট',
+                        'inspector_name' => $user?->name ? "{$user->name} (QC)" : 'মো. জহিরুল ইসলাম (QC)',
+                        'notes' => 'নিডেল পরিবর্তন ও মেকানিক চেক সম্পন্ন',
+                        'created_by_id' => $user?->id,
+                    ],
+                ];
+
+                foreach ($sampleQc as $sample) {
+                    QualityControl::create($sample);
+                }
+
+                $qcRecords = QualityControl::where('factory_id', $factory->id)
+                    ->with('subcontractPost')
+                    ->latest('inspection_date')
+                    ->latest('id')
+                    ->take(200)
+                    ->get();
+            }
+
+            $dbQualityControls = $qcRecords->map(function ($q) {
+                return [
+                    'id' => (string) $q->id,
+                    'db_id' => $q->id,
+                    'd' => $q->inspection_date ? $q->inspection_date->format('d M Y') : now()->format('d M Y'),
+                    'roll' => $q->roll_no,
+                    'm' => $q->machine_code,
+                    'o' => $q->subcontract_post_id ? ('SC-POST-'.str_pad($q->subcontract_post_id, 3, '0', STR_PAD_LEFT)) : 'GENERAL',
+                    'order_id' => $q->subcontract_post_id ? ('SC-POST-'.str_pad($q->subcontract_post_id, 3, '0', STR_PAD_LEFT)) : 'GENERAL',
+                    'order_title' => $q->subcontractPost?->title ?: 'সাধারণ নিটিং লট',
+                    'issue' => $q->issue_type,
+                    'kg' => (float) $q->weight_kg,
+                    's' => $q->status,
+                    'res' => $q->resolution ?: ($q->status === 'ok' ? 'পাস' : ($q->status === 'warn' ? 'মেরামত' : 'রিজেক্ট')),
+                    'inspector' => $q->inspector_name ?: 'মো. জহিরুল ইসলাম (QC)',
+                    'notes' => $q->notes ?: '',
+                ];
+            })->all();
+        }
+
         // Factory Machines & Floor Machine Roster loaded directly from DB
         $factoryMachines = collect();
         $dbFloorMachines = [];
@@ -520,6 +537,7 @@ class KnitkhataController extends Controller
             'subcontractorFactories' => $vendorData['subcontractorFactories'],
             'dbShifts' => $dbShifts,
             'dbProductionLogs' => $dbProductionLogs,
+            'dbQualityControls' => $dbQualityControls,
             'factoryMachines' => $factoryMachines,
             'customMachines' => $customMachines,
             'machineTypes' => $machineTypes,
@@ -1116,80 +1134,90 @@ class KnitkhataController extends Controller
     }
 
     /**
-     * Store or append a QC inspection entry on a subcontract post.
+     * Store a QC inspection entry into quality_controls database table.
      */
     public function storeQc(Request $request)
     {
         $validated = $request->validate([
-            'order_id' => 'required',
-            'roll' => 'required|string',
-            'machine' => 'required|string',
-            'issue' => 'required|string',
+            'order_id' => 'nullable',
+            'roll' => 'required|string|max:50',
+            'machine' => 'required|string|max:50',
+            'issue' => 'required|string|max:150',
             'kg' => 'required|numeric|min:0.1',
             'status' => 'required|in:ok,bad,warn',
-            'resolution' => 'nullable|string',
+            'resolution' => 'nullable|string|max:150',
             'date' => 'nullable|string',
-            'inspector' => 'nullable|string',
+            'inspector' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
         ]);
 
-        $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
-        $post = SubcontractPost::find($id);
-
-        if (! $post) {
-            $user = $request->user();
-            $factory = $user?->factory ?: Factory::where('user_id', $user?->id)->first();
-            $post = SubcontractPost::where('accepted_factory_id', $factory?->id)
-                ->whereIn('status', ['in_progress', 'open', 'completed'])
-                ->latest()
-                ->first();
+        $user = $request->user();
+        $factory = $user?->factory ?: Factory::where('user_id', $user?->id)->first();
+        if (! $factory) {
+            $factory = Factory::first();
         }
 
-        if ($post) {
-            $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
-            $qcList = $specs['qc'] ?? [];
-
-            $qcId = 'qc_'.time().'_'.rand(100, 999);
-            $qcList[] = [
-                'id' => $qcId,
-                'd' => $validated['date'] ?: now()->format('d M Y'),
-                'roll' => $validated['roll'],
-                'm' => $validated['machine'],
-                'issue' => $validated['issue'],
-                'kg' => (float) $validated['kg'],
-                's' => $validated['status'],
-                'res' => $validated['resolution'] ?: ($validated['status'] === 'ok' ? 'পাস' : ($validated['status'] === 'warn' ? 'মেরামত' : 'রিজেক্ট')),
-                'inspector' => $validated['inspector'] ?? 'মো. জহিরুল ইসলাম (QC)',
-                'notes' => $validated['notes'] ?? '',
-            ];
-            $specs['qc'] = $qcList;
-            $post->update(['specs' => $specs]);
-
-            return redirect()->back()->with('success', "রোল {$validated['roll']}-এর QC পরিদর্শন সফলভাবে সংরক্ষিত হয়েছে!");
+        if (! $factory) {
+            return redirect()->back()->with('error', 'ফ্যাক্টরি প্রোফাইল পাওয়া যায়নি!');
         }
 
-        return redirect()->back()->with('error', 'অর্ডার পাওয়া যায়নি!');
+        $subcontractPostId = null;
+        if (! empty($validated['order_id'])) {
+            $id = (int) preg_replace('/\D/', '', (string) $validated['order_id']);
+            if ($id > 0 && SubcontractPost::where('id', $id)->exists()) {
+                $subcontractPostId = $id;
+            }
+        }
+
+        $date = now();
+        if (! empty($validated['date'])) {
+            try {
+                $date = Carbon::parse($validated['date']);
+            } catch (\Exception $e) {
+                $date = now();
+            }
+        }
+
+        QualityControl::create([
+            'factory_id' => $factory->id,
+            'subcontract_post_id' => $subcontractPostId,
+            'roll_no' => $validated['roll'],
+            'machine_code' => $validated['machine'],
+            'inspection_date' => $date,
+            'weight_kg' => (float) $validated['kg'],
+            'status' => $validated['status'],
+            'issue_type' => $validated['issue'],
+            'resolution' => $validated['resolution'] ?: ($validated['status'] === 'ok' ? 'পাস ও ছাড়করণ' : ($validated['status'] === 'warn' ? 'মেরামত সম্পন্ন' : 'রিজেক্ট ও বাদ')),
+            'inspector_name' => $validated['inspector'] ?? 'মো. জহিরুল ইসলাম (QC)',
+            'notes' => $validated['notes'] ?? null,
+            'created_by_id' => $user?->id,
+        ]);
+
+        return redirect()->back()->with('success', "রোল {$validated['roll']}-এর QC পরিদর্শন নতুন টেবিলে সফলভাবে সংরক্ষিত হয়েছে!");
     }
 
     /**
-     * Delete a QC inspection entry from a subcontract post.
+     * Delete a QC inspection entry from quality_controls database table.
      */
     public function destroyQc(Request $request, $id)
     {
-        $posts = SubcontractPost::whereNotNull('specs')->get();
-        foreach ($posts as $post) {
-            $specs = is_array($post->specs) ? $post->specs : (json_decode($post->specs, true) ?: []);
-            if (! empty($specs['qc']) && is_array($specs['qc'])) {
-                $filtered = array_values(array_filter($specs['qc'], function ($q) use ($id) {
-                    return ($q['id'] ?? '') !== (string) $id && ($q['roll'] ?? '') !== (string) $id;
-                }));
-                if (count($filtered) !== count($specs['qc'])) {
-                    $specs['qc'] = $filtered;
-                    $post->update(['specs' => $specs]);
+        $user = $request->user();
+        $factory = $user?->factory ?: Factory::where('user_id', $user?->id)->first();
 
-                    return redirect()->back()->with('success', 'QC রেকর্ড সফলভাবে মুছে ফেলা হয়েছে!');
-                }
-            }
+        $query = QualityControl::query();
+        if ($factory) {
+            $query->where('factory_id', $factory->id);
+        }
+
+        $qc = is_numeric($id) ? (clone $query)->find($id) : null;
+        if (! $qc) {
+            $qc = (clone $query)->where('roll_no', (string) $id)->latest()->first();
+        }
+
+        if ($qc) {
+            $qc->delete();
+
+            return redirect()->back()->with('success', 'QC রেকর্ড সফলভাবে মুছে ফেলা হয়েছে!');
         }
 
         return redirect()->back()->with('error', 'QC রেকর্ড পাওয়া যায়নি!');
