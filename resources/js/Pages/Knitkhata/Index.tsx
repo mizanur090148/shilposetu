@@ -2451,13 +2451,13 @@ export default function KnitkhataIndex({
                                     <h2>সাব-কন্ট্রাক্ট অর্ডার</h2>
                                 </div>
                                 <div className="row">
-                                    <button
+                                    {/* <button
                                         type="button"
                                         className="btn pri"
                                         onClick={() => setShowAddOrderModal(true)}
                                     >
                                         + নতুন অর্ডার তৈরি করুন
-                                    </button>
+                                    </button> */}
 
                                     <button
                                         type="button"
