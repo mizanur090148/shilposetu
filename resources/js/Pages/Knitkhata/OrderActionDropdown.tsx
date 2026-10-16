@@ -23,7 +23,6 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
     onUpdateStatus,
     onOpenQcModal,
     onViewQuotations,
-    showToast,
     bn = (n: number | string) => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[+d]),
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +34,7 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
     const calculatePosition = () => {
         if (!buttonRef.current) return;
         const rect = buttonRef.current.getBoundingClientRect();
-        const menuHeight = role === 'fac' ? 340 : 190;
+        const menuHeight = role === 'fac' ? 220 : 120;
         const spaceBelow = window.innerHeight - rect.bottom;
         const spaceAbove = rect.top;
 
@@ -114,20 +113,8 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
     const executeAction = (fn?: () => void) => {
         setIsOpen(false);
         if (fn) {
-            // Slight delay to allow animation to feel natural
             setTimeout(() => fn(), 10);
         }
-    };
-
-    const handleCopyId = () => {
-        executeAction(() => {
-            if (navigator?.clipboard?.writeText) {
-                navigator.clipboard.writeText(order.id);
-            }
-            if (showToast) {
-                showToast(`অর্ডার আইডি (${order.id}) কপি করা হয়েছে!`);
-            }
-        });
     };
 
     const isRunning = order.status === 'run';
@@ -141,7 +128,7 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                title="অর্ডারের সব অপশন ও অ্যাকশন মেনু (Three Dots)"
+                title="অ্যাকশন মেনু"
                 aria-label={`অ্যাকশন মেনু - ${order.id}`}
                 aria-expanded={isOpen}
                 style={{
@@ -180,7 +167,7 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                     }
                 }}
             >
-                {/* Sleek SVG Vertical Three Dots */}
+                {/* SVG Vertical Three Dots */}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <circle cx="12" cy="5" r="2.2" />
                     <circle cx="12" cy="12" r="2.2" />
@@ -188,7 +175,7 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                 </svg>
             </button>
 
-            {/* DROPDOWN POPOVER MENU (FIXED TO ESCAPE TABLE OVERFLOW CLIPPING) */}
+            {/* DROPDOWN POPOVER MENU */}
             {isOpen && (
                 <div
                     ref={menuRef}
@@ -198,69 +185,21 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                         top: menuCoords.top !== undefined ? `${menuCoords.top}px` : 'auto',
                         bottom: menuCoords.bottom !== undefined ? `${menuCoords.bottom}px` : 'auto',
                         right: `${menuCoords.right}px`,
-                        width: '260px',
+                        width: '210px',
                         maxWidth: 'calc(100vw - 24px)',
                         maxHeight: 'calc(100vh - 40px)',
                         overflowY: 'auto',
                         background: 'var(--surface, #ffffff)',
                         border: '1px solid var(--line, #e2e8f0)',
                         borderRadius: '10px',
-                        boxShadow: '0 14px 35px -4px rgba(0, 0, 0, 0.18), 0 8px 16px -6px rgba(0, 0, 0, 0.1)',
+                        boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.16), 0 6px 14px -6px rgba(0, 0, 0, 0.08)',
                         zIndex: 9999,
-                        padding: '6px',
+                        padding: '5px',
                         fontSize: '0.84rem',
                         animation: 'fadeInScale 0.14s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                 >
-                    {/* MENU HEADER: ORDER ID & STATUS BADGE */}
-                    <div
-                        style={{
-                            padding: '8px 10px 10px',
-                            borderBottom: '1px solid var(--line, #e2e8f0)',
-                            marginBottom: '4px',
-                            background: 'var(--surface2, #f8fafc)',
-                            borderRadius: '6px 6px 0 0',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                            <span
-                                className="mono"
-                                style={{
-                                    fontWeight: 700,
-                                    fontSize: '0.86rem',
-                                    color: 'var(--accent, #16a34a)',
-                                }}
-                            >
-                                {order.id}
-                            </span>
-                            <span
-                                style={{
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600,
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    background: isRunning ? '#dcfce7' : isWaiting ? '#fef9c3' : '#e0e7ff',
-                                    color: isRunning ? '#15803d' : isWaiting ? '#a16207' : '#3730a3',
-                                }}
-                            >
-                                {isRunning ? '🟢 চলমান' : isWaiting ? '🟡 অপেক্ষায়' : '🔵 সম্পন্ন'}
-                            </span>
-                        </div>
-                        <div
-                            style={{
-                                fontSize: '0.76rem',
-                                color: 'var(--muted, #64748b)',
-                                marginTop: '3px',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                            }}
-                        >
-                            {order.title || order.fabric} · {bn(order.qty)} kg
-                        </div>
-                    </div>
-
-                    {/* ACTION ITEMS */}
+                    {/* ACTION ITEMS (CLEAN & COMPACT - TITLES ONLY) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         {/* 1. VIEW DETAILS */}
                         <button
@@ -272,10 +211,9 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                             onMouseLeave={e => applyHover(e.currentTarget, false)}
                         >
                             <span style={iconWrapStyle}>👁️</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>বিস্তারিত দেখুন</span>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>উৎপাদন ও লাইভ অগ্রগতি</span>
-                            </div>
+                            <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                বিস্তারিত দেখুন
+                            </span>
                         </button>
 
                         {/* FACTORY ROLE SPECIFIC ACTIONS */}
@@ -292,16 +230,9 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                         onMouseLeave={e => applyHover(e.currentTarget, false)}
                                     >
                                         <span style={iconWrapStyle}>⚙️</span>
-                                        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                            <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>
-                                                মেশিন বরাদ্দ / পরিবর্তন
-                                            </span>
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>
-                                                {order.machines && order.machines.length > 0
-                                                    ? `${bn(order.machines.length)}টি নিযুক্ত (${order.machines.join(', ')})`
-                                                    : 'মেশিন সেট করুন'}
-                                            </span>
-                                        </div>
+                                        <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                            মেশিন বরাদ্দ / পরিবর্তন
+                                        </span>
                                     </button>
                                 )}
 
@@ -316,53 +247,22 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                         onMouseLeave={e => applyHover(e.currentTarget, false)}
                                     >
                                         <span style={iconWrapStyle}>🚚</span>
-                                        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                            <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>
-                                                ডেলিভারি চালান তৈরি
-                                            </span>
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>
-                                                চালানপত্র ও গেটপাস প্রিন্ট
-                                            </span>
-                                        </div>
-                                        {isRunning && (
-                                            <span
-                                                style={{
-                                                    fontSize: '0.68rem',
-                                                    padding: '1px 6px',
-                                                    borderRadius: '4px',
-                                                    background: '#dcfce7',
-                                                    color: '#15803d',
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                রানিং
-                                            </span>
-                                        )}
+                                        <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                            ডেলিভারি চালান তৈরি
+                                        </span>
                                     </button>
                                 )}
 
-                                {/* DIVIDER: STATUS ACTIONS */}
+                                {/* STATUS TRANSITION ACTIONS */}
                                 {onUpdateStatus && (
                                     <>
                                         <div
                                             style={{
                                                 height: '1px',
                                                 background: 'var(--line, #e2e8f0)',
-                                                margin: '4px 0',
+                                                margin: '3px 0',
                                             }}
                                         />
-                                        <div
-                                            style={{
-                                                fontSize: '0.7rem',
-                                                fontWeight: 600,
-                                                color: 'var(--muted, #94a3b8)',
-                                                padding: '2px 10px',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.5px',
-                                            }}
-                                        >
-                                            অবস্থা পরিবর্তন
-                                        </div>
 
                                         {/* Status: WAITING -> ACTIVATE (RUN) */}
                                         {isWaiting && (
@@ -372,20 +272,15 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                                 onClick={() => executeAction(() => onUpdateStatus(order.id, 'run'))}
                                                 style={{
                                                     ...itemButtonStyle,
-                                                    background: 'rgba(22, 163, 74, 0.05)',
+                                                    color: '#15803d',
                                                 }}
                                                 onMouseEnter={e => applyHover(e.currentTarget, true, '#dcfce7')}
-                                                onMouseLeave={e => applyHover(e.currentTarget, false, 'rgba(22, 163, 74, 0.05)')}
+                                                onMouseLeave={e => applyHover(e.currentTarget, false)}
                                             >
                                                 <span style={iconWrapStyle}>▶️</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                                    <span style={{ fontWeight: 600, color: '#15803d' }}>
-                                                        অর্ডার সচল করুন
-                                                    </span>
-                                                    <span style={{ fontSize: '0.72rem', color: '#16a34a' }}>
-                                                        উৎপাদন শুরু হিসেবে চিহ্নিত
-                                                    </span>
-                                                </div>
+                                                <span style={{ fontWeight: 600, color: '#15803d' }}>
+                                                    অর্ডার সচল করুন
+                                                </span>
                                             </button>
                                         )}
 
@@ -397,20 +292,15 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                                 onClick={() => executeAction(() => onUpdateStatus(order.id, 'done'))}
                                                 style={{
                                                     ...itemButtonStyle,
-                                                    background: 'rgba(22, 163, 74, 0.05)',
+                                                    color: '#15803d',
                                                 }}
                                                 onMouseEnter={e => applyHover(e.currentTarget, true, '#dcfce7')}
-                                                onMouseLeave={e => applyHover(e.currentTarget, false, 'rgba(22, 163, 74, 0.05)')}
+                                                onMouseLeave={e => applyHover(e.currentTarget, false)}
                                             >
                                                 <span style={iconWrapStyle}>✅</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                                    <span style={{ fontWeight: 600, color: '#15803d' }}>
-                                                        সম্পন্ন হিসেবে চিহ্নিত করুন
-                                                    </span>
-                                                    <span style={{ fontSize: '0.72rem', color: '#16a34a' }}>
-                                                        সব ডেলিভারি ও কাজ শেষ
-                                                    </span>
-                                                </div>
+                                                <span style={{ fontWeight: 600, color: '#15803d' }}>
+                                                    সম্পন্ন হিসেবে চিহ্নিত করুন
+                                                </span>
                                             </button>
                                         )}
 
@@ -425,14 +315,9 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                                 onMouseLeave={e => applyHover(e.currentTarget, false)}
                                             >
                                                 <span style={iconWrapStyle}>⏸️</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                                    <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>
-                                                        অপেক্ষায় রাখুন (বিরতি)
-                                                    </span>
-                                                    <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>
-                                                        সুতা বা কাজের সাময়িক বিরতি
-                                                    </span>
-                                                </div>
+                                                <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                                    অপেক্ষায় রাখুন (বিরতি)
+                                                </span>
                                             </button>
                                         )}
 
@@ -447,14 +332,9 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                                 onMouseLeave={e => applyHover(e.currentTarget, false)}
                                             >
                                                 <span style={iconWrapStyle}>🔄</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                                    <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>
-                                                        পুনরায় সচল করুন
-                                                    </span>
-                                                    <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>
-                                                        অর্ডারে পুনরায় উৎপাদন শুরু
-                                                    </span>
-                                                </div>
+                                                <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                                    পুনরায় সচল করুন
+                                                </span>
                                             </button>
                                         )}
                                     </>
@@ -467,7 +347,7 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                             style={{
                                                 height: '1px',
                                                 background: 'var(--line, #e2e8f0)',
-                                                margin: '4px 0',
+                                                margin: '3px 0',
                                             }}
                                         />
                                         <button
@@ -479,14 +359,9 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                             onMouseLeave={e => applyHover(e.currentTarget, false)}
                                         >
                                             <span style={iconWrapStyle}>🔬</span>
-                                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                                <span style={{ fontWeight: 600, color: 'var(--ink, #1e293b)' }}>
-                                                    নতুন QC পরিদর্শন
-                                                </span>
-                                                <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>
-                                                    এই অর্ডারের রোল চেক এন্ট্রি
-                                                </span>
-                                            </div>
+                                            <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>
+                                                নতুন QC পরিদর্শন
+                                            </span>
                                         </button>
                                     </>
                                 )}
@@ -503,47 +378,19 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
                                         onClick={() => executeAction(() => onViewQuotations(order.db_id!))}
                                         style={{
                                             ...itemButtonStyle,
-                                            background: 'rgba(22, 163, 74, 0.05)',
+                                            color: '#15803d',
                                         }}
                                         onMouseEnter={e => applyHover(e.currentTarget, true, '#dcfce7')}
-                                        onMouseLeave={e => applyHover(e.currentTarget, false, 'rgba(22, 163, 74, 0.05)')}
+                                        onMouseLeave={e => applyHover(e.currentTarget, false)}
                                     >
                                         <span style={iconWrapStyle}>📑</span>
-                                        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                            <span style={{ fontWeight: 600, color: '#15803d' }}>
-                                                দরপত্রসমূহ তুলনা ও অনুমোদন
-                                            </span>
-                                            <span style={{ fontSize: '0.72rem', color: '#16a34a' }}>
-                                                {bn(order.quotations_count || 0)}টি দরপত্র জমা পড়েছে
-                                            </span>
-                                        </div>
+                                        <span style={{ fontWeight: 600, color: '#15803d' }}>
+                                            দরপত্রসমূহ তুলনা ও অনুমোদন
+                                        </span>
                                     </button>
                                 )}
                             </>
                         )}
-
-                        {/* COPY ORDER ID UTILITY */}
-                        <div
-                            style={{
-                                height: '1px',
-                                background: 'var(--line, #e2e8f0)',
-                                margin: '4px 0',
-                            }}
-                        />
-                        <button
-                            type="button"
-                            className="dropdown-action-btn"
-                            onClick={handleCopyId}
-                            style={itemButtonStyle}
-                            onMouseEnter={e => applyHover(e.currentTarget, true)}
-                            onMouseLeave={e => applyHover(e.currentTarget, false)}
-                        >
-                            <span style={iconWrapStyle}>📋</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', flex: 1 }}>
-                                <span style={{ fontWeight: 500, color: 'var(--ink, #1e293b)' }}>অর্ডার আইডি কপি করুন</span>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--muted, #64748b)' }}>{order.id}</span>
-                            </div>
-                        </button>
                     </div>
                 </div>
             )}
@@ -555,13 +402,14 @@ export const OrderActionDropdown: React.FC<OrderActionDropdownProps> = ({
 const itemButtonStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '8px',
     width: '100%',
-    padding: '7px 10px',
+    padding: '7px 8px',
     borderRadius: '6px',
     border: 'none',
     background: 'transparent',
     cursor: 'pointer',
+    textAlign: 'left',
     transition: 'background 0.15s ease',
 };
 
@@ -569,11 +417,11 @@ const iconWrapStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '26px',
-    height: '26px',
-    borderRadius: '6px',
+    width: '24px',
+    height: '24px',
+    borderRadius: '5px',
     background: 'var(--surface2, #f1f5f9)',
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     flexShrink: 0,
 };
 
