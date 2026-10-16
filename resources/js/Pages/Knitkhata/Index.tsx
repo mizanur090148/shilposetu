@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import KnitkhataLayout, { TAB_HREFS } from '../../Layouts/KnitkhataLayout';
 import { SearchableDropdown } from './SearchableDropdown';
+import { OrderActionDropdown } from './OrderActionDropdown';
 import './knitkhata.css';
 import {
     RoleMode,
@@ -570,9 +571,10 @@ export default function KnitkhataIndex({
         }
     };
 
-    const handleOpenQcModal = () => {
-        const defaultOrder = orders.find(o => o.id === curOrder) || orders[0];
-        const ordId = defaultOrder?.id || 'SC-POST-001';
+    const handleOpenQcModal = (orderIdOrEvent?: string | React.MouseEvent) => {
+        const orderId = typeof orderIdOrEvent === 'string' ? orderIdOrEvent : undefined;
+        const defaultOrder = (orderId ? (orders.find(o => o.id === orderId) || vendorOrders.find(o => o.id === orderId)) : null) || orders.find(o => o.id === curOrder) || orders[0];
+        const ordId = defaultOrder?.id || orderId || 'SC-POST-001';
         setQcFormOrderId(ordId);
 
         // Derive next roll number
@@ -2609,7 +2611,7 @@ export default function KnitkhataIndex({
                                                 <th className="n">চার্জ / মূল্য</th>
                                                 <th>সম্ভাব্য শেষ</th>
                                                 <th>অবস্থা</th>
-                                                <th>অ্যাকশন</th>
+                                                <th style={{ textAlign: 'center', width: '56px' }}>অ্যাকশন</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -2704,70 +2706,18 @@ export default function KnitkhataIndex({
                                                                 {o.status === 'done' ? 'সম্পন্ন' : e ? fmtD(e.date) : 'সুতা এলে'}
                                                             </td>
                                                             <td>{stPill(o)}</td>
-                                                            <td>
-                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px', alignItems: 'center' }}>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn sm"
-                                                                        onClick={() => handleSelectOrder(o.id)}
-                                                                        title="অর্ডারের বিস্তারিত দেখুন"
-                                                                    >
-                                                                        বিস্তারিত
-                                                                    </button>
-
-                                                                    {o.status === 'run' && (
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn sm"
-                                                                            onClick={() => handleOpenDeliveryModal(o.id)}
-                                                                            title="ডেলিভারি চালান তৈরি করুন"
-                                                                        >
-                                                                            + চালান
-                                                                        </button>
-                                                                    )}
-                                                                    {o.status === 'wait' && (
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn sm pri"
-                                                                            onClick={() => handleUpdateOrderStatus(o.id, 'run')}
-                                                                            title="অর্ডারটি সচল করুন"
-                                                                        >
-                                                                            সচল
-                                                                        </button>
-                                                                    )}
-                                                                    {o.status === 'run' && (
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn sm"
-                                                                            onClick={() => handleUpdateOrderStatus(o.id, 'done')}
-                                                                            title="ডেলিভারি সম্পন্ন চিহ্নিত করুন"
-                                                                        >
-                                                                            সম্পন্ন
-                                                                        </button>
-                                                                    )}
-
-                                                                    {/* THREE DOT (⋮) BUTTON FOR ASSIGN MACHINES */}
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn sm"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleOpenAssignModal(o.id);
-                                                                        }}
-                                                                        title="মেশিন অ্যাসাইন করুন (Assign Machines)"
-                                                                        style={{
-                                                                            padding: '0 8px',
-                                                                            fontSize: '1.25rem',
-                                                                            fontWeight: 900,
-                                                                            lineHeight: '1.2',
-                                                                            color: 'var(--accent)',
-                                                                            borderColor: 'var(--accent)',
-                                                                            background: '#f0fdf4'
-                                                                        }}
-                                                                    >
-                                                                        ⋮
-                                                                    </button>
-                                                                </div>
+                                                            <td style={{ textAlign: 'center' }}>
+                                                                <OrderActionDropdown
+                                                                    order={o}
+                                                                    role="fac"
+                                                                    onSelectOrder={handleSelectOrder}
+                                                                    onOpenAssignModal={handleOpenAssignModal}
+                                                                    onOpenDeliveryModal={handleOpenDeliveryModal}
+                                                                    onUpdateStatus={handleUpdateOrderStatus}
+                                                                    onOpenQcModal={handleOpenQcModal}
+                                                                    showToast={showToast}
+                                                                    bn={bn}
+                                                                />
                                                             </td>
                                                         </tr>
                                                     );
@@ -2971,7 +2921,7 @@ export default function KnitkhataIndex({
                                                 <th className="n">নিটিং বিল</th>
                                                 <th>সম্ভাব্য ডেলিভারি</th>
                                                 <th>অবস্থা</th>
-                                                <th>অ্যাকশন</th>
+                                                <th style={{ textAlign: 'center', width: '56px' }}>অ্যাকশন</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -3082,28 +3032,15 @@ export default function KnitkhataIndex({
                                                                 {o.status === 'done' ? 'ডেলিভারি সম্পন্ন' : (o.deadline ? formatDeadline(o.deadline) : (e ? fmtD(e.date) : 'সুতা পৌঁছালে'))}
                                                             </td>
                                                             <td>{stPill(o)}</td>
-                                                            <td>
-                                                                <div className="row" style={{ flexWrap: 'nowrap', gap: '4px' }}>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn sm"
-                                                                        onClick={() => handleSelectOrder(o.id)}
-                                                                        title="লাইভ উৎপাদন ট্র্যাকিং দেখুন"
-                                                                    >
-                                                                        লাইভ ট্র্যাকিং
-                                                                    </button>
-
-                                                                    {(o.quotations_count || 0) > 0 && !o.is_awarded && (
-                                                                        <Link
-                                                                            href={`/quotations/compare/${o.db_id}`}
-                                                                            className="btn sm pri"
-                                                                            style={{ textDecoration: 'none' }}
-                                                                            title="দরপত্রসমূহ তুলনা ও অনুমোদন করুন"
-                                                                        >
-                                                                            দরপত্র ({o.quotations_count})
-                                                                        </Link>
-                                                                    )}
-                                                                </div>
+                                                            <td style={{ textAlign: 'center' }}>
+                                                                <OrderActionDropdown
+                                                                    order={o}
+                                                                    role="ven"
+                                                                    onSelectOrder={handleSelectOrder}
+                                                                    onViewQuotations={(dbId) => router.visit(`/quotations/compare/${dbId}`)}
+                                                                    showToast={showToast}
+                                                                    bn={bn}
+                                                                />
                                                             </td>
                                                         </tr>
                                                     );
