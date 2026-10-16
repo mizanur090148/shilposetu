@@ -2608,7 +2608,6 @@ export default function KnitkhataIndex({
                                                 <th className="n">বাকি (kg)</th>
                                                 <th>অগ্রগতি</th>
                                                 <th>মেশিন</th>
-                                                <th className="n">চার্জ / মূল্য</th>
                                                 <th>সম্ভাব্য শেষ</th>
                                                 <th>অবস্থা</th>
                                                 <th style={{ textAlign: 'center', width: '56px' }}>অ্যাকশন</th>
@@ -2617,7 +2616,7 @@ export default function KnitkhataIndex({
                                         <tbody>
                                             {filteredOrders.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={13} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                                                    <td colSpan={12} style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
                                                         কোনো সাব-কন্ট্রাক্ট অর্ডার পাওয়া যায়নি।
                                                     </td>
                                                 </tr>
@@ -2626,7 +2625,6 @@ export default function KnitkhataIndex({
                                                     const e = etaOf(o);
                                                     const p = pct(o);
                                                     const remKg = Math.max(0, o.qty - o.done);
-                                                    const totalBill = o.qty * (o.rateTk || 22);
                                                     const primaryLot = o.yarnIn.length > 0 ? o.yarnIn[0].lot : 'সুতা বাকি';
 
                                                     return (
@@ -2697,10 +2695,6 @@ export default function KnitkhataIndex({
                                                                         + অ্যাসাইন করুন
                                                                     </button>
                                                                 )}
-                                                            </td>
-                                                            <td className="n">
-                                                                <div className="mono small">৳{o.rateTk}/kg</div>
-                                                                <div className="small muted">মোট: ৳{bn(totalBill)}</div>
                                                             </td>
                                                             <td className="mono small">
                                                                 {o.status === 'done' ? 'সম্পন্ন' : e ? fmtD(e.date) : 'সুতা এলে'}
